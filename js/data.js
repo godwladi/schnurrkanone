@@ -109,6 +109,7 @@ const SKILLS = [
   { id: 'laser', key: '1', name: 'Laser-Blick',     icon: '👁️', unlock: 3,  cd: 30, desc: '3 s Augenlaser mit 6× DPS' },
   { id: 'rain',  key: '2', name: 'Fischregen',      icon: '🐟', unlock: 8,  cd: 60, desc: 'Sofort Münzen für 25 Zerstörungen' },
   { id: 'roar',  key: '3', name: 'Wildes Fauchen',  icon: '😾', unlock: 12, cd: 45, desc: '8 s doppelte Feuerrate, +50% Krit' },
+  { id: 'shield', key: '4', name: 'Schnurr-Schild', icon: '🛡️', unlock: 3,  cd: 18, desc: '2,5 s unverwundbar · wehrt auch den Vernichtungsschlag ab (Konter!)' },
 ];
 
 const SLOT_UNLOCK = [0, 0, 5, 15]; // benötigte Bestleistung (Stufe)
@@ -130,6 +131,8 @@ const ACHIEVEMENTS = [];
     ['treasures', 'Schatztruhen',       [1, 10, 50],                         ['Schatzsucherin', 'Truhenknacker', 'Piratenkönig']],
     ['level',     'Katzen-Level',       [10, 25, 50],                        ['Erfahrene Pfote', 'Veteranin', 'Großmeister-Katze']],
     ['maxCombo',  'Höchste Combo',      [10, 25, 50],                        ['Kettenreaktion', 'Combo-Katze', 'Unaufhaltsam']],
+    ['parries',   'Paraden',            [10, 100, 500],                      ['Pfoten-Parade', 'Tennis-Tiger', 'Unberührbar']],
+    ['runBest',   'Streifzug-Raum',     [5, 10, 20, 35],                     ['Streuner', 'Abenteurerin', 'Dungeon-Katze', 'Herrin der Gassen']],
   ];
   for (const [stat, label, steps, names] of defs) {
     steps.forEach((n, i) => {

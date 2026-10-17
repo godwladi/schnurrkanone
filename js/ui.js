@@ -112,6 +112,7 @@ const UI = {
     else if (e.key === '1') Battle.useSkill('laser');
     else if (e.key === '2') Battle.useSkill('rain');
     else if (e.key === '3') Battle.useSkill('roar');
+    else if (e.key === '4') Battle.useSkill('shield');
     else if (e.key === 'b' || e.key === 'B') Game.buyBox(1);
     else if (e.key === 'm' || e.key === 'M') Game.autoMerge();
     else if (e.key === 'n' || e.key === 'N') this.toggleMusic();
@@ -639,7 +640,11 @@ const UI = {
           <li>Nach 10 Zerstörungen kommt ein <b>Boss</b> mit Zeitlimit. Schaffst du ihn nicht, wird gefarmt, bis du stärker bist.</li>
           <li>Bosse geben 🦴 Fischgräten für <b>Glückskisten</b> (Katzen) und <b>Begleiter</b>.</li>
           <li>Ab Stufe 25: <b>Wiedergeburt</b> für 🌿 Katzenminze und dauerhafte Perks.</li>
-          <li>Skills: <kbd>1</kbd> Laser-Blick · <kbd>2</kbd> Fischregen · <kbd>3</kbd> Wildes Fauchen.</li>
+          <li>Skills: <kbd>1</kbd> Laser-Blick · <kbd>2</kbd> Fischregen · <kbd>3</kbd> Wildes Fauchen · <kbd>4</kbd> Schnurr-Schild.</li>
+          <li>❤️ Ab Stufe 3 <b>werfen Bosse zurück</b>. Tippe auf die rot umrandeten Geschosse, um sie zu <b>parieren</b> – sie fliegen zurück zum Boss.</li>
+          <li>⚠️ Läuft der Countdown ab, kommt der <b>Vernichtungsschlag</b>. Mit 🛡️ Schild gibt es einen <b>Konter</b>, sonst kostet er viel Leben. Überlebt? +8 s! Bei <b>K.O.</b> geht es eine Stufe zurück.</li>
+          <li>💗 Heilung: Schnurr-Raserei und Fischregen. Außerhalb von Bosskämpfen erholt sich die Katze von selbst.</li>
+          <li>🗺️ <b>Streifzug</b> (ab Stufe 8): Roguelike-Abenteuer mit Segen, Pakten und Wächtern – ein K.O. beendet den Lauf.</li>
           <li>Ab Stufe 5 bauen Bosse <b>Schilde</b> auf – Kugeln prallen fast ab, <b>Pfotenhiebe</b> machen 4× Schaden!</li>
           <li>Schnelle Zerstörungen hintereinander ergeben eine <b>Combo</b> mit bis zu +50% Münzen.</li>
           <li>Ab und zu fliegt ein <b>Glücksballon</b> vorbei – anklicken lohnt sich!</li>

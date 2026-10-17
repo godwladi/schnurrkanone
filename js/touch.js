@@ -130,6 +130,10 @@ const Mobile = {
     // Safari: Pinch-Zoom sperren (user-scalable=no wird ignoriert); Doppeltipp-Zoom
     // verhindert touch-action: manipulation im CSS, ohne schnelle Doppeltipps auf Knöpfe zu schlucken.
     for (const ev of ['gesturestart', 'gesturechange']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+    // Langes Drücken: keine Textmarkierung und kein Kontextmenü (außer in Eingabefeldern)
+    const editable = t => t && t.closest && t.closest('input, textarea, [contenteditable]');
+    document.addEventListener('selectstart', e => { if (!editable(e.target)) e.preventDefault(); });
+    document.addEventListener('contextmenu', e => { if (!editable(e.target) && matchMedia('(pointer: coarse)').matches) e.preventDefault(); });
 
     // Audio: iOS gibt WebAudio erst nach einer echten Berührung frei (touchend/click)
     // und unterbricht den Kontext im Hintergrund ("interrupted"). Bei jeder

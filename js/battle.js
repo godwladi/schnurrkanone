@@ -23,7 +23,19 @@ const Battle = {
     this.cv = cv;
     this.ctx = cv.getContext('2d');
     this.resize();
-    window.addEventListener('resize', () => this.resize());
+    // iOS meldet beim Drehen 'resize' oft, bevor das Layout fertig ist → Leinwand behielt die alte
+    // Größe (quer: Katze unten abgeschnitten, hochkant danach „eingezoomt“). Deshalb die echte
+    // Spielfeldgröße beobachten und nach dem Drehen mehrfach nachmessen.
+    const fit = () => {
+      const r = this.cv.parentElement.getBoundingClientRect();
+      if (Math.abs(Math.max(300, r.width) - this.W) > 0.5 || Math.abs(Math.max(240, r.height) - this.H) > 0.5 || (window.devicePixelRatio || 1) !== this.dpr) this.resize();
+    };
+    window.addEventListener('resize', fit);
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(this.cv.parentElement);
+    if (window.visualViewport) visualViewport.addEventListener('resize', fit);
+    window.addEventListener('orientationchange', () => {
+      for (const ms of [50, 200, 450, 900]) setTimeout(() => { window.scrollTo(0, 0); fit(); }, ms);
+    });
     cv.addEventListener('pointerdown', e => this.onPointer(e));
     for (let i = 0; i < 80; i++) this.stars.push({ x: Math.random(), y: Math.random() * 0.7, s: Math.random() * 1.8 + 0.4, p: Math.random() * 6 });
   },
@@ -67,8 +79,8 @@ const Battle = {
 
   // ---------------------------------------------------------------- Werte
   dmgMul() { return R.dmgMult * (this.frenzy > 0 ? 3 : 1); },
-  rateMul() { return R.rateMult * (this.frenzy > 0 ? 1.5 : 1) * (this.roar > 0 ? 2 : 1) * (this.owlBuff > 0 ? 1.5 : 1) * (Events.active('storm') ? 1.25 : 1) * Talents.rateMul(); },
-  critNow() { return Talents.focus > 0 ? 1 : Math.min(0.95, R.crit + (this.roar > 0 ? 0.5 : 0)); },
+  rateMul() { return R.rateMult * (this.frenzy > 0 ? 1.5 : 1) * (this.roar > 0 ? 2 : 1) * (this.owlBuff > 0 ? 1.5 : 1) * (Events.active('storm') ? 1.25 : 1) * Talents.rateMul() * Run.rateMul(); },
+  critNow() { return Talents.focus > 0 ? 1 : Math.min(0.95, R.crit + (this.roar > 0 ? 0.5 : 0) + Run.critAdd()); },
   liveObs() { return this.obs.filter(o => !o.dead && !o.fleeing); },
   front() { return this.obs.find(o => !o.dead && !o.fleeing && !(o.dying > 0) && o.x < this.W - 20) || null; },
 
@@ -86,12 +98,12 @@ const Battle = {
     const kind = treasure ? 'chest' : biome.obstacle;
     const golden = !boss && !treasure && Math.random() < (Events.active('goldrain') ? 0.25 : 0.05);
     const hp = boss ? Econ.bossHp(S.stage) : Econ.hp(S.stage) * U.rand(0.85, 1.15) * (golden ? 1.5 : 1) * (treasure ? 2 : 1);
-    return {
+    return Run.adjustObstacle({
       id: this.nextId++, kind, boss, fruit: golden, golden, treasure,
       x: this.W + 80 + Math.random() * 40, y: this.groundY,
       hp, maxHp: hp, scale: this.cs * (boss ? 1.75 : U.rand(0.92, 1.08)),
       flash: 0, squash: 0, shakeX: 0, dead: false, fleeing: false,
-    };
+    });
   },
 
   spawnBoss() {
@@ -106,6 +118,8 @@ const Battle = {
     this.bossTimeMax = Econ.bossTime() + o.shieldAt.length * 4;
     this.bossTimer = this.bossTimeMax;
     this.showBanner('BOSS!', `${BOSS_NAMES[o.kind]} · ${this.bossTimeMax} Sekunden`, '#ff4d6d');
+    Vitals.onBossSpawn(this, o);
+    Run.onBossSpawn(this, o);
     SFX.play('boss');
     this.shake = 10;
     this.bossIntro = 1.8;
@@ -153,7 +167,7 @@ const Battle = {
     }
 
     // Spawnen
-    if (this.bossState === 'none') {
+    if (this.bossState === 'none' && !Run.paused()) {
       const live = this.liveObs().length;
       if (!S.farm && S.kills >= KILLS_PER_STAGE) {
         if (!S.autoBoss && !this.bossRequested) {
@@ -200,7 +214,7 @@ const Battle = {
     if (this.bossState === 'active') {
       const b = this.bossObj;
       if (b && !(b.dying > 0) && b.x <= this.frontX + 31 * this.cs) this.bossTimer -= dt;
-      if (this.bossTimer <= 0) this.bossFail();
+      if (this.bossTimer <= 0) Vitals.ultimate(this);
     }
 
     // Waffen feuern
@@ -212,7 +226,7 @@ const Battle = {
     const rm = this.rateMul();
     S.slots.forEach((w, i) => {
       this.recoil[i] = Math.max(0, this.recoil[i] - dt * 6);
-      if (!w) return;
+      if (!w || Vitals.dazed > 0) return;
       const d = WEAPONS[w.t];
       this.slotCd[i] -= dt * rm * (1 + setBonus(w.t).rate);
       if (this.slotCd[i] <= 0) {
@@ -244,6 +258,7 @@ const Battle = {
     // Begleiter
     this.updatePets(dt, target);
     Talents.update(dt, this);
+    Vitals.update(dt, this);
 
     // Projektile
     for (const b of this.bul) {
@@ -304,6 +319,7 @@ const Battle = {
       this.shake = 8;
       this.punchZoom(0.06, this.catX, this.groundY - 40 * this.cs);
       FX.addRing(this.catX, this.groundY - 40 * this.cs, 400, '#ff7ad9', 0.6, 14);
+      Vitals.heal(this, 0.25 + 0.2 * Run.n('purr'));
     }
   },
 
@@ -404,10 +420,10 @@ const Battle = {
   damage(o, amount, canCrit, quiet, src = 'bullet') {
     if (o.dead || o.dying > 0) return;
     const crit = canCrit && Math.random() < this.critNow();
-    let dmg = amount * (crit ? R.critDmg : 1) * (o.boss ? R.bossMult : 1);
+    let dmg = amount * (crit ? R.critDmg : 1) * (o.boss ? R.bossMult : 1) * Run.dmgMul(o, src) * Vitals.dmgMul(o);
     if (o.boss && o.shield > 0) {
       // Schild: Kugeln richten wenig aus, Pfotenhiebe viel
-      const eff = dmg * (src === 'paw' ? 4 : src === 'laser' ? 1 : 0.25);
+      const eff = dmg * (src === 'paw' || src === 'parry' ? 4 : src === 'laser' ? 1 : 0.25);
       o.shield -= eff;
       o.flash = 0.05;
       SFX.play('shieldHit');
@@ -459,8 +475,9 @@ const Battle = {
     if (this.combo > S.quests.comboBest) S.quests.comboBest = this.combo;
     if (this.combo >= 5 && this.combo % 5 === 0) SFX.play('combo', this.combo / 5);
     const mult = (o.boss ? 8 : 1) * (o.golden ? 4 : 1) * this.comboMult() * (this.rush > 0 ? 2 : 1);
-    const coins = Econ.coins(S.stage) * R.coinMult * mult;
-    Game.addCoins(coins);
+    // Streifzug: Gegner wachsen mit deiner Stärke – Münzen gibt es erst am Ende als Beute
+    const coins = Run.active ? 0 : Econ.coins(S.stage) * R.coinMult * mult;
+    if (coins) Game.addCoins(coins);
     S.stats.kills++;
     Level.add(o.boss ? 10 : o.golden ? 5 : 1);
     const cy = o.y - OBST_H[o.kind] * o.scale * 0.5;
@@ -473,11 +490,14 @@ const Battle = {
     FX.addRing(o.x, cy, (o.boss ? 220 : 80) * this.cs, o.golden ? '#ffe14d' : '#ffffff', o.boss ? 0.6 : 0.3, o.boss ? 10 : 5);
     this.hitStop = Math.max(this.hitStop, o.boss ? 0.16 : o.golden ? 0.07 : 0.025);
     if (o.boss || o.golden) this.punchZoom(o.boss ? 0.12 : 0.05, o.x, cy);
-    this.text(o.x, cy - 30, '+' + U.fmt(coins), o.golden ? '#ffe14d' : '#ffd34d', (o.golden ? 26 : 18) * this.cs, o.golden);
-    this.spawnFlyers(o.x, cy, o.boss ? 24 : o.golden ? 12 : 4, 'coin');
-    if (o.golden) { this.showBanner('GOLDENES HINDERNIS!', '4× Münzen', '#ffd34d'); SFX.play('reveal', 2); }
+    if (coins) {
+      this.text(o.x, cy - 30, '+' + U.fmt(coins), o.golden ? '#ffe14d' : '#ffd34d', (o.golden ? 26 : 18) * this.cs, o.golden);
+      this.spawnFlyers(o.x, cy, o.boss ? 24 : o.golden ? 12 : 4, 'coin');
+    }
+    if (o.golden && coins) { this.showBanner('GOLDENES HINDERNIS!', '4× Münzen', '#ffd34d'); SFX.play('reveal', 2); }
     this.purr = Math.min(100, this.purr + (o.boss ? 10 : 0.6) * (Events.active('catnip') ? 3 : 1));
     if (o.treasure) this.openTreasure(o, cy);
+    Run.onKill(this, o);
     SFX.play('kill');
     this.shake = Math.max(this.shake, o.boss ? 16 : 3);
     if (o.boss) this.bossWin(o);
@@ -487,6 +507,7 @@ const Battle = {
   },
 
   bossWin(o) {
+    if (Run.active) { Run.bossWin(this, o); return; }
     const oldBiome = biomeFor(S.stage);
     const bones = Econ.bones(S.stage);
     S.bones += bones;
@@ -508,6 +529,7 @@ const Battle = {
   },
 
   bossFail() {
+    if (Run.active) { Run.bossEscaped(this); return; }
     const b = this.bossObj;
     if (b) b.fleeing = true;
     this.bossState = 'none';
@@ -536,6 +558,7 @@ const Battle = {
   },
 
   paw(x, y) {
+    if (x !== undefined && Vitals.tryParry(this, x, y)) return;
     if (x !== undefined && this.balloon) {
       const bp = this.balloonPos();
       if (Math.hypot(x - bp.x, y - bp.y) < 42 * this.cs) { this.popBalloon(); return; }
@@ -559,8 +582,9 @@ const Battle = {
   useSkill(id) {
     const sk = SKILLS.find(s => s.id === id);
     if (!sk || S.best < sk.unlock || S.skillsCd[id] > 0) { SFX.play('error'); return; }
-    S.skillsCd[id] = sk.cd;
+    S.skillsCd[id] = sk.cd * (id === 'shield' ? Run.shieldCdMul() : 1);
     S.stats.skills = (S.stats.skills || 0) + 1;
+    if (id === 'shield') Vitals.raiseShield(this);
     if (id === 'laser') { this.laserCharge = 0.42; SFX.play('laser'); }
     if (id === 'rain') {
       const coins = Econ.coins(S.stage) * R.coinMult * 25;
@@ -573,6 +597,7 @@ const Battle = {
       }
       for (let i = 0; i < 6; i++) FX.addRing(U.rand(this.W * 0.3, this.W * 0.9), this.groundY + 4, U.rand(40, 90), '#9fdcff', U.rand(0.5, 0.9), 3);
       SFX.play('rain');
+      Vitals.heal(this, 0.2);
     }
     if (id === 'roar') {
       this.roar = 8; this.shake = 14; this.punchZoom(0.08, this.catX, this.groundY - 40 * this.cs);
@@ -879,6 +904,7 @@ const Battle = {
       });
     }
     this.eyes = this.mainEyes.concat(toWorld(ghostEyes, false));
+    Vitals.draw(ctx, this);
 
     // Nacht-Tönung (über der Szene, unter allem Leuchtenden)
     if (this.night > 0.01) {
@@ -1173,7 +1199,7 @@ const Battle = {
     const wrap = document.getElementById('bossWrap');
     const uiTop = wrap && wrap.offsetHeight ? wrap.offsetTop + wrap.offsetHeight + 8 : 108;
     // Stufenanzeige: Kasten wächst mit dem Text, Text schrumpft notfalls
-    const label = S.farm ? `Stufe ${S.stage} · ${biome.name} · Farm-Modus` : `Stufe ${S.stage} · ${biome.name}`;
+    const label = Run.active ? Run.label(biome) : S.farm ? `Stufe ${S.stage} · ${biome.name} · Farm-Modus` : `Stufe ${S.stage} · ${biome.name}`;
     let fs = 15 * k;
     ctx.font = `800 ${fs}px "Segoe UI", system-ui, sans-serif`;
     const tw = ctx.measureText(label).width;
@@ -1227,6 +1253,7 @@ const Battle = {
     }
 
     Events.drawPill(ctx, this, this.rush > 0 ? py + 36 : py);
+    Vitals.drawOverlay(ctx, this, narrow ? uiTop + 62 : Math.max(H * 0.24, 100));
 
     // Schnurr-Meter
     const mw = Math.min(260, W * 0.3), mx = W - mw - 18, my = H - 30 - iB;

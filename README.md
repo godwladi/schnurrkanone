@@ -10,7 +10,8 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 | Taste / Aktion | Wirkung |
 |---|---|
 | Klick auf Hindernis / `Leertaste` | Pfotenhieb, füllt das Schnurr-Meter |
-| `1` `2` `3` | Skills: Laser-Blick, Fischregen, Wildes Fauchen |
+| `1` `2` `3` `4` | Skills: Laser-Blick, Fischregen, Wildes Fauchen, Schnurr-Schild |
+| Tippen auf rot umrandetes Geschoss | Parieren: fliegt zum Werfer zurück |
 | `B` | Waffenkiste kaufen |
 | `M` | Auto-Merge |
 | `N` | Musik an/aus |
@@ -18,6 +19,18 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 | Klick auf Glücksballon | Belohnung (Münzen, Gräten, Goldrausch oder Raserei) |
 | Drag & Drop | Gleiche Waffen verschmelzen, ausrüsten, verwerten |
 | Doppelklick auf Waffe | An-/Ablegen |
+
+## Leben, Boss-Angriffe & Vernichtungsschlag (`js/vitals.js`)
+- Die Katze hat **❤️ Leben** (Balken über dem Kopf, nur sichtbar wenn wichtig). Außerhalb von Bosskämpfen erholt sie sich von selbst.
+- Ab Stufe 3 **werfen Bosse** passend zum Gebiet (Zapfen, Stacheln, Schneebälle, Lavaregen, Dosen, Meteore). Antippen = **Parade**, das Geschoss trifft den Boss.
+- Die letzten 6 s des Boss-Countdowns lädt der Boss den **Vernichtungsschlag** (Warnung oben). Mit 🛡️ **Schnurr-Schild** (Taste 4, ab Stufe 3) gibt es einen **Konter** (Boss betäubt, +8 s). Ohne Schild kostet er 65 % Leben; wer überlebt, bekommt +8 s und 3 s lang +50 % Schaden. Läuft die Zeit danach erneut ab, entkommt der Boss.
+- **K.O.** (Leben auf 0): eine Stufe zurück und Farm-Modus. Heilung: Schnurr-Raserei (25 %) und Fischregen (20 %).
+
+## Streifzug – Roguelike-Modus (`js/run.js`)
+- Reiter **🗺️ Streifzug** (ab Stufe 8). Die Katze zieht mit ihrer Ausrüstung los; das Hauptspiel (Stufe, Farm) wartet so lange.
+- Jeder Raum = neues Gebiet, 10 Gegner + Boss; jeder 5. Raum ist ein **Wächter** (stärker, 2 Segen). Gegner werfen auch, Leben heilen **nicht** von selbst.
+- Nach jedem Boss **1 von 3 Segen**: z. B. Scharfe Krallen, Koffein-Kater, Milchbart, Spiegelpfote, Neuntes Leben, Schrödingers Kiste (Glücksspiel) – oder ein **Pakt** mit Nachteil (Schwarze Katze, Gläserne Krallen).
+- Gegnerstärke wächst ab dem Startwert deiner DPS um 24 % je Raum. **K.O. = Lauf vorbei.** Beute: 3 🦴 je Raum plus ein Münzschatz (unterwegs gibt es keine Münzen pro Gegner).
 
 ## Auf dem iPhone spielen
 Das Spiel ist eine installierbare Web-App (PWA) – kein Mac, kein Xcode nötig.
@@ -58,6 +71,8 @@ Der Bericht (`schnurrkanone-<art>-<datum>.json`) enthält Beschreibung, Gerät/B
 - `js/main.js` – Start, Spielschleife, Offline-Ertrag
 - `js/feedback.js` – 🐞 Fehlerberichte mit Spielfeld-Bild, Foto-Anhang, Protokoll und Spielstand
 - `js/dock.js` – Symbolleiste und Menü-Schublade für Handy/Tablet
+- `js/vitals.js` – Katzen-Leben, Boss-Geschosse und Parade, Vernichtungsschlag, Schild, Heilung
+- `js/run.js` – Streifzug (Roguelike) mit Segen, Pakten und Wächter-Räumen
 - `js/splash.js` – Startbildschirm mit Logo-Animation, Querformat-Hinweis
 - `js/touch.js` – Touch-Drag & Doppeltipp im Rucksack, Zoom-Sperre, Audio-Fortsetzung, Service-Worker-Registrierung
 - `manifest.webmanifest`, `sw.js`, `icons/` – PWA (Home-Bildschirm, Offline)

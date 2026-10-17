@@ -26,6 +26,9 @@ body {
   overflow: hidden;
   user-select: none;
 }
+/* iOS: langes Drücken markiert sonst Texte (Zahlen in Skills/Waffen) und öffnet „Kopieren/Nachschlagen“ */
+*, *::before, *::after { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 button { font: inherit; color: inherit; }
 kbd { background: var(--card2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; font-size: 11px; }
 
@@ -567,7 +570,9 @@ button { -webkit-appearance: none; appearance: none; }
 /* ------------------------------------------------------------- Geräte-Feinschliff (iPhone/iPad, hoch & quer) */
 /* iOS-Home-Bildschirm-Apps rechnen 100vh/100dvh teils ohne Statusleiste → leerer Streifen unten.
    position: fixed + inset: 0 deckt immer genau den sichtbaren Bereich ab. */
-#app { position: fixed; inset: 0; height: auto; }
+#app { position: fixed; inset: 0; height: auto; overflow: hidden; }
+/* die zugeklappte Schublade liegt rechts/unten außerhalb – nicht in den Notch-Rand ragen lassen */
+main { overflow: hidden; position: relative; }
 /* Symbole wachsen mit dem Waffenfeld (große Felder auf iPhone hochkant/iPad) */
 .cell { container-type: inline-size; }
 .cell .wi { font-size: clamp(22px, 44cqw, 60px); }
@@ -695,4 +700,45 @@ main { grid-template-columns: minmax(0, 1fr) 440px; }
     transform: translateX(calc(100% + var(--dockR) * 1px + 20px));
   }
   #toasts { width: min(300px, 44vw); bottom: calc(66px + env(safe-area-inset-bottom)); }
+}
+
+/* ------------------------------------------------------------- Streifzug (Roguelike) & Segen-Karten */
+body.in-run #bossWrap { display: none; }
+.runbox { background: linear-gradient(135deg, rgba(199, 179, 255, 0.18), rgba(94, 255, 200, 0.06)); padding: 12px; border-radius: 12px; }
+.runrules { margin: 0 0 10px; padding-left: 4px; list-style: none; }
+.runrules li { font-size: 12px; margin-bottom: 5px; color: var(--text); }
+.card.pactcard { box-shadow: inset 3px 0 0 var(--danger); }
+.modal.boonmodal { width: min(620px, 96vw); }
+.runinfo { text-align: center; margin: -4px 0 10px !important; font-size: 12px; }
+.boons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.boon {
+  position: relative; border: 2px solid rgba(199, 179, 255, 0.45); border-radius: 14px; cursor: pointer; padding: 14px 8px 12px;
+  background: linear-gradient(180deg, #3a2f6e, #2a2150); color: var(--text);
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  animation: boonIn 0.35s cubic-bezier(0.2, 1.5, 0.4, 1) both; transition: transform 0.1s, border-color 0.1s;
+}
+.boon:nth-child(2) { animation-delay: 0.08s; } .boon:nth-child(3) { animation-delay: 0.16s; }
+.boon:hover { transform: translateY(-3px); border-color: var(--gold); }
+.boon:active { transform: scale(0.96); }
+.boon .bi { font-family: var(--emoji); font-size: 34px; line-height: 1; }
+.boon b { font-size: 13px; line-height: 1.2; }
+.boon small { font-size: 11px; color: var(--muted); line-height: 1.3; }
+.boon em { position: absolute; top: -9px; right: 8px; font-style: normal; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 99px; background: var(--accent2); }
+.boon.rare { border-color: rgba(255, 211, 77, 0.7); box-shadow: 0 0 16px rgba(255, 211, 77, 0.25); }
+.boon.rare em { background: #b8860b; }
+.boon.pact { border-color: rgba(255, 93, 115, 0.8); background: linear-gradient(180deg, #4a1f3a, #2a1630); box-shadow: 0 0 16px rgba(255, 93, 115, 0.3); }
+.boon.pact em { background: var(--danger); }
+.boon.heal { border-color: rgba(110, 231, 160, 0.7); }
+@keyframes boonIn { from { transform: translateY(20px) scale(0.85); opacity: 0; } }
+@media (max-width: 500px) {
+  .boons { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .boon { flex-direction: row; text-align: left; padding: 10px 12px; flex-wrap: wrap; column-gap: 10px; row-gap: 2px; }
+  .boon .bi { font-size: 28px; grid-row: span 2; }
+  .boon b { flex: 1; }
+  .boon small { flex-basis: 100%; padding-left: 38px; }
+}
+/* fünf Skill-Knöpfe (mit Schild) auf schmalen Handys etwas enger */
+@media (max-width: 420px) {
+  #skills { gap: 5px; }
+  .skill { width: 42px; height: 42px; }
 }
