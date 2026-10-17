@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Schnurrkanone</title>
+  <meta name="theme-color" content="#1a1430">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Schnurrkanone">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐱</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="hud">
+      <div class="logo"><i class="logocat">🐱</i> <span>Schnurr<b>kanone</b></span></div>
+      <div class="lvl" id="hudLvl" title="Katzen-Level: jedes Level gibt +1 % Schaden und Münzen sowie Fischgräten, alle 10 Level eine Gratis-Kiste"><b>Lv. <span id="vLvl">1</span></b><i><em id="vXp"></em></i></div>
+      <div class="res" id="hudCoins" title="Münzen"><span class="hi">💰</span><b id="vCoins">0</b><span class="gain" id="gainCoins"></span></div>
+      <div class="res" id="hudBones" title="Fischgräten – für Glückskisten und Begleiter"><span class="hi">🦴</span><b id="vBones">0</b></div>
+      <div class="res" id="hudMinze" title="Katzenminze – aus Wiedergeburten"><span class="hi">🌿</span><b id="vMinze">0</b></div>
+      <div class="spacer"></div>
+      <button id="musicBtn" class="hudbtn" title="Musik an/aus (Taste N)">🎵</button>
+      <div class="stat" title="Schaden pro Sekunde">DPS <b id="vDps">0</b></div>
+      <div class="stat" title="Höchste erreichte Stufe">Rekord <b id="vBest">1</b></div>
+    </header>
+    <main>
+      <section id="battle">
+        <canvas id="game"></canvas>
+        <div id="skills"></div>
+        <div id="bossWrap">
+          <button id="bossBtn">👑 Boss herausfordern</button>
+          <button id="autoBossBtn" title="AN: Nach 10 Zerstörungen kommt automatisch der Boss (auch nach einer Niederlage).&#10;AUS: Du bleibst auf der aktuellen Stufe und farmst Münzen, bis du den Boss selbst herausforderst."></button>
+        </div>
+      </section>
+      <aside id="panel">
+        <nav id="tabs"></nav>
+        <div id="tabContent"></div>
+      </aside>
+    </main>
+  </div>
+  <div id="modalRoot"></div>
+  <div id="toasts"></div>
+
+  <script src="js/engine.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/logic.js"></script>
+  <script src="js/progress.js"></script>
+  <script src="js/draw.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/audio2.js"></script>
+  <script src="js/events.js"></script>
+  <script src="js/talents.js"></script>
+  <script src="js/battle.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/touch.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
