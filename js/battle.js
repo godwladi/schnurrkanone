@@ -1053,6 +1053,7 @@ const Battle = {
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
 
+    Vitals.drawBooms(ctx, this); // Explosionen über Rauch und Trümmern
     Events.draw(ctx, this);
     Talents.draw(ctx, this);
     FX.drawAmbient(ctx, true);

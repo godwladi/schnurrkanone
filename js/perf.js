@@ -24,8 +24,8 @@ const Perf = {
   },
   set(mode) {
     S.gfx = mode;
-    document.body.dataset.gfx = this.mode();
+    document.body.dataset.gfxMode = this.mode();
     if (typeof Battle !== 'undefined' && Battle.cv) Battle.resize();
   },
-  apply() { document.body.dataset.gfx = this.mode(); },
+  apply() { document.body.dataset.gfxMode = this.mode(); },
 };

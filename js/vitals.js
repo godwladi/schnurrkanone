@@ -22,13 +22,13 @@ const ATTACK_FROM = 3;    // ab dieser Stufe greifen Bosse an (im Streifzug imme
 const Vitals = {
   idle: { hp: 100, maxHp: 100 },
   shots: [], shield: 0, shieldMax: 2.5, dazed: 0, hurtT: 0, healT: 0, atkT: 3,
-  ultDone: false, stun: 0, beam: 0, shownHp: 100,
+  ultDone: false, stun: 0, beam: 0, shownHp: 100, booms: [], koPending: false,
 
   ref() { return Run.active ? S.run : this.idle; },
   frac() { const r = this.ref(); return U.clamp(r.hp / r.maxHp, 0, 1); },
   dmgMul(o) { return o.boss && this.stun > 0 ? 1.5 : 1; },
 
-  reset() { this.shots = []; this.shield = 0; this.dazed = 0; this.stun = 0; this.ultDone = false; this.beam = 0; this.atkT = 3; },
+  reset() { this.shots = []; this.shield = 0; this.dazed = 0; this.stun = 0; this.ultDone = false; this.beam = 0; this.atkT = 3; this.koPending = false; },
   onBossSpawn() { this.ultDone = false; this.stun = 0; this.atkT = 3.5; },
 
   // ---------------------------------------------------------------- Ablauf
@@ -50,7 +50,7 @@ const Vitals = {
     }
     interval *= Run.atkMul();
     // Hauptspiel: solange du im Menü bist oder eine Waffe ziehst, wirft niemand (der Countdown läuft weiter)
-    if (attacker && this.dazed <= 0 && !Run.busy()) {
+    if (attacker && this.dazed <= 0 && !this.koPending && !Run.busy()) {
       this.atkT -= dt;
       if (this.atkT <= 0) { this.atkT = interval * U.rand(0.85, 1.15); this.launch(B, attacker, power); }
     } else this.atkT = Math.max(this.atkT, 1.5);
@@ -83,6 +83,109 @@ const Vitals = {
       if (s.t >= 1) { s.done = true; this.hitCat(B, s); }
     }
     this.shots = this.shots.filter(s => !s.done);
+
+    for (const b of this.booms) {
+      b.t += dt;
+      // Glut steigt noch eine Weile aus dem Krater
+      if (b.t > 0.3 && b.t < 2.2 && Math.random() < dt * 30 * b.k) {
+        B.particle(b.x + U.rand(-60, 60) * b.k * B.cs, B.groundY - U.rand(0, 20), U.rand(-30, 30), U.rand(-160, -60), U.pick(b.pal.embers), U.rand(0.8, 1.6), U.rand(2, 4) * B.cs, -20, false, 'spark');
+      }
+    }
+    this.booms = this.booms.filter(b => b.t < 2.6);
+  },
+
+  // ---------------------------------------------------------------- Große Explosion
+  // Feuerball mit wabernden Flammenzungen, zwei Druckwellen (Luft + Boden),
+  // Trümmer, Funkenregen, Rauchsäule und nachglühende Glut.
+  explode(B, x, y, k = 1, kind = 'fire') {
+    const cs = B.cs;
+    const pal = kind === 'ice'
+      ? { core: '#ffffff', mid: '#7ef9ff', outer: '#3a8bff', smoke: 'rgba(190,230,255,0.4)', embers: ['#bff8ff', '#7ef9ff', '#ffffff'], ring: '#bff8ff' }
+      : { core: '#fff6c2', mid: '#ffb347', outer: '#ff3b1f', smoke: 'rgba(110,90,95,0.38)', embers: ['#ffd34d', '#ff8a3c', '#ff4d1f'], ring: '#ffd6a0' };
+    this.booms.push({ x, y, k, t: 0, pal, seed: Math.random() * 10 });
+    // Druckwellen
+    FX.addRing(x, y, 260 * k * cs, pal.ring, 0.5, 14);
+    FX.addRing(x, y, 420 * k * cs, '#ffffff', 0.75, 6);
+    setTimeout(() => FX.addRing(x, y, 340 * k * cs, pal.mid, 0.6, 10), 120);
+    // Funken in alle Richtungen
+    for (let i = 0; i < 70 * k; i++) {
+      const a = Math.random() * Math.PI * 2, v = U.rand(250, 900) * k;
+      B.particle(x, y, Math.cos(a) * v, Math.sin(a) * v - 120, U.pick(pal.embers), U.rand(0.5, 1.2), U.rand(3, 7) * cs, 700, false, 'spark');
+    }
+    // Trümmer, die auf den Boden prasseln
+    const deb = biomeFor(S.stage).debris;
+    for (let i = 0; i < 34 * k; i++) {
+      const p = B.particle(x + U.rand(-20, 20), y, U.rand(-520, 520) * k, U.rand(-760, -180) * k, U.pick(deb.concat(['#2a1a22', '#4a3a3a'])), U.rand(1.2, 2.2), U.rand(5, 12) * cs, 1400, true, 'chunk');
+      if (p) p.spin = U.rand(-16, 16);
+    }
+    // Rauchsäule
+    for (let i = 0; i < 18 * k; i++) {
+      B.particle(x + U.rand(-60, 60) * k * cs, y - U.rand(20, 70) * cs, U.rand(-50, 50), U.rand(-200, -60) * k, pal.smoke, U.rand(1.4, 2.4), U.rand(18, 34) * k * cs, -40, false, 'smoke');
+    }
+    // Sterne für den Glanz
+    for (let i = 0; i < 14 * k; i++) {
+      const a = Math.random() * Math.PI * 2, v = U.rand(120, 380);
+      B.particle(x, y, Math.cos(a) * v, Math.sin(a) * v, '#ffffff', U.rand(0.6, 1), U.rand(8, 14) * cs, 200, false, 'star');
+    }
+    B.shake = Math.max(B.shake, 34 * k); B.hitStop = Math.max(B.hitStop, 0.14);
+    B.slowmo = Math.max(B.slowmo, 0.55);
+    B.punchZoom(0.14 * k, x, y);
+    SFX.play('megaBoom', k);
+  },
+
+  drawBooms(ctx, B) {
+    const cs = B.cs;
+    for (const b of this.booms) {
+      const t = b.t, k = b.k, R = 150 * k * cs;
+      ctx.save();
+      // Bodenwelle: flache Ellipse, die über den Boden rast
+      if (t < 0.7) {
+        const p = t / 0.7;
+        ctx.globalAlpha = (1 - p) * 0.8; ctx.strokeStyle = b.pal.ring; ctx.lineWidth = 10 * (1 - p) + 2;
+        ctx.beginPath(); ctx.ellipse(b.x, B.groundY + 4, R * 2.6 * p, R * 0.35 * p, 0, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.globalCompositeOperation = 'lighter';
+      // greller Kern
+      if (t < 0.35) {
+        const p = t / 0.35;
+        FX.drawGlow(ctx, b.x, b.y, R * (0.5 + p * 1.4), '#ffffff', 1 - p);
+      }
+      // Feuerball mit Flammenzungen, die nach außen wabern
+      if (t < 1.4) {
+        const p = Math.min(1, t / 0.45), fade = t < 0.6 ? 1 : 1 - (t - 0.6) / 0.8;
+        const rad = R * (0.35 + p * 0.75) * (1 + t * 0.15);
+        const rise = t * 40 * cs; // heiße Luft steigt
+        ctx.globalCompositeOperation = 'source-over';
+        for (const [col, sc, al] of [[b.pal.outer, 1, 0.85], [b.pal.mid, 0.72, 0.9], [b.pal.core, 0.42, 0.95]]) {
+          ctx.globalAlpha = al * fade; ctx.fillStyle = col;
+          ctx.beginPath();
+          for (let i = 0; i <= 16; i++) { // wabernder Rand
+            const a = i / 16 * Math.PI * 2, rr = rad * sc * (1 + 0.14 * Math.sin(a * 5 + t * 14 + b.seed));
+            ctx.lineTo(b.x + Math.cos(a) * rr, b.y - rise + Math.sin(a) * rr * 0.85);
+          }
+          ctx.closePath(); ctx.fill();
+        }
+        ctx.globalCompositeOperation = 'lighter';
+        FX.drawGlow(ctx, b.x, b.y - rise, rad * 1.6, b.pal.outer, 0.7 * fade);
+        FX.drawGlow(ctx, b.x, b.y - rise, rad * 1.1, b.pal.mid, 0.85 * fade);
+        FX.drawGlow(ctx, b.x, b.y - rise, rad * 0.6, b.pal.core, fade);
+        for (let i = 0; i < 9; i++) {
+          const a = b.seed + i / 9 * Math.PI * 2 + Math.sin(t * 3 + i) * 0.3;
+          const d = rad * (0.7 + 0.25 * Math.sin(t * 9 + i * 2.3));
+          FX.drawGlow(ctx, b.x + Math.cos(a) * d, b.y - rise + Math.sin(a) * d * 0.8 - Math.abs(Math.sin(a)) * t * 30 * cs, rad * 0.45, i % 2 ? b.pal.mid : b.pal.outer, 0.8 * fade);
+        }
+      }
+      // Pilzwolke: dunkler Hut, der aufsteigt und verblasst
+      if (t > 0.35 && t < 2.6) {
+        const p = (t - 0.35) / 2.25;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 0.45 * (1 - p);
+        const hy = b.y - (60 + p * 160) * k * cs;
+        Draw.ellipse(ctx, b.x, hy, (70 + p * 70) * k * cs, (34 + p * 26) * k * cs, b.pal.smoke);
+        Draw.rrect(ctx, b.x - 16 * k * cs, hy, 32 * k * cs, b.y - hy, 12 * cs, b.pal.smoke);
+      }
+      ctx.restore();
+    }
   },
 
   charging(B) { return B.bossState === 'active' && B.bossObj && !this.ultDone && this.stun <= 0 && B.bossTimer <= ULT_WARN && B.bossIntro <= 0; },
@@ -115,6 +218,7 @@ const Vitals = {
   // gibt true zurück, wenn der Schaden geblockt wurde
   hurt(B, amount, big) {
     const p = this.catPoint(B), r = this.ref();
+    if (this.koPending) return false;
     if (this.shield > 0) {
       FX.addRing(p.x, p.y, 70 * B.cs, '#7ef9ff', 0.3, 6);
       B.text(p.x, p.y - 50 * B.cs, 'GEBLOCKT!', '#7ef9ff', 18 * B.cs, true);
@@ -203,10 +307,13 @@ const Vitals = {
       // Konter: der Schild wirft die Energie zurück
       if (o.shield > 0) B.breakShield(o);
       else { o.hp = Math.max(1, o.hp - o.maxHp * 0.12); o.flash = 0.2; o.squash = 0.2; }
+      this.explode(B, o.x, o.y - OBST_H[o.kind] * o.scale * 0.5, 0.75, 'ice');
       this.stun = 4;
       B.showBanner('KONTER!', `Schild hat den Schlag zurückgeworfen · +${ULT_EXTRA} s`, '#7ef9ff');
       SFX.play('block');
     } else {
+      const p = this.catPoint(B);
+      this.explode(B, p.x + 10 * B.cs, p.y + 10 * B.cs, 1.15, 'fire');
       this.hurt(B, r.maxHp * Run.ultPct(), true);
       if (r.hp <= 0 || B.bossState !== 'active') return;
       this.stun = 3;
@@ -221,7 +328,12 @@ const Vitals = {
     S.stats.kos = (S.stats.kos || 0) + 1;
     B.shake = 30; B.slowmo = 0.8;
     SFX.play('ko');
-    if (Run.active) { Run.die(B); return; }
+    if (Run.active) {
+      // erst die Explosion zeigen, dann das Ergebnis (bis dahin keine weiteren Treffer)
+      this.koPending = true;
+      setTimeout(() => { this.koPending = false; if (Run.active) Run.die(B); }, 1700);
+      return;
+    }
     const b = B.bossObj;
     if (b) b.fleeing = true;
     B.bossState = 'none'; B.bossObj = null;
@@ -355,6 +467,14 @@ SFX.play = function (name, arg) {
       this.noiseF(1.2, 0.45, 0, 600, 'lowpass');
       this.tone(80, 1.1, 'sawtooth', 0.2, -50); this.tone(55, 1.3, 'sine', 0.3, -25); return;
     case 'ko': [494, 392, 330, 247, 196].forEach((f, i) => this.tone(f, 0.28, 'triangle', 0.1, -20, i * 0.12)); return;
+    case 'megaBoom': {
+      const k = arg || 1;
+      this.noiseF(1.8, 0.55 * Math.min(1, k), 0, 380, 'lowpass');       // Donnergrollen
+      this.noiseF(0.35, 0.4, 0, 3200, 'bandpass', 0.8);                  // Knall
+      this.tone(70, 1.4, 'sine', 0.35, -45); this.tone(46, 1.8, 'sine', 0.3, -20, 0.05);
+      for (let i = 0; i < 6; i++) this.noiseF(0.12, 0.12, 0.25 + i * 0.13, U.rand(1500, 4000), 'highpass'); // Trümmer-Prasseln
+      return;
+    }
   }
   return _playV.call(this, name, arg);
 };

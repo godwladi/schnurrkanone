@@ -751,10 +751,10 @@ body.in-run #bossWrap { display: none; }
   .backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(8, 4, 20, 0.8); }
 }
 /* Akku sparen: Dauer-Animationen der Oberfläche ruhen (box-shadow-Pulsieren kostet Zeichenzeit) */
-body[data-gfx="eco"] .skill.ready, body[data-gfx="eco"] .btn.glow, body[data-gfx="eco"] .logocat,
-body[data-gfx="eco"] .btn.primary:not(.cant):not(:disabled), body[data-gfx="eco"] .cell.shiny::after,
-body[data-gfx="eco"] .cell.rainbow { animation: none; }
-body[data-gfx="eco"] .dot.on { animation: none; }
+body[data-gfx-mode="eco"] .skill.ready, body[data-gfx-mode="eco"] .btn.glow, body[data-gfx-mode="eco"] .logocat,
+body[data-gfx-mode="eco"] .btn.primary:not(.cant):not(:disabled), body[data-gfx-mode="eco"] .cell.shiny::after,
+body[data-gfx-mode="eco"] .cell.rainbow { animation: none; }
+body[data-gfx-mode="eco"] .dot.on { animation: none; }
 .gfxrow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .gfxb {
   border: 2px solid transparent; border-radius: 12px; background: var(--card2); cursor: pointer; padding: 8px 4px;

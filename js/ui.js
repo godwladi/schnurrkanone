@@ -661,7 +661,8 @@ const UI = {
         </ul></div>`;
   },
   after_options() {
-    $$('[data-gfx]').forEach(b => b.addEventListener('click', () => { SFX.play('paw'); Perf.set(b.dataset.gfx); this.renderTab(); }));
+    // nur die Knöpfe im Reiter (früher traf der Selektor auch <body> → jeder Tipp ins Spiel lud neu, Listener verdoppelten sich)
+    $$('.gfxb[data-gfx]').forEach(b => b.addEventListener('click', () => { SFX.play('paw'); Perf.set(b.dataset.gfx); this.renderTab(); }));
     $('#optSound').addEventListener('change', e => { S.sound = SFX.on = e.target.checked; });
     $('#optSfxVol').addEventListener('input', e => { S.sfxVol = +e.target.value; SFX.setVolume(S.sfxVol); });
     $('#optSfxVol').addEventListener('change', () => SFX.play('coin'));
