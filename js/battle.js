@@ -30,6 +30,7 @@ const Battle = {
 
   resize() {
     const r = this.cv.parentElement.getBoundingClientRect();
+    const old = this.W ? { W: this.W, gy: this.groundY, cs: this.cs, front: this.frontX } : null;
     this.dpr = window.devicePixelRatio || 1;
     this.W = Math.max(300, r.width);
     this.H = Math.max(240, r.height);
@@ -40,8 +41,21 @@ const Battle = {
     this.groundY = Math.min(this.H * 0.8, this.H - 58); // Füße über der Skill-Leiste
     this.cs = U.clamp(this.H / 420, 0.8, 1.7);
     this.catX = Math.max(80, this.W * 0.13, 95 * this.cs); // Platz für Goldfisch und Eule links
-    this.frontX = Math.max(this.catX + 200 * this.cs, this.W * 0.47);
+    // schmal (Handy hochkant): Front näher an die Katze, sonst stapeln sich die Hindernisse
+    this.frontX = this.W < 520 ? Math.max(this.catX + 135 * this.cs, this.W * 0.4) : Math.max(this.catX + 200 * this.cs, this.W * 0.47);
     this.spacing = Math.min(150 * this.cs, (this.W - this.frontX - 30) / 3.2);
+    // Drehen/Fenstergröße: Hindernisse auf den neuen Boden, die neue Größe und die neue
+    // Frontlinie umrechnen, sonst schweben/versinken sie oder stehen außerhalb des Bildes
+    if (old && (old.W !== this.W || old.gy !== this.groundY)) {
+      const k = this.cs / old.cs, kx = (this.W - this.frontX) / Math.max(1, old.W - old.front);
+      for (const o of this.obs) {
+        o.y = this.groundY; o.scale *= k;
+        o.x = this.frontX + (o.x - old.front) * kx;
+      }
+      for (const f of this.flyers) f.y = Math.min(f.y, this.groundY);
+      this.laserEnd = null;
+      this.realignT = 1.5;
+    }
     if (typeof UI !== 'undefined') UI.updateFlyTargets();
   },
 
@@ -149,12 +163,14 @@ const Battle = {
     }
 
     // Bewegung der Hindernisse
+    this.realignT = Math.max(0, (this.realignT || 0) - dt);
     let idx = 0;
     for (const o of this.obs) {
       if (o.fleeing) { o.x += 700 * dt; continue; }
       const tx = o.boss ? this.frontX + 30 * this.cs : this.frontX + idx * this.spacing;
       idx++;
       if (o.x > tx) o.x = Math.max(tx, o.x - 420 * dt);
+      else if (this.realignT > 0 && o.x < tx - 1 && !(o.dying > 0)) o.x = Math.min(tx, o.x + 420 * dt); // nach Drehen wieder einreihen
       o.flash -= dt;
       o.squash *= Math.pow(0.002, dt);
       o.shakeX = o.flash > 0 ? U.rand(-3, 3) : 0;
@@ -1143,12 +1159,21 @@ const Battle = {
   drawOverlay(ctx, biome) {
     const W = this.W, H = this.H;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    // Stufenanzeige
-    const bw = Math.min(360, W * 0.5), bx = W / 2 - bw / 2, by = 14;
-    Draw.rrect(ctx, bx - 10, by - 6, bw + 20, 50, 12, 'rgba(20,14,40,0.55)');
-    ctx.font = '800 15px "Segoe UI", system-ui, sans-serif';
-    ctx.fillStyle = '#fff';
+    // Schmales Spielfeld (Handy hoch/quer): kleinere Schrift, Combo und Banner rücken
+    // unter die Boss-Knöpfe, damit sich nichts mit den HTML-Knöpfen überlagert
+    const k = U.clamp(W / 620, 0.78, 1), narrow = W < 720;
+    // Unterkante der HTML-Boss-Knöpfe (Höhe hängt von Bildschirm und Text ab)
+    const wrap = document.getElementById('bossWrap');
+    const uiTop = wrap && wrap.offsetHeight ? wrap.offsetTop + wrap.offsetHeight + 8 : 108;
+    // Stufenanzeige: Kasten wächst mit dem Text, Text schrumpft notfalls
     const label = S.farm ? `Stufe ${S.stage} · ${biome.name} · Farm-Modus` : `Stufe ${S.stage} · ${biome.name}`;
+    let fs = 15 * k;
+    ctx.font = `800 ${fs}px "Segoe UI", system-ui, sans-serif`;
+    const tw = ctx.measureText(label).width;
+    const bw = Math.min(W - 64, Math.max(Math.min(360, W * 0.5), tw + 6)), bx = W / 2 - bw / 2, by = 14;
+    if (tw > bw) { fs *= bw / tw; ctx.font = `800 ${fs}px "Segoe UI", system-ui, sans-serif`; }
+    Draw.rrect(ctx, bx - 10, by - 6, bw + 20, 50, 12, 'rgba(20,14,40,0.55)');
+    ctx.fillStyle = '#fff';
     ctx.fillText(label, W / 2, by + 9);
     if (this.bossState === 'active' && this.bossObj) {
       const frac = U.clamp(this.bossTimer / this.bossTimeMax, 0, 1);
@@ -1166,13 +1191,14 @@ const Battle = {
       ctx.fillText('👑', bx + bw + 14, by + 29);
     }
 
-    // Combo
+    // Combo (breit: rechts oben; schmal: rechts unter den Boss-Knöpfen, kleiner)
     if (this.combo >= 3) {
-      const pop = 1 + this.comboPop * 1.6, hue = (this.combo * 12) % 360;
+      const pop = 1 + this.comboPop * (narrow ? 0.8 : 1.6), hue = (this.combo * 12) % 360;
+      const cx = W - (narrow ? 16 : 24), cy = narrow ? uiTop + 20 : 78;
       ctx.save();
-      ctx.translate(W - 24, 78); ctx.scale(pop, pop);
+      ctx.translate(cx, cy); ctx.scale(pop, pop);
       ctx.textAlign = 'right';
-      ctx.font = `900 ${Math.min(34, 20 + this.combo * 0.3)}px "Segoe UI", system-ui, sans-serif`;
+      ctx.font = `900 ${Math.min(narrow ? 24 : 34, (20 + this.combo * 0.3) * (narrow ? 0.8 : 1))}px "Segoe UI", system-ui, sans-serif`;
       ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(20,10,30,0.85)';
       ctx.strokeText(`COMBO ×${this.combo}`, 0, 0);
       ctx.fillStyle = `hsl(${hue},95%,68%)`; ctx.fillText(`COMBO ×${this.combo}`, 0, 0);
@@ -1180,18 +1206,20 @@ const Battle = {
       ctx.lineWidth = 4; ctx.strokeText(`+${Math.round((this.comboMult() - 1) * 100)}% Münzen`, 0, 22);
       ctx.fillStyle = '#fff'; ctx.fillText(`+${Math.round((this.comboMult() - 1) * 100)}% Münzen`, 0, 22);
       ctx.restore();
-      Draw.rrect(ctx, W - 124, 112, 100, 4, 2, 'rgba(255,255,255,0.15)');
-      Draw.rrect(ctx, W - 124, 112, 100 * U.clamp(this.comboT / 1.6, 0, 1), 4, 2, `hsl(${(this.combo * 12) % 360},95%,68%)`);
+      Draw.rrect(ctx, cx - 100, cy + 34, 100, 4, 2, 'rgba(255,255,255,0.15)');
+      Draw.rrect(ctx, cx - 100, cy + 34, 100 * U.clamp(this.comboT / 1.6, 0, 1), 4, 2, `hsl(${(this.combo * 12) % 360},95%,68%)`);
     }
+    // Goldrausch- und Ereignis-Pille: breit links oben, schmal links unter den Boss-Knöpfen
+    const py = narrow ? uiTop : 14;
     if (this.rush > 0) {
       ctx.textAlign = 'left';
-      Draw.rrect(ctx, 14, 14, 170, 30, 15, 'rgba(60,40,0,0.7)');
+      Draw.rrect(ctx, 14, py, 170, 30, 15, 'rgba(60,40,0,0.7)');
       ctx.font = '800 13px "Segoe UI", "Segoe UI Emoji", sans-serif'; ctx.fillStyle = '#ffd34d';
-      ctx.fillText(`💰×2 GOLDRAUSCH ${Math.ceil(this.rush)} s`, 26, 29);
+      ctx.fillText(`💰×2 GOLDRAUSCH ${Math.ceil(this.rush)} s`, 26, py + 15);
       ctx.textAlign = 'center';
     }
 
-    Events.drawPill(ctx, this, this.rush > 0 ? 50 : 14);
+    Events.drawPill(ctx, this, this.rush > 0 ? py + 36 : py);
 
     // Schnurr-Meter
     const mw = Math.min(260, W * 0.3), mx = W - mw - 18, my = H - 30;
@@ -1211,16 +1239,25 @@ const Battle = {
       const a = p > 1.8 ? 1 - (p - 1.8) / 0.4 : 1;
       ctx.save();
       ctx.globalAlpha = U.clamp(a, 0, 1);
-      ctx.translate(W / 2, Math.max(H * 0.36, 132)); ctx.scale(sc, sc); // unter dem Auto-Boss-Knopf
+      // unter dem Auto-Boss-Knopf; schmal zusätzlich unter der Combo-Anzeige
+      ctx.translate(W / 2, narrow ? Math.max(H * 0.46, uiTop + 84) : Math.max(H * 0.36, 132)); ctx.scale(sc, sc);
       ctx.textAlign = 'center';
-      ctx.font = `900 ${Math.min(52, W / 14)}px "Segoe UI", system-ui, sans-serif`;
-      ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(20,10,30,0.85)';
+      // Schrift so wählen, dass Titel und Untertitel sicher in die Breite passen
+      let bf = Math.min(52, W / 14);
+      ctx.font = `900 ${bf}px "Segoe UI", system-ui, sans-serif`;
+      const bt = ctx.measureText(b.text).width;
+      if (bt > W - 28) { bf *= (W - 28) / bt; ctx.font = `900 ${bf}px "Segoe UI", system-ui, sans-serif`; }
+      ctx.lineWidth = Math.max(5, bf * 0.16); ctx.strokeStyle = 'rgba(20,10,30,0.85)';
       ctx.strokeText(b.text, 0, 0);
       ctx.fillStyle = b.color; ctx.fillText(b.text, 0, 0);
       if (b.sub) {
-        ctx.font = '700 17px "Segoe UI", "Segoe UI Emoji", sans-serif';
-        ctx.lineWidth = 5; ctx.strokeText(b.sub, 0, 38);
-        ctx.fillStyle = '#fff'; ctx.fillText(b.sub, 0, 38);
+        let sf = 17 * k;
+        ctx.font = `700 ${sf}px "Segoe UI", "Segoe UI Emoji", sans-serif`;
+        const st = ctx.measureText(b.sub).width;
+        if (st > W - 28) { sf *= (W - 28) / st; ctx.font = `700 ${sf}px "Segoe UI", "Segoe UI Emoji", sans-serif`; }
+        const sy = bf * 0.55 + sf * 0.9;
+        ctx.lineWidth = 5; ctx.strokeText(b.sub, 0, sy);
+        ctx.fillStyle = '#fff'; ctx.fillText(b.sub, 0, sy);
       }
       ctx.restore();
     }

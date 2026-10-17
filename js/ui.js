@@ -698,15 +698,26 @@ const UI = {
     if (this.modalQueue.length) setTimeout(() => this.modal(this.modalQueue.shift()), 150);
   },
 
+  // Meldungen kommen in eine Warteschlange: nur wenige gleichzeitig sichtbar (Handy 2,
+  // sonst 4), damit mehrere gleichzeitige Erfolge nicht das Spielfeld zudecken
+  toastQ: [],
   toast(html, cls = '') {
-    const el = document.createElement('div');
-    el.className = 'toast ' + cls;
-    el.innerHTML = html;
-    $('#toasts').appendChild(el);
-    setTimeout(() => el.classList.add('out'), 3200);
-    setTimeout(() => el.remove(), 3700);
-    const all = $$('#toasts .toast');
-    if (all.length > 5) all[0].remove();
+    if (this.toastQ.some(t => t.html === html) || $$('#toasts .toast').some(t => t.dataset.html === html)) return;
+    this.toastQ.push({ html, cls });
+    this.pumpToasts();
+  },
+  pumpToasts() {
+    const max = innerWidth < 1000 || innerHeight < 500 ? 2 : 4;
+    while (this.toastQ.length && $$('#toasts .toast:not(.out)').length < max) {
+      const { html, cls } = this.toastQ.shift();
+      const el = document.createElement('div');
+      el.className = 'toast ' + cls;
+      el.innerHTML = html; el.dataset.html = html;
+      $('#toasts').appendChild(el);
+      const stay = this.toastQ.length ? 2200 : 3200; // bei Andrang schneller weiter
+      setTimeout(() => { el.classList.add('out'); this.pumpToasts(); }, stay);
+      setTimeout(() => el.remove(), stay + 450);
+    }
   },
 
   burstAt(el, color, n = 16) {
