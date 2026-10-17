@@ -794,3 +794,14 @@ body[data-gfx-mode="eco"] .dot.on { animation: none; }
     conic-gradient(rgba(60, 140, 255, 0.7) var(--p, 0deg), rgba(10, 6, 25, 0.35) 0);
 }
 @keyframes runPulse { 50% { box-shadow: 0 0 24px rgba(255, 77, 109, 1); } }
+
+/* Training: Multiplikator-Leiste bleibt beim Scrollen oben stehen */
+.sec h3.stickyhead {
+  position: sticky; top: 0; z-index: 5; background: var(--card); padding: 6px 0; margin-top: -6px;
+  box-shadow: -12px 0 0 var(--card), 12px 0 0 var(--card), 0 8px 10px -8px rgba(0, 0, 0, 0.6);
+}
+
+/* ------------------------------------------------------------- Pause */
+.pausegrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.pausegrid .btn { width: 100%; }
+body.paused #game { filter: saturate(0.5) brightness(0.75); }

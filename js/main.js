@@ -77,7 +77,8 @@ const Main = {
     this.lastWall = Date.now();
     S.stats.playTime += dt;
     // Streifzug: offenes Menü/Fenster oder Ziehen einer Waffe pausiert den Kampf
-    if (Run.frozen()) Battle.frameDt = 0; else Battle.update(dt);
+    // Pause-Menü (beide Modi) bzw. Streifzug: offenes Menü/Fenster oder Ziehen einer Waffe hält den Kampf an
+    if (UI.paused || Run.frozen()) Battle.frameDt = 0; else Battle.update(dt);
     Battle.render();
     UI.tick(dt);
     this.achT -= dt;

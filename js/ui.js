@@ -46,6 +46,7 @@ const UI = {
         : '⏸️ <b>Auto-Boss AUS</b><br><small>Nach 10 Zerstörungen bleibst du auf dieser Stufe und farmst. Den Boss startest du mit „Boss herausfordern“.</small>', S.autoBoss ? 'good' : 'warn');
     });
     $('#musicBtn').addEventListener('click', () => { SFX.init(); this.toggleMusic(); });
+    $('#pauseBtn').addEventListener('click', () => { SFX.init(); this.pause(); });
     this.updateMusicBtn();
     document.addEventListener('pointerdown', () => SFX.init(), { once: true });
     this.prevSets = activeSetKey();
@@ -116,7 +117,42 @@ const UI = {
     else if (e.key === 'b' || e.key === 'B') Game.buyBox(1);
     else if (e.key === 'm' || e.key === 'M') Game.autoMerge();
     else if (e.key === 'n' || e.key === 'N') this.toggleMusic();
+    else if ((e.key === 'p' || e.key === 'P') && !this.modalOpen) this.pause();
     else if (e.key === 'Escape' && this.modalOpen) this.closeModal();
+  },
+
+  // ---------------------------------------------------------------- Pause
+  // Hält das ganze Spiel an (Gegner, Boss-Countdown, Ereignisse, Abklingzeiten)
+  paused: false,
+  pause() {
+    if (this.paused) return;
+    if (this.modalOpen) this.closeModal();
+    this.paused = true;
+    document.body.classList.add('paused');
+    SFX.play('paw');
+    const biome = biomeFor(S.stage), r = Vitals.ref();
+    const where = Run.active ? `Streifzug · Raum ${Run.room()}` : `Stufe ${S.stage}`;
+    const resume = () => { this.paused = false; document.body.classList.remove('paused'); Main.last = performance.now(); };
+    this.modal({
+      title: '⏸️ Pause', cls: 'pausemodal', noClose: true,
+      html: `<p class="muted">${where} · ${biome.name} · ❤️ ${Math.ceil(r.hp)} / ${r.maxHp}</p>
+        <div class="pausegrid">
+          <button class="btn" data-p="music">${S.music ? '🎵 Musik an' : '🔇 Musik aus'}</button>
+          <button class="btn" data-p="sound">${S.sound ? '🔊 Töne an' : '🔈 Töne aus'}</button>
+          <button class="btn" data-p="options">⚙️ Optionen</button>
+          ${Run.active ? '<button class="btn danger" data-p="quit">🏳️ Streifzug beenden</button>' : ''}
+        </div>`,
+      buttons: [{ label: '▶️ Weiter', cls: 'primary', action: resume }],
+      onShow: root => {
+        for (const b of $$('[data-p]', root)) b.addEventListener('click', () => {
+          const k = b.dataset.p;
+          if (k === 'music') { this.toggleMusic(); b.textContent = S.music ? '🎵 Musik an' : '🔇 Musik aus'; }
+          if (k === 'sound') { S.sound = SFX.on = !S.sound; b.textContent = S.sound ? '🔊 Töne an' : '🔈 Töne aus'; if (this.tab === 'options') this.renderTab(); }
+          if (k === 'options') { this.closeModal(); resume(); this.tab = 'options'; this.renderTab(); if (typeof Dock !== 'undefined' && Dock.active()) Dock.open(); }
+          if (k === 'quit') { this.closeModal(); resume(); Run.abandon(); }
+        });
+      },
+    });
   },
 
   toggleMusic() {
@@ -372,7 +408,7 @@ const UI = {
   tab_upgrades() {
     const amts = [1, 10, 'max'];
     return `
-      <div class="sec"><h3>Training <span class="seg">${amts.map(a => `<button class="segb ${S.buyAmount === a ? 'on' : ''}" data-amt="${a}">${a === 'max' ? 'Max' : '×' + a}</button>`).join('')}</span></h3>
+      <div class="sec"><h3 class="stickyhead">Training <span class="seg">${amts.map(a => `<button class="segb ${S.buyAmount === a ? 'on' : ''}" data-amt="${a}">${a === 'max' ? 'Max' : '×' + a}</button>`).join('')}</span></h3>
       <div class="list">${UPGRADES.map(u => `
         <div class="card" data-up="${u.id}">
           <div class="ci">${u.icon}</div>

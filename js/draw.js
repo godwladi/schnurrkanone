@@ -461,6 +461,8 @@ const Draw = {
         Draw.circle(ctx, -10, -40, 7, '#5f6178'); Draw.circle(ctx, 12, -26, 5, '#5f6178'); Draw.circle(ctx, 6, -50, 3, '#5f6178');
         break;
       }
+      default: // weitere Gegner aus rooms2.js (Flimmerkiste, Untergrund, Zeitreise)
+        if (typeof NEW_FOES !== 'undefined' && NEW_FOES[k]) NEW_FOES[k](ctx, o, t);
     }
     if (o.boss) { // Krone
       const hy = -OBST_H[k] - 6 - (FOE_FLOAT[k] || 0); // schwebende Gegner sind schon verschoben

@@ -120,21 +120,54 @@ const Shades = {
   },
 
   // ---------------------------------------------------------------- Zeichnen
+  // Vereisen: Figur auf eine eigene Leinwand zeichnen, dann nur ihre Pixel blau färben
+  // (source-atop) und mit Glanz zurückkopieren – wie beim Geröstet-Effekt, ohne ctx.filter
+  iceCv: null,
+  iceStart(ctx, B) {
+    let c = this.iceCv;
+    if (!c) c = this.iceCv = document.createElement('canvas');
+    if (c.width !== B.cv.width || c.height !== B.cv.height) { c.width = B.cv.width; c.height = B.cv.height; }
+    const x = c.getContext('2d');
+    x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height);
+    x.setTransform(ctx.getTransform());
+    return x;
+  },
+  iceEnd(ctx, x) {
+    const c = this.iceCv;
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    x.globalCompositeOperation = 'source-atop';
+    x.globalAlpha = 0.72; x.fillStyle = '#5fc8ff'; x.fillRect(0, 0, c.width, c.height);
+    const g = x.createLinearGradient(0, 0, c.width * 0.3, c.height);
+    for (let k = 0; k <= 10; k++) g.addColorStop(k / 10, k % 2 ? 'rgba(255,255,255,0)' : 'rgba(255,255,255,0.35)');
+    x.globalAlpha = 1; x.fillStyle = g; x.fillRect(0, 0, c.width, c.height);
+    x.globalCompositeOperation = 'source-over';
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+    ctx.drawImage(c, 0, 0);
+    ctx.restore();
+  },
   beams: [],
   drawWorld(ctx, B) {
     const t = B.t, cs = B.cs;
-    // Eisblock um eingefrorene Geisterkatzen
+    // eingefrorene Geisterkatzen: Frost-Glitzern, Eiszapfen und Restzeit
     for (let i = 1; i < 4; i++) {
       if (!this.slotFrozen(i) || !S.slots[i]) continue;
-      const p = B.slotPos(i), w = 66 * p.s, h = 62 * p.s, left = this.frozen['slot:' + i];
+      const p = B.slotPos(i), s = p.s, left = this.frozen['slot:' + i];
       ctx.save();
-      ctx.globalAlpha = 0.55; Draw.rrect(ctx, p.x - w * 0.62, p.y - h * 0.8, w, h, 8 * p.s, '#a8ecff');
-      ctx.globalAlpha = 0.9; ctx.strokeStyle = '#e6fbff'; ctx.lineWidth = 2;
-      ctx.strokeRect(p.x - w * 0.62, p.y - h * 0.8, w, h);
-      ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.moveTo(p.x - w * 0.5, p.y - h * 0.7); ctx.lineTo(p.x - w * 0.3, p.y - h * 0.4); ctx.stroke();
+      for (let k = 0; k < 5; k++) {
+        const a = k * 1.9 + i, tw = 0.5 + Math.sin(t * 4 + k * 2.3) * 0.5;
+        const sx = p.x + Math.cos(a) * 22 * s - 4 * s, sy = p.y - 14 * s + Math.sin(a) * 18 * s;
+        ctx.globalAlpha = tw; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.3;
+        ctx.beginPath(); ctx.moveTo(sx - 4 * s * tw, sy); ctx.lineTo(sx + 4 * s * tw, sy); ctx.moveTo(sx, sy - 4 * s * tw); ctx.lineTo(sx, sy + 4 * s * tw); ctx.stroke();
+      }
+      ctx.globalAlpha = 0.9; ctx.fillStyle = '#d8f6ff';
+      for (let k = 0; k < 4; k++) {
+        const ix = p.x - 20 * s + k * 9 * s, iy = p.y + 6 * s, ih = (5 + (k % 2) * 4) * s;
+        ctx.beginPath(); ctx.moveTo(ix - 2.5 * s, iy); ctx.lineTo(ix + 2.5 * s, iy); ctx.lineTo(ix, iy + ih); ctx.closePath(); ctx.fill();
+      }
       ctx.globalAlpha = 1; ctx.font = `800 ${11 * cs}px "Segoe UI", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,30,50,0.85)'; ctx.strokeText(`❄ ${Math.ceil(left)}`, p.x - w * 0.12, p.y - h * 0.8 - 8);
-      ctx.fillStyle = '#e6fbff'; ctx.fillText(`❄ ${Math.ceil(left)}`, p.x - w * 0.12, p.y - h * 0.8 - 8);
+      const lx = p.x - 4 * s, ly = p.y - 46 * s;
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,30,50,0.85)'; ctx.strokeText(`❄ ${Math.ceil(left)} s`, lx, ly);
+      ctx.fillStyle = '#e6fbff'; ctx.fillText(`❄ ${Math.ceil(left)} s`, lx, ly);
       ctx.restore();
     }
     // Countdown-Ring und Gedankenblase mit dem bedrohten Ziel

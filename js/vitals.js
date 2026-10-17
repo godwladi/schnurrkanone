@@ -375,11 +375,26 @@ const Vitals = {
       setTimeout(() => SFX.play('cough'), 900);
       this.hurt(B, r.maxHp * Run.ultPct(), true);
       if (r.hp <= 0 || B.bossState !== 'active') return;
+      if (!Run.active) { this.ultPenalty(B, o); return; }
       this.stun = 3;
       B.showBanner('ÜBERLEBT!', `Boss erschöpft: +${ULT_EXTRA} s · 3 s lang +50 % Schaden`, '#ffd34d');
     }
     B.bossTimer += ULT_EXTRA;
     B.bossTimeMax = Math.max(B.bossTimeMax, B.bossTimer);
+  },
+
+  // Hauptspiel: Wer den Vernichtungsschlag abbekommt, verliert die Hälfte seiner Münzen
+  // und geht eine Stufe zurück (Farm-Modus); der Boss zieht ab
+  ultPenalty(B, o) {
+    const lost = Math.floor(S.coins / 2);
+    S.coins -= lost;
+    if (lost > 0) B.text(this.catPoint(B).x, this.catPoint(B).y - 80 * B.cs, `-${U.fmt(lost)} 💰`, '#ffd34d', 24 * B.cs, true);
+    if (o) o.fleeing = true;
+    B.bossState = 'none'; B.bossObj = null;
+    S.stage = Math.max(1, S.stage - 1);
+    S.kills = 0; S.farm = true; S.farmKills = 0;
+    B.showBanner('GETROFFEN!', `−${U.fmt(lost)} 💰 (die Hälfte) · zurück auf Stufe ${S.stage} – nächstes Mal Schild bereithalten!`, '#ff4d6d');
+    Game.emit('stage');
   },
 
   ko(B) {
@@ -494,15 +509,33 @@ const Vitals = {
     const sec = Math.max(0, B.bossTimer).toFixed(1);
     ctx.save();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const fs = Math.min(22, W / 20) * (1 + Math.sin(t * 10) * 0.05);
-    ctx.font = `900 ${fs}px "Segoe UI", "Segoe UI Emoji", sans-serif`;
-    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(20,10,30,0.9)';
-    const txt = `⚠️ VERNICHTUNGSSCHLAG ${sec} s`;
-    ctx.strokeText(txt, W / 2, y); ctx.fillStyle = Math.sin(t * 12) > 0 ? '#ff4d6d' : '#ffd34d'; ctx.fillText(txt, W / 2, y);
+    // Warndreieck selbst zeichnen (Emoji-Breiten weichen auf dem iPhone ab) und die
+    // Zeile so verkleinern, dass sie sicher mittig in die Breite passt
+    let fs = Math.min(22, W / 17);
+    const txt = `VERNICHTUNGSSCHLAG ${sec} s`;
+    ctx.font = `900 ${fs}px "Segoe UI", system-ui, sans-serif`;
+    let tw = ctx.measureText(txt).width;
+    const fit = (W - 28) / (tw + fs * 1.3);
+    if (fit < 1) { fs *= fit; ctx.font = `900 ${fs}px "Segoe UI", system-ui, sans-serif`; tw = ctx.measureText(txt).width; }
+    const pulse = 1 + Math.sin(t * 10) * 0.04, cx = W / 2;
+    ctx.save(); ctx.translate(cx, y); ctx.scale(pulse, pulse);
+    const tri = fs * 1.05, total = tri + fs * 0.25 + tw, x0 = -total / 2, col = Math.sin(t * 12) > 0 ? '#ff4d6d' : '#ffd34d';
+    ctx.beginPath(); ctx.moveTo(x0 + tri / 2, -tri * 0.5); ctx.lineTo(x0 + tri, tri * 0.42); ctx.lineTo(x0, tri * 0.42); ctx.closePath();
+    ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(20,10,30,0.9)'; ctx.stroke(); ctx.fillStyle = '#ffd34d'; ctx.fill();
+    ctx.fillStyle = '#2a1a10'; ctx.font = `900 ${fs * 0.7}px "Segoe UI", system-ui, sans-serif`; ctx.fillText('!', x0 + tri / 2, tri * 0.08);
+    ctx.font = `900 ${fs}px "Segoe UI", system-ui, sans-serif`; ctx.textAlign = 'left';
+    ctx.lineWidth = 5; ctx.strokeText(txt, x0 + tri + fs * 0.25, 0); ctx.fillStyle = col; ctx.fillText(txt, x0 + tri + fs * 0.25, 0);
+    ctx.restore();
+    ctx.textAlign = 'center';
     const ready = skillOpen(SKILLS.find(s => s.id === 'shield')) && S.skillsCd.shield <= 0;
-    const sub = this.shield > 0 ? '🛡️ Schild steht – Konter bereit!' : ready ? '🛡️ Jetzt Schild (Taste 4) für einen Konter!' : 'Besieg ihn vorher – oder überlebe den Treffer';
-    ctx.font = `700 ${Math.min(13, W / 32)}px "Segoe UI", "Segoe UI Emoji", sans-serif`; ctx.lineWidth = 4;
-    ctx.strokeText(sub, W / 2, y + fs * 0.9); ctx.fillStyle = '#fff'; ctx.fillText(sub, W / 2, y + fs * 0.9);
+    const touch = matchMedia('(pointer: coarse)').matches;
+    const sub = this.shield > 0 ? 'Schild steht – Konter bereit!' : ready ? (touch ? 'Jetzt Schild antippen für einen Konter!' : 'Jetzt Schild (Taste 4) für einen Konter!') : Run.active ? 'Besieg ihn vorher – oder überlebe den Treffer' : 'Besieg ihn vorher – sonst: halbe Münzen weg, eine Stufe zurück';
+    let sf = Math.min(13, W / 28);
+    ctx.font = `700 ${sf}px "Segoe UI", system-ui, sans-serif`;
+    const sw = ctx.measureText(sub).width;
+    if (sw > W - 24) { sf *= (W - 24) / sw; ctx.font = `700 ${sf}px "Segoe UI", system-ui, sans-serif`; }
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(20,10,30,0.9)';
+    ctx.strokeText(sub, cx, y + fs * 1.05); ctx.fillStyle = '#fff'; ctx.fillText(sub, cx, y + fs * 1.05);
     ctx.restore();
   },
 };

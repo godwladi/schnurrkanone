@@ -15,6 +15,7 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 | `B` | Waffenkiste kaufen |
 | `M` | Auto-Merge |
 | `N` | Musik an/aus |
+| `P` / ⏸️ oben | Pause-Menü: hält das ganze Spiel an (Musik, Töne, Optionen, Streifzug beenden) |
 | 🔁 Auto-Boss (oben im Spielfeld) | AN: Nach 10 Zerstörungen kommt automatisch der Boss. AUS: Du bleibst auf der Stufe und farmst, bis du „Boss herausfordern“ klickst. |
 | Klick auf Glücksballon | Belohnung (Münzen, Gräten, Goldrausch oder Raserei) |
 | Drag & Drop | Gleiche Waffen verschmelzen, ausrüsten, verwerten |
@@ -23,7 +24,7 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 ## Leben, Boss-Angriffe & Vernichtungsschlag (`js/vitals.js`)
 - Die Katze hat **❤️ Leben** (Balken über dem Kopf, nur sichtbar wenn wichtig). Außerhalb von Bosskämpfen erholt sie sich von selbst.
 - Ab Stufe 3 **werfen Bosse** passend zum Gebiet (Zapfen, Stacheln, Schneebälle, Lavaregen, Dosen, Meteore). Antippen = **Parade**, das Geschoss trifft den Boss.
-- Die letzten 6 s des Boss-Countdowns lädt der Boss den **Vernichtungsschlag** (Warnung oben). Mit 🛡️ **Schnurr-Schild** (Taste 4, ab Stufe 3) gibt es einen **Konter** (Boss betäubt, +8 s). Ohne Schild schlägt er als **große Explosion** an der Katze ein (Feuerball, Druckwellen, Trümmer, Rauchsäule, Glut; beim Konter eine blaue Eis-Explosion am Boss) und kostet 65 % Leben; wer überlebt, bekommt +8 s und 3 s lang +50 % Schaden. Läuft die Zeit danach erneut ab, entkommt der Boss.
+- Die letzten 6 s des Boss-Countdowns lädt der Boss den **Vernichtungsschlag** (Warnung oben). Mit 🛡️ **Schnurr-Schild** (Taste 4, ab Stufe 3) gibt es einen **Konter** (Boss betäubt, +8 s). Ohne Schild schlägt er als **große Explosion** an der Katze ein (Feuerball, Druckwellen, Trümmer, Rauchsäule, Glut; beim Konter eine blaue Eis-Explosion am Boss) und kostet 65 % Leben. Im Hauptspiel gehen außerdem **die Hälfte der Münzen** verloren und es geht **eine Stufe zurück** (Farm-Modus). Im Streifzug gibt es fürs Überleben +8 s und 3 s lang +50 % Schaden. Läuft die Zeit danach erneut ab, entkommt der Boss.
 - Nach einem Treffer sind Katzen und Begleiter ein paar Sekunden **geröstet**: schwarz, mit weiß blinzelnden Augen, Rauchfähnchen, Glut und *Hust*.
 - **Schattenwesen** (ab Stufe 6, im Streifzug ab Raum 3): drängeln sich nach vorn, eine Blase zeigt, welche Fähigkeit sie einfrieren wollen (Skill, Talent oder Geisterkatze). Nicht in 7 s besiegt → die Fähigkeit ist 15 s eingefroren (Eis auf dem Knopf bzw. Eisblock um die Geisterkatze). Pfotenhiebe machen 3× Schaden an Schatten; gebannt gibt es Münzen und Schnurr-Meter (`js/shades.js`).
 - **Risse** liegen fest auf dem Körper der Gegner (wachsen bei 75/50/25 % Leben, Gesicht bleibt frei, Brocken platzen ab; beim Boss glüht es aus den Rissen).
@@ -39,6 +40,10 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
   - 🌑 **Die Leere** – Dunkelheit, nur um die Katze herum ist Licht; Gegner-Augen glühen hindurch (Schattenklumpen, Riesenauge · Boss „Das Große Nichts“)
   - 🌀 **Wurmloch** – die Zeit schwankt zwischen 0,7× und 1,3× (Kristall-Splitter, Ufo · Boss „Ereignishorizont“)
   - 🌐 **World Wide Web** – Pop-up-Werbung verdeckt das Feld, Tipp aufs ✕ füllt das Schnurr-Meter (Werbefenster, Bug · Boss „Pop-up-Imperator“)
+  - 📺 **Flimmerkiste** – alle 10 s wird umgeschaltet: Sport (+30 % Feuerrate), Krimi (+30 % Schaden), Kochshow (heilt), Testbild (Röhrenfernseher, Fernbedienung · Bosse „Der Quotenkönig“, „Lord Zapper“)
+  - ⛏️ **Untergrund** – Tropfsteine fallen auf Gegner und manchmal auf die Katze; Schatten unter der Katze antippen zerschlägt den Stein (Maulwurf, Kanalratte · Bosse „Maulwurf-Baron“, „Rattenkönig“)
+  - ⏳ **Zeitreise** – alle 15 s ein Zeitsprung: Urzeit, Mittelalter, Zukunft mit eigenen Gegnern (T-Rex, Ritter, Roboter · Bosse „Tyranno-Max“, „Sir Blechbüchse“, „Omega-Toaster“) – `js/rooms2.js`
+- Sonderräume gibt es auch im **Hauptspiel**: ab Stufe 5 ist etwa jede 7. Stufe ein Sonderraum (fest je Stufe, nie zwei hintereinander, nie auf Zehner-Stufen).
 - Raum n = Stufe n des normalen Spiels. **K.O. = Lauf vorbei.** Beute: 3 🦴 je Raum plus ein Münzschatz fürs Hauptspiel.
 
 ## Auf dem iPhone spielen

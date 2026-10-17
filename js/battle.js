@@ -79,7 +79,7 @@ const Battle = {
 
   // ---------------------------------------------------------------- Werte
   dmgMul() { return R.dmgMult * (this.frenzy > 0 ? 3 : 1); },
-  rateMul() { return R.rateMult * (this.frenzy > 0 ? 1.5 : 1) * (this.roar > 0 ? 2 : 1) * (this.owlBuff > 0 ? 1.5 : 1) * (Events.active('storm') ? 1.25 : 1) * Talents.rateMul() * Run.rateMul(); },
+  rateMul() { return R.rateMult * (this.frenzy > 0 ? 1.5 : 1) * (this.roar > 0 ? 2 : 1) * (this.owlBuff > 0 ? 1.5 : 1) * (Events.active('storm') ? 1.25 : 1) * Talents.rateMul() * Run.rateMul() * Rooms.rateMul(); },
   critNow() { return Talents.focus > 0 ? 1 : Math.min(0.95, R.crit + (this.roar > 0 ? 0.5 : 0) + Run.critAdd()); },
   liveObs() { return this.obs.filter(o => !o.dead && !o.fleeing); },
   front() { return this.obs.find(o => !o.dead && !o.fleeing && !(o.dying > 0) && o.x < this.W - 20) || null; },
@@ -425,7 +425,7 @@ const Battle = {
   damage(o, amount, canCrit, quiet, src = 'bullet') {
     if (o.dead || o.dying > 0) return;
     const crit = canCrit && Math.random() < this.critNow();
-    let dmg = amount * (crit ? R.critDmg : 1) * (o.boss ? R.bossMult : 1) * Run.dmgMul(o, src) * Vitals.dmgMul(o) * Shades.dmgMul(o, src);
+    let dmg = amount * (crit ? R.critDmg : 1) * (o.boss ? R.bossMult : 1) * Run.dmgMul(o, src) * Vitals.dmgMul(o) * Shades.dmgMul(o, src) * Rooms.dmgMul();
     if (o.boss && o.shield > 0) {
       // Schild: Kugeln richten wenig aus, Pfotenhiebe viel
       const eff = dmg * (src === 'paw' || src === 'parry' ? 4 : src === 'laser' ? 1 : 0.25);
@@ -528,7 +528,12 @@ const Battle = {
     this.bossObj = null;
     this.spawnFlyers(o.x, o.y - 80, Math.min(12, bones + 3), 'bone');
     const nb = biomeFor(S.stage);
-    if (nb !== oldBiome) { this.showBanner(`NEUES GEBIET`, `${nb.name} · Stufe ${S.stage}`, '#7ef9ff'); this.whiteFlash = 1; FX.ambient = []; }
+    if (nb !== oldBiome) {
+      Rooms.reset();
+      if (nb.special) this.showBanner(`${nb.name.toUpperCase()}!`, `Sonderraum · Stufe ${S.stage} · ${nb.desc}`, nb.accent);
+      else this.showBanner(`NEUES GEBIET`, `${nb.name} · Stufe ${S.stage}`, '#7ef9ff');
+      this.whiteFlash = 1; FX.ambient = [];
+    }
     else this.showBanner(`STUFE ${S.stage}`, `+${bones} 🦴${newBest ? ' · Neuer Rekord!' : ''}`, '#6ee7a0');
     for (let i = 0; i < 80; i++) this.particle(this.W / 2 + U.rand(-200, 200), -10, U.rand(-120, 120), U.rand(50, 300), `hsl(${U.randi(0, 360)},90%,65%)`, U.rand(1.5, 2.5), U.rand(4, 8), 200, false, 'confetti');
     SFX.play('victory');
@@ -915,13 +920,17 @@ const Battle = {
         ctx.beginPath(); ctx.moveTo(this.catX + 10 * cs, this.groundY - 45 * cs); ctx.lineTo(p.x - 14 * p.s, p.y - 2 * p.s); ctx.stroke();
         ctx.setLineDash([]); ctx.globalAlpha = 1;
       }
+      const fz = Shades.slotFrozen(i);
       ctx.globalCompositeOperation = 'lighter';
-      FX.drawGlow(ctx, p.x - 6 * p.s, p.y - 6 * p.s, 34 * p.s, col, 0.3 + this.recoil[i] * 0.3);
+      FX.drawGlow(ctx, p.x - 6 * p.s, p.y - 6 * p.s, 34 * p.s, fz ? '#7ef9ff' : col, fz ? 0.35 : 0.3 + this.recoil[i] * 0.3);
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-      Draw.ghostCat(cc, p.x, p.y, p.s, t, {
-        weapon: w, recoil: this.recoil[i], bodyRecoil: steady ? 0 : this.recoil[i], phase: i * 2.1, dpr: this.dpr, eye: col === '#ffffff' ? '#7ef9ff' : col,
-        look: lookAt(p.x - 12 * p.s, p.y - 18 * p.s), laserEyes, fury, roar, eyesOut: ghostEyes,
+      // eingefroren: die Figur selbst wird zu blauem Eis und erstarrt mitten in der Bewegung
+      const gc = fz ? Shades.iceStart(cc, this) : cc;
+      Draw.ghostCat(gc, p.x, p.y, p.s, fz ? i * 0.7 : t, {
+        weapon: w, recoil: fz ? 0 : this.recoil[i], bodyRecoil: fz || steady ? 0 : this.recoil[i], phase: i * 2.1, dpr: this.dpr, eye: fz ? '#e6fbff' : col === '#ffffff' ? '#7ef9ff' : col,
+        look: fz ? { x: 0, y: 0 } : lookAt(p.x - 12 * p.s, p.y - 18 * p.s), laserEyes: fz ? 0 : laserEyes, fury: fz ? 0 : fury, roar: fz ? false : roar, eyesOut: fz ? [] : ghostEyes,
       });
+      if (fz) Shades.iceEnd(cc, gc);
     }
     Vitals.charEnd(ctx, cc);
     Shades.drawWorld(ctx, this);
