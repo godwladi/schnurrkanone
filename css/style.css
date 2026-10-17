@@ -599,3 +599,20 @@ button { -webkit-appearance: none; appearance: none; }
   #toasts { top: calc(44px + 46px + env(safe-area-inset-top)); left: auto; right: calc(8px + env(safe-area-inset-right)); width: calc(44% - 16px); min-width: 280px; }
   .toast { max-width: 100%; }
 }
+
+/* ------------------------------------------------------------- Keine Überbreite in Reitern
+   1fr-Spalten werden nie schmaler als ihr längster nicht umbrechender Text (z. B. Katzen-/Talentnamen);
+   im Katzen-Reiter wurde das Panel dadurch breiter als der Bildschirm und die Reiterleiste verrutschte.
+   minmax(0, 1fr) + min-width: 0 erlaubt das Schrumpfen, lange Texte enden mit „…“. */
+main { grid-template-columns: minmax(0, 1fr) 440px; }
+@media (max-width: 1000px) { main { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1000px) and (orientation: landscape) and (max-height: 500px) { main { grid-template-columns: minmax(0, 1fr) minmax(300px, 44%); } }
+#panel, #tabContent, #tabs, .sec, .btnrow { min-width: 0; }
+#tabContent { overflow-x: hidden; }
+.slots, .grid, .catgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.stats-mini, .rbstats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.achlist { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.catcard, .cell, .achlist > *, .stats-mini > *, .rbstats > * { min-width: 0; }
+.catcard .cbn, .catcard .cr { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tab { min-width: 0; }
+.tab .tn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
