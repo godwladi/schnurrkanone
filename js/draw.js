@@ -39,7 +39,7 @@ const Draw = {
     // Kopf
     ctx.save();
     ctx.translate(10, -42 + bob);
-    Draw.ears(ctx, cat.fur, opt.still ? 0 : t, opt.fury || 0);
+    Draw.ears(ctx, cat.fur, opt.still ? 0 : t, opt.fury || 0, opt.ear);
     Draw.circle(ctx, 0, 0, 17, cat.fur);
     // Muster
     if (cat.pattern === 'stripes') {
@@ -65,13 +65,15 @@ const Draw = {
 
   // Ohren im Kopf-Koordinatensystem (Kopfradius 17); zucken ab und zu,
   // legen sich bei hoher Feuerrate (fury) kampflustig nach hinten an
-  ears(ctx, fur, t, fury = 0) {
-    const tw = t && (t % 5.3) < 0.18 ? Math.sin((t % 5.3) / 0.18 * Math.PI) * 5 : 0;
+  // wig = { l, r }: Ohrenwackeln (anim.js), Versatz der Ohrspitzen
+  ears(ctx, fur, t, fury = 0, wig = null) {
+    const tw = (t && (t % 5.3) < 0.18 ? Math.sin((t % 5.3) / 0.18 * Math.PI) * 5 : 0) + (wig ? wig.l : 0);
+    const tr = wig ? wig.r : 0;
     const fx = fury * 5, fy = fury * 6;
-    Draw.tri(ctx, [-15, -6], [-15 - tw - fx, -27 + tw * 0.4 + fy], [-2, -14], fur);
-    Draw.tri(ctx, [15, -6], [15 + fx, -27 + fy], [2, -14], fur);
-    Draw.tri(ctx, [-12, -9], [-13 - tw * 0.8 - fx * 0.8, -21 + tw * 0.3 + fy * 0.8], [-5, -14], '#ff9eb5');
-    Draw.tri(ctx, [12, -9], [13 + fx * 0.8, -21 + fy * 0.8], [5, -14], '#ff9eb5');
+    Draw.tri(ctx, [-15, -6], [-15 - tw - fx, -27 + Math.abs(tw) * 0.4 + fy], [-2, -14], fur);
+    Draw.tri(ctx, [15, -6], [15 + tr + fx, -27 + Math.abs(tr) * 0.4 + fy], [2, -14], fur);
+    Draw.tri(ctx, [-12, -9], [-13 - tw * 0.8 - fx * 0.8, -21 + Math.abs(tw) * 0.3 + fy * 0.8], [-5, -14], '#ff9eb5');
+    Draw.tri(ctx, [12, -9], [13 + tr * 0.8 + fx * 0.8, -21 + Math.abs(tr) * 0.3 + fy * 0.8], [5, -14], '#ff9eb5');
   },
 
   // Gesicht im Kopf-Koordinatensystem. opt.fury (0..1) spiegelt die aktuelle
@@ -194,7 +196,8 @@ const Draw = {
     for (const f of [tail, torso, head]) { f(); g.stroke(); }
     g.save(); g.translate(-12, -18); g.scale(0.62, 0.62);
     g.strokeStyle = '#8796d6'; g.lineWidth = 4;
-    for (const [a, b, c] of [[[-15, -6], [-15 - (opt.fury || 0) * 5, -27 + (opt.fury || 0) * 6], [-2, -14]], [[15, -6], [15 + (opt.fury || 0) * 5, -27 + (opt.fury || 0) * 6], [2, -14]]]) {
+    const ewl = opt.ear ? opt.ear.l : 0, ewr = opt.ear ? opt.ear.r : 0;
+    for (const [a, b, c] of [[[-15, -6], [-15 - ewl - (opt.fury || 0) * 5, -27 + Math.abs(ewl) * 0.4 + (opt.fury || 0) * 6], [-2, -14]], [[15, -6], [15 + ewr + (opt.fury || 0) * 5, -27 + Math.abs(ewr) * 0.4 + (opt.fury || 0) * 6], [2, -14]]]) {
       g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.lineTo(...c); g.closePath(); g.stroke();
     }
     g.restore();
@@ -206,7 +209,7 @@ const Draw = {
     // Kopf (Gesicht der Hauptkatze, verkleinert)
     g.save();
     g.translate(-12, -18); g.scale(0.62, 0.62);
-    Draw.ears(g, body, t + ph, opt.fury || 0);
+    Draw.ears(g, body, t + ph, opt.fury || 0, opt.ear);
     Draw.circle(g, 0, 0, 17, body);
     Draw.face(g, body, opt.eye || '#7ef9ff', t + ph, { look: opt.look, laserEyes: opt.laserEyes, fury: opt.fury, roar: opt.roar });
     g.restore();
@@ -472,7 +475,7 @@ const Draw = {
     ctx.restore();
   },
 
-  pet(ctx, id, x, y, t, s = 1) {
+  pet(ctx, id, x, y, t, s = 1, opt = {}) {
     ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
     if (id === 'mouse') {
       ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
@@ -486,12 +489,28 @@ const Draw = {
     } else if (id === 'fish') {
       ctx.globalAlpha = 0.5; Draw.circle(ctx, 0, 0, 16, '#bde7ff'); ctx.globalAlpha = 1;
       ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.stroke();
-      const w = Math.sin(t * 8) * 2;
+      const w = Math.sin(t * (opt.spin ? 20 : 8)) * 2;
+      // Salto im Glas: der Fisch dreht sich um sich selbst, das Glas bleibt stehen
+      ctx.save(); ctx.translate(0, -Math.sin((opt.spin || 0) / 2) * 4); ctx.rotate(-(opt.spin || 0));
       Draw.ellipse(ctx, 2, 0, 8, 6, '#ffa62b');
       Draw.tri(ctx, [-5, 0], [-12, -5 + w], [-12, 5 + w], '#ff7f11');
       Draw.circle(ctx, 6, -1, 1.5, '#222');
+      ctx.restore();
+      if (opt.spin) for (let i = 0; i < 3; i++) { // Luftblasen
+        const k = ((opt.spin / (Math.PI * 2)) * 1.5 + i * 0.33) % 1;
+        ctx.globalAlpha = 0.8 * (1 - k); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(6 - i * 4, -4 - k * 11, 1.4 + i * 0.4, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+      }
       ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, 16); ctx.lineTo(-4, 34); ctx.stroke();
     } else if (id === 'owl') {
+      // Flügel ausbreiten (0 = angelegt, 1 = ganz offen), hinter dem Körper
+      const wg = opt.wings || 0;
+      if (wg > 0.01) for (const sx of [-1, 1]) {
+        ctx.save(); ctx.translate(sx * 8, -2); ctx.rotate(-sx * (0.1 + 0.55 * wg) + Math.sin(t * 22) * 0.15 * wg * sx);
+        Draw.ellipse(ctx, sx * (3 + 9 * wg), 2, 5 + 9 * wg, 5.5, '#6b4f36');
+        for (let f = 0; f < 3; f++) Draw.ellipse(ctx, sx * (7 + 13 * wg - f * 4.5), 6 + f * 0.8, 3.2, 2.4, '#a4835e');
+        ctx.restore();
+      }
       Draw.ellipse(ctx, 0, 0, 11, 13, '#8b6b4a');
       Draw.ellipse(ctx, 0, 3, 7, 8, '#d9c3a5');
       Draw.circle(ctx, -4, -5, 4, '#fff'); Draw.circle(ctx, 4, -5, 4, '#fff');

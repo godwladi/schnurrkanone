@@ -30,6 +30,13 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 - **Risse** liegen fest auf dem Körper der Gegner (wachsen bei 75/50/25 % Leben, Gesicht bleibt frei, Brocken platzen ab; beim Boss glüht es aus den Rissen).
 - **K.O.** (Leben auf 0, Hauptspiel): 6 s **gelähmt** – kein Schießen, keine Skills, keine Pfotenhiebe (Balken mit Restzeit über der Katze), danach 40 % Leben. Heilung: Schnurr-Raserei (25 %) und Fischregen (20 %).
 
+## Auftritte & Kunststücke der Helfer (`js/anim.js`)
+- **Geisterkatzen** erscheinen aus einem Geisterwirbel (eindrehen, wachsen, Funkenring), wackeln ab und zu mit den Ohren und verwirbeln beim Abgang. Auch die **Hauptkatze** wackelt zwischendurch mit den Ohren.
+- **Abgänge:** Drohne fliegt davon, Ballon platzt, Eule flattert weg.
+- **Maus-Drohne** fliegt mit einer Rolle ein und dreht zwischendurch eine Pirouette.
+- **Goldfisch-Ballon** bläst sich auf; der Fisch macht Saltos im Glas, wenn er Münzen bringt.
+- **Nachteule** flattert herab und breitet beim Feuerraten-Ruf die Flügel aus.
+
 ## Streifzug – Roguelike-Modus (`js/run.js`)
 - Reiter **🗺️ Streifzug** (ab Stufe 8). Start **ganz von vorn**: Stufe 1, nur Miau-Pistole I, 0 Münzen, kein Training, keine Katzen-/Perk-/Minze-/Level-Boni. Unterwegs eigene Münzen für Kisten und Training. Skills und Waffenplätze bleiben freigeschaltet.
 - Das Hauptspiel (Stufe, Münzen, Rucksack, Ausrüstung, Training) wird beiseitegelegt und danach unverändert zurückgeholt; Waffen und Münzen aus dem Streifzug verfallen.

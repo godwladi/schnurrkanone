@@ -908,7 +908,7 @@ const Battle = {
     const steady = laserEyes > 0; // beim Lasern keine Rückstoß-Stauchung, sonst zittert der Strahl-Ursprung
     const fury = this.fury, roar = this.roar > 7;
     const mainEyes = [];
-    Draw.cat(cc, this.catX, this.groundY, cs, cat, t, { weapon: S.slots[0], recoil: this.recoil[0], squash: steady ? 0 : this.recoil[0] * 0.07, look, laserEyes, roar, fury, eyesOut: mainEyes });
+    Draw.cat(cc, this.catX, this.groundY, cs, cat, t, { ear: Anim.ear('main'), weapon: S.slots[0], recoil: this.recoil[0], squash: steady ? 0 : this.recoil[0] * 0.07, look, laserEyes, roar, fury, eyesOut: mainEyes });
     this.mainEyes = toWorld(mainEyes, true);
     const ghostEyes = [];
     for (let i = 1; i < 4; i++) {
@@ -928,12 +928,17 @@ const Battle = {
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
       // eingefroren: die Figur selbst wird zu blauem Eis und erstarrt mitten in der Bewegung
       const gc = fz ? Shades.iceStart(cc, this) : cc;
+      // Auftritt aus dem Geisterwirbel / Purzelbaum (anim.js), gedreht um die Körpermitte
+      const an = fz ? null : Anim.ghost(i), gx = p.x - 13 * p.s, gy = p.y - 6 * p.s;
+      if (an) { gc.save(); gc.translate(gx, gy + an.dy * p.s); gc.rotate(an.rot); gc.scale(an.s, an.s); gc.translate(-gx, -gy); gc.globalAlpha *= an.alpha; }
       Draw.ghostCat(gc, p.x, p.y, p.s, fz ? i * 0.7 : t, {
-        weapon: w, recoil: fz ? 0 : this.recoil[i], bodyRecoil: fz || steady ? 0 : this.recoil[i], phase: i * 2.1, dpr: this.dpr, eye: fz ? '#e6fbff' : col === '#ffffff' ? '#7ef9ff' : col,
+        ear: fz ? null : Anim.ear('ghost' + i), weapon: w, recoil: fz ? 0 : this.recoil[i], bodyRecoil: fz || steady ? 0 : this.recoil[i], phase: i * 2.1, dpr: this.dpr, eye: fz ? '#e6fbff' : col === '#ffffff' ? '#7ef9ff' : col,
         look: fz ? { x: 0, y: 0 } : lookAt(p.x - 12 * p.s, p.y - 18 * p.s), laserEyes: fz ? 0 : laserEyes, fury: fz ? 0 : fury, roar: fz ? false : roar, eyesOut: fz ? [] : ghostEyes,
       });
+      if (an) gc.restore();
       if (fz) Shades.iceEnd(cc, gc);
     }
+    Anim.drawLeaving(cc, this);
     Vitals.charEnd(ctx, cc);
     Shades.drawWorld(ctx, this);
     this.eyes = this.mainEyes.concat(toWorld(ghostEyes, false));
