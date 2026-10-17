@@ -222,12 +222,15 @@ const UI = {
       tb.title = `Katzen-Talent – ${d.name}: ${d.desc}`;
       tb.style.setProperty('--p', `${U.clamp(Talents.cd / d.cd, 0, 1) * 360}deg`);
       tb.classList.toggle('fired', Talents.cd > d.cd - 0.4);
+      tb.classList.toggle('frozen', Shades.isFrozen('talent'));
     }
     for (const b of $$('#skills .skill[data-skill]')) {
       const sk = SKILLS.find(s => s.id === b.dataset.skill);
       const cd = S.skillsCd[sk.id];
       b.style.setProperty('--p', `${(cd / sk.cd) * 360}deg`);
-      b.classList.toggle('ready', cd <= 0 && S.best >= sk.unlock);
+      const fz = Shades.skillFrozen(sk.id);
+      b.classList.toggle('frozen', fz);
+      b.classList.toggle('ready', cd <= 0 && S.best >= sk.unlock && !fz);
       b.querySelector('.cd').textContent = cd > 0 ? Math.ceil(cd) : '';
     }
   },

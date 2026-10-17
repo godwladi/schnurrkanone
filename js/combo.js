@@ -147,8 +147,16 @@ const Combo = {
 };
 
 const _playC = SFX.play;
+// Riss-Geräusch für foes.js (je Stufe tiefer und lauter)
 SFX.play = function (name, arg) {
   if (!this.on || !this.ctx) return;
+  if (name === 'crack') {
+    if (!this.throttle('crack', 80)) return;
+    const k = arg || 1;
+    this.noiseF(0.12 + k * 0.04, 0.12 + k * 0.06, 0, 2600 - k * 500, 'bandpass', 1.5);
+    this.tone(180 - k * 30, 0.1, 'triangle', 0.05, -60);
+    return;
+  }
   if (name === 'comboTier') {
     const base = 523 * Math.pow(2, (arg || 1) * 2 / 12);
     [1, 1.25, 1.5, 2].forEach((m, i) => this.tone(base * m, 0.16, 'square', 0.06, 0, i * 0.05));

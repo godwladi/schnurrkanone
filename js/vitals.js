@@ -22,7 +22,7 @@ const ATTACK_FROM = 3;    // ab dieser Stufe greifen Bosse an (im Streifzug imme
 const Vitals = {
   idle: { hp: 100, maxHp: 100 },
   shots: [], shield: 0, shieldMax: 2.5, dazed: 0, hurtT: 0, healT: 0, atkT: 3,
-  ultDone: false, stun: 0, beam: 0, shownHp: 100, booms: [], koPending: false,
+  ultDone: false, stun: 0, beam: 0, shownHp: 100, booms: [], koPending: false, charred: 0, charCv: null,
 
   ref() { return Run.active ? S.run : this.idle; },
   frac() { const r = this.ref(); return U.clamp(r.hp / r.maxHp, 0, 1); },
@@ -33,7 +33,16 @@ const Vitals = {
 
   // ---------------------------------------------------------------- Ablauf
   update(dt, B) {
-    for (const k of ['shield', 'dazed', 'hurtT', 'healT', 'stun', 'beam']) this[k] = Math.max(0, this[k] - dt);
+    for (const k of ['shield', 'dazed', 'hurtT', 'healT', 'stun', 'beam', 'charred']) this[k] = Math.max(0, this[k] - dt);
+    // geröstet: Rauchfähnchen und Glut von Katzen und Begleitern
+    if (this.charred > 0 && Math.random() < dt * 22) {
+      const pts = [{ x: B.catX + 10 * B.cs, y: B.groundY - 60 * B.cs }];
+      for (let i = 1; i < 4; i++) if (S.slots[i]) { const sp = B.slotPos(i); pts.push({ x: sp.x, y: sp.y - 30 * B.cs }); }
+      for (const id of ['owl', 'fish', 'mouse']) if (S.pets[id] > 0) { const pp = B.petPos(id); pts.push({ x: pp.x, y: pp.y - 12 * B.cs }); }
+      const q = U.pick(pts);
+      B.particle(q.x + U.rand(-12, 12) * B.cs, q.y, U.rand(-15, 15), U.rand(-70, -35), 'rgba(70,60,60,0.55)', U.rand(0.9, 1.5), U.rand(6, 11) * B.cs, -15, false, 'smoke');
+      if (Math.random() < 0.35) B.particle(q.x, q.y + 10 * B.cs, U.rand(-30, 30), U.rand(-90, -40), U.pick(['#ff8a3c', '#ffd34d']), 0.6, 2.5 * B.cs, 0, false, 'spark');
+    }
     const r = this.ref();
     if (!Run.active && B.bossState !== 'active') r.hp = Math.min(r.maxHp, r.hp + r.maxHp * 0.12 * dt);
     this.shownHp += (r.hp - this.shownHp) * Math.min(1, dt * 8);
@@ -131,6 +140,54 @@ const Vitals = {
     B.slowmo = Math.max(B.slowmo, 0.55);
     B.punchZoom(0.14 * k, x, y);
     SFX.play('megaBoom', k);
+  },
+
+  // ---------------------------------------------------------------- Geröstet
+  // Crew auf eine eigene Leinwand zeichnen, danach schwärzen (source-atop) und zurückkopieren.
+  // So bleibt alles in Form, ohne ctx.filter (Safari kann das nicht).
+  charStart(ctx, B) {
+    if (this.charred <= 0) return ctx;
+    let c = this.charCv;
+    if (!c) c = this.charCv = document.createElement('canvas');
+    if (c.width !== B.cv.width || c.height !== B.cv.height) { c.width = B.cv.width; c.height = B.cv.height; }
+    const x = c.getContext('2d');
+    x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height);
+    x.setTransform(ctx.getTransform());
+    return x;
+  },
+  charEnd(ctx, x) {
+    if (x === ctx) return;
+    const c = this.charCv, k = U.clamp(this.charred / 0.9, 0, 1); // die letzte knappe Sekunde kommt die Farbe zurück
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    x.globalCompositeOperation = 'source-atop';
+    x.globalAlpha = 0.93 * k; x.fillStyle = '#15100e'; x.fillRect(0, 0, c.width, c.height);
+    x.globalAlpha = 0.25 * k; x.fillStyle = '#ff6a2b'; x.fillRect(0, c.height * 0.85, c.width, c.height * 0.15); // Glut von unten
+    x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+    ctx.drawImage(c, 0, 0);
+    ctx.restore();
+  },
+  // weiße, blinzelnde Augen in den schwarzen Gesichtern
+  drawCharEyes(ctx, B) {
+    if (this.charred <= 0) return;
+    const cs = B.cs, t = B.t, k = U.clamp(this.charred / 0.9, 0, 1);
+    const pts = (B.eyes || []).map(e => ({ x: e.x, y: e.y, r: (e.main ? 4.2 : 2.8) * cs, ph: e.main ? 0 : e.x * 0.01 }));
+    for (const id of ['owl', 'fish', 'mouse']) {
+      if (!(S.pets[id] > 0)) continue;
+      const p = B.petPos(id);
+      const off = id === 'owl' ? [[-4, -5], [4, -5]] : id === 'fish' ? [[6, -1]] : [[7, -2]];
+      for (const [ex, ey] of off) pts.push({ x: p.x + ex * cs, y: p.y + ey * cs, r: 2.4 * cs, ph: id.length });
+    }
+    ctx.save();
+    ctx.globalAlpha = k;
+    for (const e of pts) {
+      // zweimal kurz blinzeln, dann eine Weile starren
+      const cyc = (t * 1.3 + e.ph) % 2.2, shut = cyc < 0.12 || (cyc > 0.3 && cyc < 0.42);
+      if (shut) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(e.x - e.r, e.y); ctx.lineTo(e.x + e.r, e.y); ctx.stroke(); continue; }
+      Draw.circle(ctx, e.x, e.y, e.r, '#ffffff');
+      Draw.circle(ctx, e.x + e.r * 0.15, e.y + e.r * 0.1, e.r * 0.42, '#15100e');
+    }
+    ctx.restore();
   },
 
   drawBooms(ctx, B) {
@@ -314,6 +371,8 @@ const Vitals = {
     } else {
       const p = this.catPoint(B);
       this.explode(B, p.x + 10 * B.cs, p.y + 10 * B.cs, 1.15, 'fire');
+      this.charred = 3.4; // Katzen und Begleiter sind geröstet
+      setTimeout(() => SFX.play('cough'), 900);
       this.hurt(B, r.maxHp * Run.ultPct(), true);
       if (r.hp <= 0 || B.bossState !== 'active') return;
       this.stun = 3;
@@ -347,6 +406,7 @@ const Vitals = {
   // ---------------------------------------------------------------- Zeichnen (Spielwelt)
   draw(ctx, B) {
     const cs = B.cs, t = B.t, p = this.catPoint(B), r = this.ref();
+    this.drawCharEyes(ctx, B);
     // Schaden: rotes Aufleuchten, Heilung: grünes
     if (this.hurtT > 0 || this.healT > 0) {
       ctx.globalCompositeOperation = 'lighter';
@@ -466,6 +526,9 @@ SFX.play = function (name, arg) {
     case 'ult':
       this.noiseF(1.2, 0.45, 0, 600, 'lowpass');
       this.tone(80, 1.1, 'sawtooth', 0.2, -50); this.tone(55, 1.3, 'sine', 0.3, -25); return;
+    case 'cough': // *hust* – geröstete Katze
+      for (let i = 0; i < 3; i++) { this.noiseF(0.09, 0.22, i * 0.17, 900, 'bandpass', 2); this.tone(260 - i * 30, 0.07, 'square', 0.04, -80, i * 0.17); }
+      return;
     case 'ko': [494, 392, 330, 247, 196].forEach((f, i) => this.tone(f, 0.28, 'triangle', 0.1, -20, i * 0.12)); return;
     case 'megaBoom': {
       const k = arg || 1;

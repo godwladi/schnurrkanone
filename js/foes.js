@@ -21,6 +21,15 @@ const FACE = {
   ufo:      { x: 0,  y: -38, s: 0.65, bob: (t, o) => Math.sin(t * 3 + o.id) * 6 - 22 },
   popup:    { x: 0,  y: -40, s: 0.8,  bob: (t, o) => Math.sin(t * 2 + o.id) * 3 - 12 },
   bug:      { x: 0,  y: -43, s: 0.62, glow: '#7dffb0' },
+  shade:    { x: 0,  y: -50, s: 0.95, glow: '#e6d9ff', bob: (t, o) => Math.sin(t * 2.2 + o.id) * 5 - 12 },
+};
+// Rissflächen je Gegner (lokal, ohne Schweben): Kreis [x, y, r] oder Rechteck [x, y, w, h].
+// Risse bleiben innerhalb dieser Fläche, damit sie nie über die Form hinausragen.
+const CRACK_ZONE = {
+  tree: [0, -62, 22], cactus: [-8, -70, 16, 64], snowman: [0, -26, 17], lavarock: [0, -26, 22],
+  vending: [-20, -82, 40, 72], asteroid: [0, -34, 25], chest: [-24, -38, 48, 34],
+  voidling: [0, -36, 22], eyeball: [0, -36, 22], shard: [0, -42, 15], ufo: [-26, -30, 52, 10],
+  popup: [-26, -50, 52, 34], bug: [0, -20, 15], shade: [0, -48, 18],
 };
 const SWAY = { tree: 0.035, cactus: 0.03, snowman: 0.02, voidling: 0.05, popup: 0.02 };
 const INK = '#2a1a22';
@@ -43,6 +52,17 @@ const Foes = {
   // aus Battle.damage()
   onHit(B, o, dmg, crit, src) {
     const cs = B.cs, h = OBST_H[o.kind] * o.scale;
+    // neue Rissstufe erreicht → Brocken platzen ab
+    const stage = this.crackStage(o);
+    if (stage > (o.crackShown || 0)) {
+      o.crackShown = stage;
+      const z = this.zoneCenter(o), deb = biomeFor(S.stage).debris;
+      for (let i = 0; i < 6 + stage * 3; i++) {
+        const p = B.particle(o.x + z.x * o.scale, o.y + z.y * o.scale, U.rand(-200, 120), U.rand(-320, -80), U.pick(deb), U.rand(0.7, 1.2), U.rand(4, 8) * cs, 1200, true, 'chunk');
+        if (p) p.spin = U.rand(-14, 14);
+      }
+      SFX.play('crack', stage);
+    }
     // Schmerz-Gesicht nur bei spürbaren Treffern, sonst zeigt ein Boss unter Dauerfeuer nie etwas anderes
     if (crit || src === 'paw' || dmg > o.maxHp * 0.04) o.hurtT = crit ? 0.45 : 0.28;
     // Aufblitzen höchstens alle 0,15 s – bei Dauerfeuer sonst dauerhaft weiß
@@ -63,6 +83,99 @@ const Foes = {
       FX.addRing(hx, hy, 46 * cs, '#ffe14d', 0.22, 4);
       for (let i = 0; i < 6; i++) { const a = Math.random() * Math.PI * 2; B.particle(hx, hy, Math.cos(a) * 320, Math.sin(a) * 320, '#ffe14d', 0.25, 4 * cs, 0, false, 'spark'); }
     }
+  },
+
+  // ---------------------------------------------------------------- Risse
+  // 0 = heil, 1 ab 75 %, 2 ab 50 %, 3 ab 25 % Leben
+  crackStage(o) { const f = o.hp / o.maxHp; return f > 0.75 ? 0 : f > 0.5 ? 1 : f > 0.25 ? 2 : 3; },
+  zoneCenter(o) {
+    const z = CRACK_ZONE[o.kind] || [0, -OBST_H[o.kind] / 2, 16];
+    return z.length === 3 ? { x: z[0], y: z[1] } : { x: z[0] + z[2] / 2, y: z[1] + z[3] / 2 };
+  },
+  // Rissmuster einmal je Gegner erzeugen (stabil, wächst mit der Stufe)
+  crackPaths(o) {
+    if (o.crackP) return o.crackP;
+    const z = CRACK_ZONE[o.kind] || [0, -OBST_H[o.kind] / 2, 16];
+    const circ = z.length === 3;
+    let seed = o.id * 7919 + 13;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    // Gesicht aussparen, sonst laufen Risse durch Augen und Mund
+    const fc = FACE[o.kind], fr = fc ? 17 * fc.s : 0;
+    const inFace = (x, y) => fc && Math.abs(x - fc.x) < fr * 1.15 && y > fc.y - fr && y < fc.y + fr * 1.05;
+    const inside = (x, y) => !inFace(x, y) && (circ ? Math.hypot(x - z[0], y - z[1]) <= z[2] * 0.92 : x >= z[0] + 1 && x <= z[0] + z[2] - 1 && y >= z[1] + 1 && y <= z[1] + z[3] - 1);
+    const pt = () => {
+      for (let tries = 0; tries < 12; tries++) {
+        const q = circ
+          ? (() => { const a = rnd() * Math.PI * 2, d = (0.45 + rnd() * 0.5) * z[2] * 0.85; return [z[0] + Math.cos(a) * d, z[1] + Math.sin(a) * d]; })()
+          : [z[0] + rnd() * z[2], z[1] + rnd() * z[3]];
+        if (inside(q[0], q[1])) return q;
+      }
+      return circ ? [z[0] + z[2] * 0.7, z[1] + z[2] * 0.3] : [z[0] + 2, z[1] + z[3] - 2];
+    };
+    const size = circ ? z[2] : Math.min(z[2], z[3]) * 0.9 + 6;
+    const paths = [];
+    // je Stufe zwei Hauptrisse mit Verästelung
+    for (let st = 1; st <= 3; st++) {
+      for (let n = 0; n < 2; n++) {
+        let [x, y] = pt(), a = rnd() * Math.PI * 2;
+        const main = [[x, y]];
+        const steps = 4 + st;
+        for (let k = 0; k < steps; k++) {
+          a += (rnd() - 0.5) * 1.3;
+          const len = size * (0.16 + rnd() * 0.12);
+          const nx = x + Math.cos(a) * len, ny = y + Math.sin(a) * len;
+          if (!inside(nx, ny)) { a += Math.PI * 0.7; continue; }
+          x = nx; y = ny; main.push([x, y]);
+          if (rnd() < 0.35 && main.length > 2) { // Ast
+            let bx = x, by = y, ba = a + (rnd() < 0.5 ? 1 : -1) * (0.7 + rnd() * 0.6);
+            const br = [[bx, by]];
+            for (let j = 0; j < 2; j++) {
+              const l = size * (0.1 + rnd() * 0.08), qx = bx + Math.cos(ba) * l, qy = by + Math.sin(ba) * l;
+              if (!inside(qx, qy)) break;
+              bx = qx; by = qy; br.push([bx, by]); ba += (rnd() - 0.5) * 0.8;
+            }
+            if (br.length > 1) paths.push({ st, pts: br, w: 1.1 });
+          }
+        }
+        if (main.length > 1) paths.push({ st, pts: main, w: 1.4 + st * 0.35 });
+      }
+      // ab Stufe 3: herausgebrochene Stellen
+      if (st === 3) for (let n = 0; n < 3; n++) { const [cx, cy] = pt(); paths.push({ st, hole: [cx, cy, 2.2 + rnd() * 2.2] }); }
+    }
+    return (o.crackP = paths);
+  },
+  cracks(ctx, o, t) {
+    const stage = Math.min(this.crackStage(o), o.dying > 0 ? 3 : 3);
+    if (!stage || !CRACK_ZONE[o.kind]) return;
+    const f = FACE[o.kind];
+    ctx.save();
+    if (f && f.bob) ctx.translate(0, f.bob(t, o)); // schwebende Gegner: mitschweben
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (const p of this.crackPaths(o)) {
+      if (p.st > stage) continue;
+      if (p.hole) { // Loch mit hellem Rand
+        Draw.circle(ctx, p.hole[0], p.hole[1], p.hole[2], 'rgba(15,8,12,0.75)');
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(p.hole[0], p.hole[1] + 0.6, p.hole[2], 0.2, Math.PI - 0.2); ctx.stroke();
+        continue;
+      }
+      // Lichtkante unter dem Riss = Tiefe
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = p.w * 0.9;
+      ctx.beginPath(); p.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x + 0.8, y + 1) : ctx.moveTo(x + 0.8, y + 1))); ctx.stroke();
+      ctx.strokeStyle = 'rgba(20,10,16,0.82)'; ctx.lineWidth = p.w;
+      ctx.beginPath(); p.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+    }
+    // Boss bei wenig Leben: Glut leuchtet aus den Rissen
+    if (o.boss && stage >= 2) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = `rgba(255,${120 + Math.sin(t * 6) * 60},60,${0.35 + Math.sin(t * 6) * 0.15})`;
+      for (const p of this.crackPaths(o)) {
+        if (p.hole || p.st > stage) continue;
+        ctx.lineWidth = p.w * 0.6;
+        ctx.beginPath(); p.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+      }
+    }
+    ctx.restore();
   },
 
   // ---------------------------------------------------------------- Stimmung
@@ -240,6 +353,7 @@ Draw.obstacle = function (ctx, o, biome, t) {
   ctx.scale(o.scale, o.scale);
   const sq = 1 + (o.squash || 0);
   ctx.scale(1 / sq, sq);
+  Foes.cracks(ctx, o, t);
   Foes.face(ctx, o, t);
   ctx.restore();
   ctx.restore();

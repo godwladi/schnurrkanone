@@ -28,6 +28,7 @@ Object.assign(BOSS_ATTACKS, {
   ufo:      { icon: '🛸', name: 'Mini-Ufos',      n: 2, speed: 1,    size: 1,   dmg: 0.8 },
   popup:    { icon: '📧', name: 'Spam-Welle',     n: 3, speed: 1.1,  size: 0.9, dmg: 0.6 },
   bug:      { icon: '🐛', name: 'Fehlerflut',     n: 2, speed: 1.2,  size: 1,   dmg: 0.8 },
+  shade:    { icon: '🌑', name: 'Schattenfetzen', n: 1, speed: 1,    size: 1,   dmg: 0.8 },
 });
 // Musik: vorhandene Lieder, anders getaktet
 SONGS.voidling = { ...SONGS.asteroid, tempo: 84 };

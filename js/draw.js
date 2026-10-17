@@ -428,6 +428,28 @@ const Draw = {
         ctx.fillStyle = '#7dffb0'; ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; ctx.fillText('01', -8, -18); ctx.fillText('10', 8, -24);
         break;
       }
+      case 'shade': { // Schattenwesen: schwebende Rauchgestalt mit Krallenarmen
+        ctx.translate(0, Math.sin(t * 2.2 + o.id) * 5 - 12);
+        ctx.globalAlpha = 0.9;
+        ctx.beginPath();
+        for (let i = 0; i <= 20; i++) {
+          const a = Math.PI + i / 20 * Math.PI, r = 26 + Math.sin(i * 2.1 + t * 5) * 3;
+          ctx.lineTo(Math.cos(a) * r, -46 + Math.sin(a) * r * 1.3);
+        }
+        for (let i = 0; i <= 8; i++) ctx.lineTo(26 - i * 6.5, -10 + Math.sin(t * 7 + i * 1.3) * 8 + (i % 2 ? 10 : 0)); // zerfaserter Saum
+        ctx.closePath();
+        const g = ctx.createLinearGradient(0, -80, 0, 0);
+        g.addColorStop(0, '#2a1847'); g.addColorStop(1, 'rgba(10,5,20,0.4)');
+        ctx.fillStyle = g; ctx.fill();
+        ctx.strokeStyle = 'rgba(180,140,255,0.7)'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = '#2a1847'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        for (const sx of [-1, 1]) { // Arme greifen nach vorn
+          const w = Math.sin(t * 4 + sx) * 6;
+          ctx.beginPath(); ctx.moveTo(sx * 18, -40); ctx.quadraticCurveTo(sx * 34, -30 + w, sx * 30 - 14, -18 + w); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        break;
+      }
       case 'asteroid': {
         ctx.translate(0, Math.sin(t * 2 + o.id) * 4 - 10);
         ctx.beginPath();
@@ -480,7 +502,7 @@ const Draw = {
   },
 };
 
-const OBST_H = { tree: 92, cactus: 80, snowman: 100, lavarock: 54, vending: 86, asteroid: 78, chest: 62, voidling: 68, eyeball: 78, shard: 92, ufo: 66, popup: 80, bug: 66 };
-const OBST_W = { tree: 60, cactus: 56, snowman: 46, lavarock: 66, vending: 50, asteroid: 66, chest: 60, voidling: 62, eyeball: 56, shard: 50, ufo: 70, popup: 62, bug: 56 };
+const OBST_H = { tree: 92, cactus: 80, snowman: 100, lavarock: 54, vending: 86, asteroid: 78, chest: 62, voidling: 68, eyeball: 78, shard: 92, ufo: 66, popup: 80, bug: 66, shade: 84 };
+const OBST_W = { tree: 60, cactus: 56, snowman: 46, lavarock: 66, vending: 50, asteroid: 66, chest: 60, voidling: 62, eyeball: 56, shard: 50, ufo: 70, popup: 62, bug: 56, shade: 56 };
 // Schwebe-Versatz (für Krone und Gesicht schwebender Gegner)
-const FOE_FLOAT = { asteroid: -10, eyeball: -14, shard: -8, ufo: -22, popup: -12 };
+const FOE_FLOAT = { asteroid: -10, eyeball: -14, shard: -8, ufo: -22, popup: -12, shade: -12 };

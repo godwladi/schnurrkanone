@@ -98,12 +98,12 @@ const Battle = {
     const kind = treasure ? 'chest' : !boss && biome.foes ? U.pick(biome.foes) : biome.obstacle;
     const golden = !boss && !treasure && Math.random() < (Events.active('goldrain') ? 0.25 : 0.05);
     const hp = boss ? Econ.bossHp(S.stage) : Econ.hp(S.stage) * U.rand(0.85, 1.15) * (golden ? 1.5 : 1) * (treasure ? 2 : 1);
-    return Run.adjustObstacle({
+    return Shades.maybe(Run.adjustObstacle({
       id: this.nextId++, kind, boss, fruit: golden, golden, treasure,
       x: this.W + 80 + Math.random() * 40, y: this.groundY,
       hp, maxHp: hp, scale: this.cs * (boss ? 1.75 : U.rand(0.92, 1.08)),
       flash: 0, squash: 0, shakeX: 0, dead: false, fleeing: false,
-    });
+    }));
   },
 
   spawnBoss() {
@@ -180,7 +180,7 @@ const Battle = {
         } else if (live === 0) this.spawnBoss();
       } else {
         const allowed = S.farm ? 4 : Math.min(4, KILLS_PER_STAGE - S.kills);
-        if (live < allowed) this.obs.push(this.makeObstacle(false));
+        if (live < allowed) { this.obs.push(this.makeObstacle(false)); Shades.onSpawn(this); }
       }
     }
 
@@ -228,7 +228,7 @@ const Battle = {
     const rm = this.rateMul();
     S.slots.forEach((w, i) => {
       this.recoil[i] = Math.max(0, this.recoil[i] - dt * 6);
-      if (!w || Vitals.dazed > 0) return;
+      if (!w || Vitals.dazed > 0 || Shades.slotFrozen(i)) return;
       const d = WEAPONS[w.t];
       this.slotCd[i] -= dt * rm * (1 + setBonus(w.t).rate);
       if (this.slotCd[i] <= 0) {
@@ -262,6 +262,7 @@ const Battle = {
     Talents.update(dt, this);
     Vitals.update(dt, this);
     Rooms.update(dt, this);
+    Shades.update(dt, this);
 
     // Projektile
     for (const b of this.bul) {
@@ -423,7 +424,7 @@ const Battle = {
   damage(o, amount, canCrit, quiet, src = 'bullet') {
     if (o.dead || o.dying > 0) return;
     const crit = canCrit && Math.random() < this.critNow();
-    let dmg = amount * (crit ? R.critDmg : 1) * (o.boss ? R.bossMult : 1) * Run.dmgMul(o, src) * Vitals.dmgMul(o);
+    let dmg = amount * (crit ? R.critDmg : 1) * (o.boss ? R.bossMult : 1) * Run.dmgMul(o, src) * Vitals.dmgMul(o) * Shades.dmgMul(o, src);
     if (o.boss && o.shield > 0) {
       // Schild: Kugeln richten wenig aus, Pfotenhiebe viel
       const eff = dmg * (src === 'paw' || src === 'parry' ? 4 : src === 'laser' ? 1 : 0.25);
@@ -502,6 +503,7 @@ const Battle = {
     this.purr = Math.min(100, this.purr + (o.boss ? 10 : 0.6) * (Events.active('catnip') ? 3 : 1));
     if (o.treasure) this.openTreasure(o, cy);
     Run.onKill(this, o);
+    Shades.onKill(this, o);
     SFX.play('kill');
     this.shake = Math.max(this.shake, o.boss ? 16 : 3);
     if (o.boss) this.bossWin(o);
@@ -586,6 +588,7 @@ const Battle = {
 
   useSkill(id) {
     const sk = SKILLS.find(s => s.id === id);
+    if (sk && Shades.skillFrozen(id)) { SFX.play('error'); Game.emit('toast', { text: `❄️ <b>${sk.name}</b> ist eingefroren – noch ${Math.ceil(Shades.frozen['skill:' + id])} s`, cls: 'warn' }); return; }
     if (!sk || S.best < sk.unlock || S.skillsCd[id] > 0) { SFX.play('error'); return; }
     S.skillsCd[id] = sk.cd * (id === 'shield' ? Run.shieldCdMul() : 1);
     S.stats.skills = (S.stats.skills || 0) + 1;
@@ -839,7 +842,6 @@ const Battle = {
         ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
       }
       Draw.obstacle(ctx, o, biome, t);
-      this.drawCracks(ctx, o);
       if (o.boss && o.shield > 0 && !o.fleeing) this.drawShield(ctx, o);
       if (!o.fleeing && o.hp < o.maxHp) this.drawHpBar(ctx, o);
       if (o.boss && !o.fleeing) {
@@ -868,8 +870,10 @@ const Battle = {
     const toWorld = (pts, main) => pts.map(pt => { const w = camInv.transformPoint(pt); return { x: w.x, y: w.y, main }; });
 
     // Begleiter (Sitzstange vor der Eule zeichnen, damit sie darauf sitzt)
-    if (S.pets.owl > 0) Draw.rrect(ctx, this.catX - 66 * cs, this.groundY - 20 * cs, 12 * cs, 20 * cs, 2 * cs, '#7a4a2a');
-    for (const id of ['owl', 'fish', 'mouse']) if (S.pets[id] > 0) { const p = this.petPos(id); Draw.pet(ctx, id, p.x, p.y, t, cs); }
+    // geröstet (Vernichtungsschlag): Katzen und Begleiter auf eigene Ebene, die danach geschwärzt wird
+    const cc = Vitals.charStart(ctx, this);
+    if (S.pets.owl > 0) Draw.rrect(cc, this.catX - 66 * cs, this.groundY - 20 * cs, 12 * cs, 20 * cs, 2 * cs, '#7a4a2a');
+    for (const id of ['owl', 'fish', 'mouse']) if (S.pets[id] > 0) { const p = this.petPos(id); Draw.pet(cc, id, p.x, p.y, t, cs); }
 
     // Katze + Geisterkatzen mit den schwebenden Waffen
     const cat = CAT_BY_ID[S.activeCat] || CATS[0];
@@ -886,7 +890,7 @@ const Battle = {
     const steady = laserEyes > 0; // beim Lasern keine Rückstoß-Stauchung, sonst zittert der Strahl-Ursprung
     const fury = this.fury, roar = this.roar > 7;
     const mainEyes = [];
-    Draw.cat(ctx, this.catX, this.groundY, cs, cat, t, { weapon: S.slots[0], recoil: this.recoil[0], squash: steady ? 0 : this.recoil[0] * 0.07, look, laserEyes, roar, fury, eyesOut: mainEyes });
+    Draw.cat(cc, this.catX, this.groundY, cs, cat, t, { weapon: S.slots[0], recoil: this.recoil[0], squash: steady ? 0 : this.recoil[0] * 0.07, look, laserEyes, roar, fury, eyesOut: mainEyes });
     this.mainEyes = toWorld(mainEyes, true);
     const ghostEyes = [];
     for (let i = 1; i < 4; i++) {
@@ -903,11 +907,13 @@ const Battle = {
       ctx.globalCompositeOperation = 'lighter';
       FX.drawGlow(ctx, p.x - 6 * p.s, p.y - 6 * p.s, 34 * p.s, col, 0.3 + this.recoil[i] * 0.3);
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-      Draw.ghostCat(ctx, p.x, p.y, p.s, t, {
+      Draw.ghostCat(cc, p.x, p.y, p.s, t, {
         weapon: w, recoil: this.recoil[i], bodyRecoil: steady ? 0 : this.recoil[i], phase: i * 2.1, dpr: this.dpr, eye: col === '#ffffff' ? '#7ef9ff' : col,
         look: lookAt(p.x - 12 * p.s, p.y - 18 * p.s), laserEyes, fury, roar, eyesOut: ghostEyes,
       });
     }
+    Vitals.charEnd(ctx, cc);
+    Shades.drawWorld(ctx, this);
     this.eyes = this.mainEyes.concat(toWorld(ghostEyes, false));
     Vitals.draw(ctx, this);
 
