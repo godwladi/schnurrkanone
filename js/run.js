@@ -9,6 +9,7 @@
 // ---------------------------------------------------------------------------
 
 const RUN_UNLOCK = 8;
+const GUARDIAN_EVERY = 20; // Wächter-Raum (stärker, 2 Segen als Beute)
 
 // rar: seltener angeboten · max: höchstens so oft · pact: Pakt mit Nachteil (rote Karte)
 const BOONS = [
@@ -42,7 +43,7 @@ const Run = {
   n(id) { return (this.active && S.run.boons[id]) || 0; },
   paused() { return this.active && S.run.choosing; },
   room() { return S.run.depth + 1; },
-  guardian() { return this.active && this.room() % 5 === 0; },
+  guardian() { return this.active && this.room() % GUARDIAN_EVERY === 0; },
 
   // ---------------------------------------------------------------- Werte (neutral außerhalb des Laufs)
   dmgMul(o, src) {
@@ -324,7 +325,7 @@ UI.tab_run = function () {
         <h3>🗺️ Streifzug <small>Roguelike-Abenteuer</small></h3>
         <ul class="runrules">
           <li>🐣 Du startest <b>ganz von vorn</b>: Stufe 1, nur die Miau-Pistole I, keine Münzen, kein Training, keine Katzen-Boni. Unterwegs verdienst du eigene Münzen für Kisten und Training.</li>
-          <li>🚪 Jeder Raum: neues Gebiet, 10 Gegner und ein <b>Boss</b>. Jeder 5. Raum ist ein <b>Wächter</b>. Entkommt ein Boss, musst du den Raum wiederholen.</li>
+          <li>🚪 Jeder Raum: neues Gebiet, 10 Gegner und ein <b>Boss</b>. Jeder 20. Raum ist ein <b>Wächter</b> (stärker, dafür 2 Segen). Entkommt ein Boss, musst du den Raum wiederholen.</li>
           <li>⏸️ Solange ein Menü offen ist, ist der Streifzug <b>pausiert</b> – in Ruhe verschmelzen und kaufen.</li>
           <li>❤️ Leben heilen sich <b>nicht</b> von selbst – nur Segen, Raserei, Fischregen und Schatztruhen helfen.</li>
           <li>🎯 Tippe auf heranfliegende Geschosse, um sie <b>zurückzuschleudern</b>. 🛡️ Schild blockt alles.</li>
