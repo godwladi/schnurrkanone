@@ -49,7 +49,8 @@ const Vitals = {
       if (f && !f.treasure && f.x < (B.Wp || B.W) - 30) { attacker = f; power = 0.45; interval = 4.2; }
     }
     interval *= Run.atkMul();
-    if (attacker && this.dazed <= 0) {
+    // Hauptspiel: solange du im Menü bist oder eine Waffe ziehst, wirft niemand (der Countdown läuft weiter)
+    if (attacker && this.dazed <= 0 && !Run.busy()) {
       this.atkT -= dt;
       if (this.atkT <= 0) { this.atkT = interval * U.rand(0.85, 1.15); this.launch(B, attacker, power); }
     } else this.atkT = Math.max(this.atkT, 1.5);

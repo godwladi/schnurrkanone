@@ -576,7 +576,7 @@ const UI = {
           <div><span>Minze bei Wiedergeburt</span><b class="minze">+${U.fmt(gain)} 🌿</b></div>
           <div><span>Minze gesamt</span><b>${U.fmt(S.minzeTotal)} (+${S.minzeTotal * 2}%)</b></div>
         </div>
-        <button class="btn primary wide" id="doRebirth" ${gain > 0 ? '' : 'disabled'}>${gain > 0 ? `Wiedergeburt: +${U.fmt(gain)} 🌿` : 'Ab Stufe 25 verfügbar'}</button>
+        <button class="btn primary wide" id="doRebirth" ${gain > 0 && !Run.active ? '' : 'disabled'}>${Run.active ? 'Während des Streifzugs nicht möglich' : gain > 0 ? `Wiedergeburt: +${U.fmt(gain)} 🌿` : 'Ab Stufe 25 verfügbar'}</button>
       </div>
       <div class="sec"><h3>Minze-Perks <small>Verfügbar: ${U.fmt(S.minze)} 🌿</small></h3>
       <div class="list">${PERKS.map(p => {
@@ -695,6 +695,8 @@ const UI = {
       btns.appendChild(el);
     }
     if (!opts.noClose) $('.backdrop', root).onclick = () => this.closeModal();
+    // erst hier binden: ein Fenster kann in der Warteschlange warten, bis es angezeigt wird
+    if (opts.onShow) opts.onShow(root);
   },
   closeModal() {
     const root = $('#modalRoot');

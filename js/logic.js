@@ -61,16 +61,19 @@ const Econ = {
 
 function recalc() {
   const b = { dmg: 0, rate: 0, coin: 0, click: 0, crit: 0, critdmg: 0, boss: 0, all: 0 };
-  for (const [id, lvl] of Object.entries(S.cats)) {
+  // Streifzug: ganz von vorn – keine Katzen-Boni, Perks, Minze und Level-Boni
+  const run = !!(S.run && S.run.active);
+  if (!run) for (const [id, lvl] of Object.entries(S.cats)) {
     const c = CAT_BY_ID[id];
     if (!c || !lvl) continue;
     b[c.bonus] += c.val * lvl * (id === S.activeCat ? 2 : 1);
   }
   const all = 1 + b.all;
-  const minzeBoost = (1 + 0.02 * S.minzeTotal) * (1 + 0.01 * (S.level - 1));
-  R.dmgMult = (1 + 0.15 * S.up.dmg) * (1 + b.dmg) * (1 + 0.25 * S.perks.dmg) * minzeBoost * all;
+  const minzeBoost = run ? 1 : (1 + 0.02 * S.minzeTotal) * (1 + 0.01 * (S.level - 1));
+  const pk = run ? { dmg: 0, coin: 0 } : S.perks;
+  R.dmgMult = (1 + 0.15 * S.up.dmg) * (1 + b.dmg) * (1 + 0.25 * pk.dmg) * minzeBoost * all;
   R.rateMult = (1 + 0.04 * S.up.rate) * (1 + b.rate) * (1 + b.all * 0.5);
-  R.coinMult = (1 + 0.12 * S.up.coin) * (1 + b.coin) * (1 + 0.25 * S.perks.coin) * minzeBoost * all;
+  R.coinMult = (1 + 0.12 * S.up.coin) * (1 + b.coin) * (1 + 0.25 * pk.coin) * minzeBoost * all;
   R.crit = Math.min(0.9, 0.05 + 0.01 * S.up.crit + b.crit);
   R.critDmg = 2 + b.critdmg + b.all;
   R.bossMult = (1 + b.boss) * all;
@@ -315,7 +318,7 @@ const Game = {
 
   rebirth() {
     const gain = Econ.rebirthGain();
-    if (gain <= 0) return;
+    if (gain <= 0 || (S.run && S.run.active)) return;
     S.minze += gain;
     S.minzeTotal += gain;
     S.rebirths++;
@@ -347,6 +350,7 @@ const Game = {
 
   // Offline-Ertrag in Münzen und Sekunden
   offlineGain(elapsedMs) {
+    if (S.run && S.run.active) return null; // der Streifzug ruht, solange die App zu ist
     const secs = Math.min(elapsedMs / 1000, Econ.offlineCapH() * 3600);
     if (secs < 60) return null;
     const killsPerSec = Math.min(2, R.dps / Econ.hp(S.stage));

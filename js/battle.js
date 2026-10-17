@@ -149,7 +149,8 @@ const Battle = {
         for (const e of this.allEyes()) FX.addRing(e.x, e.y, 40 * this.cs, '#ff3355', 0.3, 4);
       }
     }
-    if (this.comboT > 0) { this.comboT -= dt; if (this.comboT <= 0) this.combo = 0; }
+    if (this.comboT > 0) { this.comboT -= dt; if (this.comboT <= 0) { Combo.onBreak(this.combo); this.combo = 0; } }
+    this.frameDt = realDt;
     // Gesichtsausdruck folgt der Feuerrate: Buffs (Raserei, Fauchen, Eule, Espresso,
     // Gewitter) stark, dauerhaftes Training leicht
     const boost = this.rateMul() / Math.max(1e-6, R.rateMult);
@@ -474,9 +475,9 @@ const Battle = {
     if (this.combo > (S.stats.maxCombo || 0)) S.stats.maxCombo = this.combo;
     if (this.combo > S.quests.comboBest) S.quests.comboBest = this.combo;
     if (this.combo >= 5 && this.combo % 5 === 0) SFX.play('combo', this.combo / 5);
+    Combo.onHit(this, this.comboT);
     const mult = (o.boss ? 8 : 1) * (o.golden ? 4 : 1) * this.comboMult() * (this.rush > 0 ? 2 : 1);
-    // Streifzug: Gegner wachsen mit deiner Stärke – Münzen gibt es erst am Ende als Beute
-    const coins = Run.active ? 0 : Econ.coins(S.stage) * R.coinMult * mult;
+    const coins = Econ.coins(S.stage) * R.coinMult * mult;
     if (coins) Game.addCoins(coins);
     S.stats.kills++;
     Level.add(o.boss ? 10 : o.golden ? 5 : 1);
@@ -1225,22 +1226,9 @@ const Battle = {
     }
 
     // Combo (breit: rechts oben; schmal: rechts unter den Boss-Knöpfen, kleiner)
-    if (this.combo >= 3) {
-      const pop = 1 + this.comboPop * (narrow ? 0.8 : 1.6), hue = (this.combo * 12) % 360;
-      const cx = W - (narrow ? 16 : 24), cy = narrow ? uiTop + 20 : 78;
-      ctx.save();
-      ctx.translate(cx, cy); ctx.scale(pop, pop);
-      ctx.textAlign = 'right';
-      ctx.font = `900 ${Math.min(narrow ? 24 : 34, (20 + this.combo * 0.3) * (narrow ? 0.8 : 1))}px "Segoe UI", system-ui, sans-serif`;
-      ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(20,10,30,0.85)';
-      ctx.strokeText(`COMBO ×${this.combo}`, 0, 0);
-      ctx.fillStyle = `hsl(${hue},95%,68%)`; ctx.fillText(`COMBO ×${this.combo}`, 0, 0);
-      ctx.font = '700 12px "Segoe UI", sans-serif';
-      ctx.lineWidth = 4; ctx.strokeText(`+${Math.round((this.comboMult() - 1) * 100)}% Münzen`, 0, 22);
-      ctx.fillStyle = '#fff'; ctx.fillText(`+${Math.round((this.comboMult() - 1) * 100)}% Münzen`, 0, 22);
-      ctx.restore();
-      Draw.rrect(ctx, cx - 100, cy + 34, 100, 4, 2, 'rgba(255,255,255,0.15)');
-      Draw.rrect(ctx, cx - 100, cy + 34, 100 * U.clamp(this.comboT / 1.6, 0, 1), 4, 2, `hsl(${(this.combo * 12) % 360},95%,68%)`);
+    {
+      const cx = W - (narrow ? 14 : 22), cy = narrow ? uiTop + 34 : 92;
+      Combo.draw(ctx, this, cx, cy, narrow, this.frameDt || 0.016);
     }
     // Goldrausch- und Ereignis-Pille: breit links oben, schmal links unter den Boss-Knöpfen
     const py = narrow ? uiTop : 14;
@@ -1254,6 +1242,7 @@ const Battle = {
 
     Events.drawPill(ctx, this, this.rush > 0 ? py + 36 : py);
     Vitals.drawOverlay(ctx, this, narrow ? uiTop + 62 : Math.max(H * 0.24, 100));
+    Run.drawPause(ctx, this);
 
     // Schnurr-Meter
     const mw = Math.min(260, W * 0.3), mx = W - mw - 18, my = H - 30 - iB;
