@@ -616,3 +616,83 @@ main { grid-template-columns: minmax(0, 1fr) 440px; }
 .catcard .cbn, .catcard .cr { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tab { min-width: 0; }
 .tab .tn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ------------------------------------------------------------- Symbolleiste + Menü-Schublade (Handy/Tablet)
+   Spielfeld im Vollbild; das Menü ist eine Schublade (hochkant von unten, quer von rechts).
+   --dockB / --dockR (Zahlen in px) liest auch Battle.resize(), damit Boden, Skill-Leiste und
+   Schnurr-Meter über bzw. neben der Leiste bleiben. */
+#dock, #dockMore, #sheetHandle { display: none; }
+@media (max-width: 1000px), (max-height: 500px) {
+  :root { --dockB: 58; --dockR: 0; }
+  main { display: block; position: relative; }
+  #battle { position: absolute; inset: 0; }
+  #skills { bottom: calc(8px + var(--dockB) * 1px); }
+  #bossWrap { left: calc((100% - var(--dockR) * 1px) / 2); }
+  #tabs { display: none; }
+
+  #dock {
+    display: flex; position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--dockB) * 1px);
+    justify-content: center; align-items: center; gap: 10px; z-index: 6;
+    background: linear-gradient(180deg, transparent, rgba(12, 8, 28, 0.55));
+  }
+  .dk {
+    position: relative; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; padding: 0;
+    display: grid; place-items: center; line-height: 1;
+    background: rgba(20, 14, 40, 0.42); border: 1px solid rgba(255, 255, 255, 0.2);
+    -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+    transition: transform 0.12s, background 0.15s, border-color 0.15s;
+  }
+  .dk:active { transform: scale(0.9); }
+  .dk .dki { font-family: var(--emoji); font-size: 21px; opacity: 0.92; }
+  .dk.more .dki { font-family: var(--font); font-size: 26px; font-weight: 900; color: var(--text); transform: translateY(-1px); transition: transform 0.2s; }
+  .dk.on { background: rgba(157, 123, 255, 0.55); border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 211, 77, 0.45); }
+  .dk .dot { position: absolute; top: 1px; right: 1px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); display: none; box-shadow: 0 0 6px var(--danger); }
+  .dk .dot.on { display: block; animation: pulse 1.2s infinite; }
+  body.more-open .dk.more .dki { transform: rotate(-90deg); }
+
+  /* Pfeil-Menü: die übrigen Reiter mit Namen */
+  #dockMore {
+    position: absolute; z-index: 7; bottom: calc(var(--dockB) * 1px + 4px); right: 10px;
+    display: none; flex-direction: column; gap: 6px; padding: 8px; border-radius: 16px;
+    background: rgba(20, 14, 40, 0.88); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  }
+  body.more-open #dockMore { display: flex; animation: modalIn 0.18s ease-out; }
+  .dk.wide { width: auto; height: 40px; border-radius: 12px; display: flex; gap: 8px; padding: 0 14px 0 10px; justify-content: flex-start; }
+  .dk.wide .dkn { font-size: 13px; font-weight: 700; color: var(--text); }
+  .dk.wide .dot { top: 4px; right: 4px; }
+
+  /* Schublade */
+  #panel {
+    position: absolute; left: 0; right: 0; bottom: calc(var(--dockB) * 1px); height: min(62%, 600px); z-index: 5;
+    border: 1px solid var(--line); border-bottom: 0; border-radius: 18px 18px 0 0;
+    box-shadow: 0 -10px 34px rgba(0, 0, 0, 0.5);
+    transform: translateY(calc(100% + var(--dockB) * 1px + 20px)); transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+  body.sheet-open #panel { transform: none; }
+  #sheetHandle { display: flex; align-items: center; gap: 8px; padding: 6px 8px 4px 14px; flex: none; position: relative; cursor: pointer; touch-action: none; }
+  #sheetHandle .grip { position: absolute; left: 50%; top: 5px; width: 40px; height: 4px; margin-left: -20px; border-radius: 2px; background: rgba(255, 255, 255, 0.25); }
+  #sheetHandle .sh-title { flex: 1; font-weight: 800; font-size: 14px; padding-top: 8px; }
+  #sheetHandle .sh-close { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.25); cursor: pointer; margin-top: 4px; }
+  #tabContent { margin: 0 6px 6px; border-radius: var(--radius); }
+
+  /* Meldungen unten in der Mitte über der Skill-Leiste */
+  #toasts {
+    top: auto; bottom: calc(var(--dockB) * 1px + 62px + env(safe-area-inset-bottom)); right: auto; width: min(340px, 86vw);
+    left: calc((100% - var(--dockR) * 1px) / 2); transform: translateX(-50%); align-items: center; min-width: 0;
+  }
+}
+/* quer: Leiste senkrecht rechts, Schublade von rechts */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root { --dockB: 0; --dockR: 60; }
+  #dock {
+    left: auto; top: 0; right: 0; bottom: 0; width: calc(var(--dockR) * 1px); height: auto; flex-direction: column; gap: 8px;
+    background: linear-gradient(90deg, transparent, rgba(12, 8, 28, 0.55));
+  }
+  #dockMore { bottom: 8px; right: calc(var(--dockR) * 1px + 4px); }
+  #panel {
+    left: auto; top: 0; bottom: 0; right: calc(var(--dockR) * 1px); width: min(420px, 62%); height: auto;
+    border-radius: 18px 0 0 18px; border-bottom: 1px solid var(--line); border-right: 0;
+    transform: translateX(calc(100% + var(--dockR) * 1px + 20px));
+  }
+  #toasts { width: min(300px, 44vw); bottom: calc(66px + env(safe-area-inset-bottom)); }
+}

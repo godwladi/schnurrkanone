@@ -30,6 +30,8 @@ Schnelltest ohne Upload: am PC `python -m http.server 8000` im Ordner starten un
 
 **Bedienung per Touch:** Waffen mit dem Finger auf andere ziehen (verschmelzen, ausrüsten, auf ♻️ verwerten), **Doppeltipp** legt an/ab, Tippen aufs Spielfeld = Pfotenhieb. Beim Start erscheint das animierte Logo – das Antippen startet zugleich den Ton.
 
+**Menü auf Handy & Tablet:** Das Spielfeld läuft im Vollbild, das Menü ist versteckt. Unten (hochkant) bzw. rechts (quer) liegt eine durchsichtige Symbolleiste mit ⚔️ Waffen, ⬆️ Training, 🐱 Katzen, 🐾 Begleiter und **›** für Aufgaben, Wiedergeburt, Erfolge und Optionen. Antippen öffnet das Menü als Schublade, nochmal antippen, ✕ oder der Griff schließt sie. Rote Punkte zeigen, wo etwas bereitliegt. Am PC (breites Fenster) bleibt die feste Seitenleiste (`js/dock.js`).
+
 **Querformat:** Das Spiel ist fürs Querformat gebaut. Auf dem Handy hochkant erscheint ein „Bitte quer halten“-Hinweis (mit „Trotzdem hochkant spielen“). iOS sperrt die Drehung bei Home-Bildschirm-Apps nicht selbst, deshalb am besten die Ausrichtungssperre im Kontrollzentrum aus- und das iPhone quer halten. Auf dem iPad gehen beide Ausrichtungen.
 
 **Neue Version online stellen:** Doppelklick auf **`Online stellen.bat`**. Das Skript zählt die Cache-Version in `sw.js` hoch, committet alles und lädt es auf GitHub; nach ca. 1 Minute ist es online. Auf dem iPhone die App ganz schließen und **zweimal** starten (beim ersten Start lädt der Service Worker die neuen Dateien im Hintergrund). Neue Dateien müssen in `sw.js` unter `FILES` eingetragen werden.
@@ -55,6 +57,7 @@ Der Bericht (`schnurrkanone-<art>-<datum>.json`) enthält Beschreibung, Gerät/B
 - `js/ui.js` – Oberfläche, Reiter, Kisten-Animation
 - `js/main.js` – Start, Spielschleife, Offline-Ertrag
 - `js/feedback.js` – 🐞 Fehlerberichte mit Spielfeld-Bild, Foto-Anhang, Protokoll und Spielstand
+- `js/dock.js` – Symbolleiste und Menü-Schublade für Handy/Tablet
 - `js/splash.js` – Startbildschirm mit Logo-Animation, Querformat-Hinweis
 - `js/touch.js` – Touch-Drag & Doppeltipp im Rucksack, Zoom-Sperre, Audio-Fortsetzung, Service-Worker-Registrierung
 - `manifest.webmanifest`, `sw.js`, `icons/` – PWA (Home-Bildschirm, Offline)

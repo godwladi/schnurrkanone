@@ -30,7 +30,7 @@ const Battle = {
 
   resize() {
     const r = this.cv.parentElement.getBoundingClientRect();
-    const old = this.W ? { W: this.W, gy: this.groundY, cs: this.cs, front: this.frontX } : null;
+    const old = this.W ? { W: this.Wp || this.W, gy: this.groundY, cs: this.cs, front: this.frontX } : null;
     this.dpr = window.devicePixelRatio || 1;
     this.W = Math.max(300, r.width);
     this.H = Math.max(240, r.height);
@@ -38,16 +38,22 @@ const Battle = {
     this.cv.height = Math.round(this.H * this.dpr);
     this.cv.style.width = this.W + 'px';
     this.cv.style.height = this.H + 'px';
-    this.groundY = Math.min(this.H * 0.8, this.H - 58); // Füße über der Skill-Leiste
-    this.cs = U.clamp(this.H / 420, 0.8, 1.7);
+    // Handy: Platz für die Symbolleiste (unten hochkant, rechts quer) – Werte aus CSS (--dockB/--dockR)
+    const cssv = getComputedStyle(this.cv.parentElement);
+    this.insetB = parseFloat(cssv.getPropertyValue('--dockB')) || 0;
+    this.insetR = parseFloat(cssv.getPropertyValue('--dockR')) || 0;
+    this.Wp = this.W - this.insetR; // nutzbare Breite links der Leiste
+    this.groundY = Math.min(this.H * 0.8, this.H - 58 - this.insetB); // Füße über der Skill-Leiste
+    // Größe nach Höhe UND Breite: im hohen Handy-Vollbild sonst riesige Katze, Gegner abgeschnitten
+    this.cs = U.clamp(Math.min(this.H / 420, this.Wp / 440), 0.8, 1.7);
     this.catX = Math.max(80, this.W * 0.13, 95 * this.cs); // Platz für Goldfisch und Eule links
     // schmal (Handy hochkant): Front näher an die Katze, sonst stapeln sich die Hindernisse
-    this.frontX = this.W < 520 ? Math.max(this.catX + 135 * this.cs, this.W * 0.4) : Math.max(this.catX + 200 * this.cs, this.W * 0.47);
-    this.spacing = Math.min(150 * this.cs, (this.W - this.frontX - 30) / 3.2);
+    this.frontX = this.Wp < 520 ? Math.max(this.catX + 135 * this.cs, this.Wp * 0.4) : Math.max(this.catX + 200 * this.cs, this.Wp * 0.47);
+    this.spacing = Math.min(150 * this.cs, (this.Wp - this.frontX - 30) / 3.2);
     // Drehen/Fenstergröße: Hindernisse auf den neuen Boden, die neue Größe und die neue
     // Frontlinie umrechnen, sonst schweben/versinken sie oder stehen außerhalb des Bildes
-    if (old && (old.W !== this.W || old.gy !== this.groundY)) {
-      const k = this.cs / old.cs, kx = (this.W - this.frontX) / Math.max(1, old.W - old.front);
+    if (old && (old.W !== this.Wp || old.gy !== this.groundY)) {
+      const k = this.cs / old.cs, kx = (this.Wp - this.frontX) / Math.max(1, old.W - old.front);
       for (const o of this.obs) {
         o.y = this.groundY; o.scale *= k;
         o.x = this.frontX + (o.x - old.front) * kx;
@@ -1157,7 +1163,8 @@ const Battle = {
   },
 
   drawOverlay(ctx, biome) {
-    const W = this.W, H = this.H;
+    // W = nutzbare Breite (ohne Symbolleiste rechts), iB = Leiste unten
+    const W = this.Wp || this.W, H = this.H, iB = this.insetB || 0;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     // Schmales Spielfeld (Handy hoch/quer): kleinere Schrift, Combo und Banner rücken
     // unter die Boss-Knöpfe, damit sich nichts mit den HTML-Knöpfen überlagert
@@ -1222,7 +1229,7 @@ const Battle = {
     Events.drawPill(ctx, this, this.rush > 0 ? py + 36 : py);
 
     // Schnurr-Meter
-    const mw = Math.min(260, W * 0.3), mx = W - mw - 18, my = H - 30;
+    const mw = Math.min(260, W * 0.3), mx = W - mw - 18, my = H - 30 - iB;
     Draw.rrect(ctx, mx - 6, my - 22, mw + 12, 40, 10, 'rgba(20,14,40,0.55)');
     ctx.font = '700 11px "Segoe UI", sans-serif'; ctx.fillStyle = '#ffd6f3'; ctx.textAlign = 'left';
     ctx.fillText(this.frenzy > 0 ? `RASEREI ${this.frenzy.toFixed(1)} s` : W < 520 ? 'SCHNURR-METER' : 'SCHNURR-METER · klicken!', mx, my - 11);
