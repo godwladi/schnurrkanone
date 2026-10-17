@@ -141,7 +141,7 @@ const FX = {
 
   // ---------------------------------------------------------------- Licht
   lightRays(ctx, B, biome, k = 1) {
-    if (k <= 0.01 || ['Lavagrund', 'Neon-City', 'Sternenmeer'].includes(biome.name)) return;
+    if (k <= 0.01 || (biome.dark || ['Lavagrund', 'Neon-City', 'Sternenmeer'].includes(biome.name))) return;
     const sx = B.W * 0.82, sy = B.groundY * 0.22, t = B.t;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';

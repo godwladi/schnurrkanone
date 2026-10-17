@@ -32,6 +32,10 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 - **Pause:** Solange die Menü-Schublade oder ein Fenster offen ist, eine Waffe gezogen wird oder (am PC) die Maus über der Seitenleiste ist, steht der Streifzug still. Im Hauptspiel werfen Bosse dann nicht, der Countdown läuft aber weiter.
 - Jeder Raum = neues Gebiet, 10 Gegner + Boss; jeder 20. Raum (20, 40, 60 …) ist ein **Wächter** (×1,6 Leben, wirft öfter, 2 Segen). Entkommt ein Boss, wird der Raum wiederholt. Gegner werfen auch, Leben heilen **nicht** von selbst.
 - Nach jedem Boss **1 von 3 Segen**: z. B. Scharfe Krallen, Koffein-Kater, Milchbart, Spiegelpfote, Neuntes Leben, Schrödingers Kiste (Glücksspiel) – oder ein **Pakt** mit Nachteil (Schwarze Katze, Gläserne Krallen).
+- **Sonderräume** (ab Raum 3, 30 % Chance, nie zweimal hintereinander), je mit eigenem Hintergrund, zwei neuen Gegnern und eigenem Boss:
+  - 🌑 **Die Leere** – Dunkelheit, nur um die Katze herum ist Licht; Gegner-Augen glühen hindurch (Schattenklumpen, Riesenauge · Boss „Das Große Nichts“)
+  - 🌀 **Wurmloch** – die Zeit schwankt zwischen 0,7× und 1,3× (Kristall-Splitter, Ufo · Boss „Ereignishorizont“)
+  - 🌐 **World Wide Web** – Pop-up-Werbung verdeckt das Feld, Tipp aufs ✕ füllt das Schnurr-Meter (Werbefenster, Bug · Boss „Pop-up-Imperator“)
 - Raum n = Stufe n des normalen Spiels. **K.O. = Lauf vorbei.** Beute: 3 🦴 je Raum plus ein Münzschatz fürs Hauptspiel.
 
 ## Auf dem iPhone spielen
@@ -77,6 +81,8 @@ Der Bericht (`schnurrkanone-<art>-<datum>.json`) enthält Beschreibung, Gerät/B
 - `js/dock.js` – Symbolleiste und Menü-Schublade für Handy/Tablet
 - `js/vitals.js` – Katzen-Leben, Boss-Geschosse und Parade, Vernichtungsschlag, Schild, Heilung
 - `js/run.js` – Streifzug (Roguelike) mit Segen, Pakten, Wächter-Räumen und Pause beim Verwalten
+- `js/foes.js` – lebendige Gegner: Atmen, Wiegen, Hüpfen, Ausholen vor dem Wurf, Gesichter mit Stimmungen, Treffer-Reaktionen (Rückstoß, Kippen, Aufblitzen, Splitter)
+- `js/rooms.js` – Sonderräume im Streifzug: Die Leere, Wurmloch, World Wide Web
 - `js/perf.js` – Grafik-Stufen (Hoch / Ausgeglichen / Akku sparen): Leinwand-Auflösung (iPhone sonst 3×), Bildrate, Teilchenzahl; hinter Menüs automatisch 30 Bilder/s
 - `js/combo.js` – Combo-Anzeige: Abzeichen mit Zeit-Ring, Stufen (Nett!, Super!, Wahnsinn!, Schnurrtastisch!, Legendär!), Funken, Flammen, „Kette gerissen“
 - `js/splash.js` – Startbildschirm mit Logo-Animation, Querformat-Hinweis

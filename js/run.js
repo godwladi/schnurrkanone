@@ -36,7 +36,7 @@ const BOON_BY_ID = Object.fromEntries(BOONS.map(b => [b.id, b]));
 
 // Gebiet je Raum bestimmen, ohne den Haupt-Spielstand anzufassen
 const _biomeFor = biomeFor;
-biomeFor = st => (S.run && S.run.active ? BIOMES[S.run.biome % BIOMES.length] : _biomeFor(st));
+biomeFor = st => (S.run && S.run.active ? RUN_BIOMES[S.run.biome % RUN_BIOMES.length] : _biomeFor(st));
 
 const Run = {
   get active() { return !!(S.run && S.run.active); },
@@ -165,11 +165,15 @@ const Run = {
     Game.emit('stage');
   },
 
+  // ab Raum 3 mit 30 % ein Sonderraum (Leere, Wurmloch, Web), nie zwei hintereinander
   nextBiome() {
+    const wasSpecial = S.run.biome >= BIOMES.length;
     let n;
-    do n = U.randi(0, BIOMES.length - 1); while (n === S.run.biome);
+    if (this.room() >= 3 && !wasSpecial && Math.random() < 0.3) n = BIOMES.length + U.randi(0, SPECIAL_ROOMS.length - 1);
+    else do n = U.randi(0, BIOMES.length - 1); while (n === S.run.biome);
     S.run.biome = n;
     FX.ambient = [];
+    Rooms.reset();
   },
 
   // drei verschiedene Karten; Heilung wird wahrscheinlicher, je weniger Leben übrig ist
@@ -224,7 +228,8 @@ const Run = {
     r.choosing = false;
     this.nextBiome();
     B.whiteFlash = 0.6;
-    B.showBanner(`RAUM ${this.room()}`, `${biomeFor(S.stage).name}${this.guardian() ? ' · Wächter-Raum!' : ''}`, '#c7b3ff');
+    const nb = biomeFor(S.stage);
+    B.showBanner(nb.special ? nb.name.toUpperCase() + '!' : `RAUM ${this.room()}`, `${nb.special ? `Raum ${this.room()} · ${nb.desc}` : nb.name}${this.guardian() ? ' · Wächter-Raum!' : ''}`, nb.special ? nb.accent : '#c7b3ff');
     if (UI.tab === 'run') UI.renderTab();
     Save.write();
   },

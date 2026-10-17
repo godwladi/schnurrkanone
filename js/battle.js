@@ -95,7 +95,7 @@ const Battle = {
   makeObstacle(boss) {
     const biome = biomeFor(S.stage);
     const treasure = !boss && Math.random() < 0.03;
-    const kind = treasure ? 'chest' : biome.obstacle;
+    const kind = treasure ? 'chest' : !boss && biome.foes ? U.pick(biome.foes) : biome.obstacle;
     const golden = !boss && !treasure && Math.random() < (Events.active('goldrain') ? 0.25 : 0.05);
     const hp = boss ? Econ.bossHp(S.stage) : Econ.hp(S.stage) * U.rand(0.85, 1.15) * (golden ? 1.5 : 1) * (treasure ? 2 : 1);
     return Run.adjustObstacle({
@@ -130,6 +130,7 @@ const Battle = {
   // ---------------------------------------------------------------- Update
   update(dt) {
     const realDt = dt;
+    dt *= Rooms.timeWarp(); // Wurmloch: schwankende Zeit
     if (this.hitStop > 0) { this.hitStop -= realDt; dt *= 0.06; }
     if (this.slowmo > 0) { this.slowmo -= realDt; dt *= 0.35; }
     this.dayT += dt;
@@ -260,6 +261,7 @@ const Battle = {
     this.updatePets(dt, target);
     Talents.update(dt, this);
     Vitals.update(dt, this);
+    Rooms.update(dt, this);
 
     // Projektile
     for (const b of this.bul) {
@@ -290,7 +292,7 @@ const Battle = {
       if (p.floor && p.y > this.groundY + 6) { p.y = this.groundY + 6; p.vy *= -0.35; p.vx *= 0.7; }
     }
     this.parts = this.parts.filter(p => p.life > 0);
-    for (const tx of this.txt) { tx.y += tx.vy * dt; tx.vy *= Math.pow(0.05, dt); tx.life -= dt; }
+    for (const tx of this.txt) { tx.x += (tx.vx || 0) * dt; tx.vx *= Math.pow(0.05, dt); tx.y += tx.vy * dt; tx.vy *= Math.pow(0.05, dt); tx.life -= dt; }
     this.txt = this.txt.filter(t => t.life > 0);
 
     // Münzen/Gräten fliegen zur Anzeige
@@ -447,6 +449,7 @@ const Battle = {
     }
     o.flash = 0.07;
     o.squash = Math.min(0.18, o.squash + 0.07);
+    Foes.onHit(this, o, dmg, crit, src);
     if (!quiet || this.laserTxt <= 0) {
       if (quiet) this.laserTxt = 0.15;
       const showAll = this.txt.length < 40;
@@ -559,6 +562,7 @@ const Battle = {
   },
 
   paw(x, y) {
+    if (x !== undefined && Rooms.tap(this, x, y)) return;
     if (x !== undefined && Vitals.tryParry(this, x, y)) return;
     if (x !== undefined && this.balloon) {
       const bp = this.balloonPos();
@@ -617,7 +621,7 @@ const Battle = {
     return p;
   },
   nightAmt(biome) {
-    if (['Lavagrund', 'Neon-City', 'Sternenmeer'].includes(biome.name)) return 0;
+    if ((biome.dark || ['Lavagrund', 'Neon-City', 'Sternenmeer'].includes(biome.name))) return 0;
     const p = (this.dayT / 240) % 1;
     let n = U.clamp((-Math.cos(p * Math.PI * 2) - 0.1) / 0.7, 0, 1);
     if (Events.active('meteor')) n = Math.max(n, 0.85);
@@ -792,7 +796,7 @@ const Battle = {
   punchZoom(a, x, y) { if (a >= this.zoom.a) this.zoom = { a, x, y }; },
   text(x, y, text, color, size, big) {
     if (this.txt.length > 60) this.txt.shift();
-    this.txt.push({ x, y, vy: -70, text, color, size, life: big ? 1.1 : 0.8, max: big ? 1.1 : 0.8, big });
+    this.txt.push({ x, y, vx: U.rand(-45, 45), vy: big ? -110 : -80, text, color, size, life: big ? 1.1 : 0.8, max: big ? 1.1 : 0.8, big });
   },
   spawnFlyers(x, y, n, kind) {
     for (let i = 0; i < n; i++) {
@@ -807,7 +811,7 @@ const Battle = {
     const biome = biomeFor(S.stage);
     // auf hellem Himmel wirkt additives Licht überbelichtet -> normal mischen
     this.night = this.nightAmt(biome);
-    const dark = ['Lavagrund', 'Neon-City', 'Sternenmeer'].includes(biome.name) || this.night > 0.5 || Events.active('storm');
+    const dark = (biome.dark || ['Lavagrund', 'Neon-City', 'Sternenmeer'].includes(biome.name)) || this.night > 0.5 || Events.active('storm');
     const glowOp = dark ? 'lighter' : 'source-over', glowA = dark ? 1 : 0.55;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.save();
@@ -1075,7 +1079,7 @@ const Battle = {
     // Schadenszahlen
     for (const tx of this.txt) {
       const a = U.clamp(tx.life / tx.max * 1.6, 0, 1);
-      const pop = tx.big ? 1 + Math.max(0, (tx.life - tx.max + 0.15)) * 4 : 1;
+      const pop = 1 + Math.max(0, (tx.life - tx.max + 0.15)) * (tx.big ? 4 : 2.5);
       ctx.globalAlpha = a;
       ctx.font = `900 ${tx.size * pop}px "Segoe UI", system-ui, sans-serif`;
       ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(30,20,40,0.85)';
@@ -1088,6 +1092,7 @@ const Battle = {
     // Bildschirm-Effekte
     if (this.frenzy > 0 || this.roar > 0) FX.speedLines(ctx, W, H, t, this.frenzy > 0 ? '#ffe3f6' : '#ffd0d6');
     FX.vignette(ctx, W, H, dark ? 0.55 : 0.32);
+    Rooms.drawScreen(ctx, this);
     Events.drawScreen(ctx, this);
     if (this.frenzy > 0) {
       const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, W * 0.7);
@@ -1115,11 +1120,12 @@ const Battle = {
   },
 
   drawBackground(ctx, biome) {
+    if (biome.special) { Rooms.drawBg(ctx, this, biome); return; }
     const W = this.W, H = this.H, gy = this.groundY, t = this.t;
     const g = ctx.createLinearGradient(0, 0, 0, gy);
     g.addColorStop(0, biome.sky[0]); g.addColorStop(1, biome.sky[1]);
     ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, gy + 20);
-    const dark = ['Lavagrund', 'Neon-City', 'Sternenmeer'].includes(biome.name);
+    const dark = (biome.dark || ['Lavagrund', 'Neon-City', 'Sternenmeer'].includes(biome.name));
     if (dark) {
       for (const s of this.stars) {
         ctx.globalAlpha = 0.4 + Math.sin(t * 2 + s.p) * 0.4;
@@ -1183,9 +1189,13 @@ const Battle = {
 
   drawHpBar(ctx, o) {
     const w = (o.boss ? 120 : 56) * this.cs, h = (o.boss ? 10 : 6) * this.cs;
-    const x = o.x - w / 2, y = o.y - OBST_H[o.kind] * o.scale - (o.boss ? 40 : 16) * this.cs;
+    const jig = (o.hurtT || 0) > 0 ? U.rand(-1.5, 1.5) : 0;
+    const x = o.x - w / 2 + jig, y = o.y - OBST_H[o.kind] * o.scale - (o.boss ? 40 : 16) * this.cs + jig;
     Draw.rrect(ctx, x - 2, y - 2, w + 4, h + 4, 4, 'rgba(20,10,30,0.7)');
-    Draw.rrect(ctx, x, y, Math.max(0, w * o.hp / o.maxHp), h, 3, o.boss ? '#ff4d6d' : o.golden ? '#ffd34d' : '#6ee7a0');
+    const ghost = Math.max(0, Math.min(1, (o.hpShow === undefined ? o.hp : o.hpShow) / o.maxHp));
+    if (ghost * w > 1) Draw.rrect(ctx, x, y, w * ghost, h, 3, '#ffffff');
+    const fr = Math.max(0, o.hp / o.maxHp);
+    if (fr * w > 1) Draw.rrect(ctx, x, y, w * fr, h, 3, o.boss ? '#ff4d6d' : o.golden ? '#ffd34d' : fr < 0.35 ? '#ffb347' : '#6ee7a0');
     if (o.boss && o.shield > 0) Draw.rrect(ctx, x, y - h - 4, w * o.shield / o.shieldMax, h * 0.7, 3, '#5ab0ff');
   },
 

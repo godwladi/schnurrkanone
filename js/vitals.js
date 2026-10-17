@@ -91,6 +91,7 @@ const Vitals = {
   launch(B, o, power) {
     const a = BOSS_ATTACKS[o.kind] || BOSS_ATTACKS.tree;
     const n = o.boss ? a.n : 1, h = OBST_H[o.kind] * o.scale;
+    o.windup = 0.35; // Gegner holt sichtbar aus (foes.js)
     for (let i = 0; i < n; i++) {
       const sky = a.sky && o.boss;
       const sx = sky ? B.catX + U.rand(-30, 140) * B.cs : o.x - OBST_W[o.kind] * o.scale * 0.3;

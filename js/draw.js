@@ -304,7 +304,6 @@ const Draw = {
     ctx.save();
     ctx.translate(o.x + (o.shakeX || 0), o.y);
     ctx.scale(o.scale, o.scale);
-    if (o.flash > 0) ctx.filter = 'brightness(2.6)';
     const sq = 1 + (o.squash || 0);
     ctx.scale(1 / sq, sq);
     switch (k) {
@@ -328,7 +327,6 @@ const Draw = {
         break;
       case 'snowman':
         Draw.circle(ctx, 0, -20, 22, '#ffffff'); Draw.circle(ctx, 0, -55, 16, '#f6f9ff'); Draw.circle(ctx, 0, -80, 12, '#ffffff');
-        Draw.circle(ctx, -4, -83, 1.8, '#222'); Draw.circle(ctx, 4, -83, 1.8, '#222');
         Draw.tri(ctx, [0, -79], [0, -76], [-12, -77], '#ff8c42');
         Draw.rrect(ctx, -10, -100, 20, 10, 2, '#222'); Draw.rrect(ctx, -14, -92, 28, 4, 2, '#222');
         Draw.circle(ctx, 0, -50, 2, '#333'); Draw.circle(ctx, 0, -58, 2, '#333');
@@ -359,6 +357,77 @@ const Draw = {
         Draw.rrect(ctx, -6, -32, 12, 13, 3, '#ffd34d'); Draw.circle(ctx, 0, -26, 2.2, '#6b3f1a');
         break;
       }
+      case 'voidling': { // Leere: wabernder Schattenklumpen mit violettem Rand
+        ctx.beginPath();
+        for (let i = 0; i <= 24; i++) {
+          const a = Math.PI + i / 24 * Math.PI, r = 30 + Math.sin(i * 1.7 + t * 4 + o.id) * 3;
+          ctx.lineTo(Math.cos(a) * r, -30 + Math.sin(a) * r * 1.25);
+        }
+        for (let i = 0; i <= 6; i++) ctx.lineTo(30 - i * 10, Math.sin(t * 6 + i + o.id) * 4); // Tentakel-Saum
+        ctx.closePath();
+        ctx.fillStyle = '#140a24'; ctx.fill();
+        ctx.strokeStyle = `rgba(160,110,255,${0.6 + Math.sin(t * 3 + o.id) * 0.3})`; ctx.lineWidth = 2.5; ctx.stroke();
+        Draw.circle(ctx, -12, -48, 5, 'rgba(160,110,255,0.25)');
+        break;
+      }
+      case 'eyeball': { // Leere: schwebendes Auge mit Tentakeln
+        ctx.translate(0, Math.sin(t * 2.4 + o.id) * 5 - 14);
+        ctx.strokeStyle = '#5a2a7a'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        for (let i = -2; i <= 2; i++) {
+          ctx.beginPath(); ctx.moveTo(i * 7, -12);
+          ctx.quadraticCurveTo(i * 10 + Math.sin(t * 5 + i) * 6, 4, i * 6 + Math.sin(t * 4 + i * 2) * 8, 14); ctx.stroke();
+        }
+        Draw.circle(ctx, 0, -36, 27, '#f2ecff');
+        ctx.strokeStyle = 'rgba(200,60,90,0.45)'; ctx.lineWidth = 1.2;
+        for (let i = 0; i < 5; i++) { const a = i * 1.3 + 0.4; ctx.beginPath(); ctx.moveTo(Math.cos(a) * 26, -36 + Math.sin(a) * 26); ctx.lineTo(Math.cos(a) * 15, -36 + Math.sin(a) * 15); ctx.stroke(); }
+        break;
+      }
+      case 'shard': { // Wurmloch: rotierender Kristall
+        ctx.translate(0, Math.sin(t * 2 + o.id) * 5 - 8);
+        const r = Math.sin(t * 1.5 + o.id) * 0.25;
+        ctx.save(); ctx.translate(0, -40); ctx.rotate(r);
+        const g = ctx.createLinearGradient(-22, -40, 22, 40);
+        g.addColorStop(0, '#7ef9ff'); g.addColorStop(0.5, '#9d7bff'); g.addColorStop(1, '#ff7ad9');
+        ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(24, -6); ctx.lineTo(10, 36); ctx.lineTo(-12, 36); ctx.lineTo(-24, -6); ctx.closePath();
+        ctx.fillStyle = g; ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(0, 36); ctx.moveTo(-24, -6); ctx.lineTo(24, -6); ctx.stroke();
+        ctx.restore();
+        break;
+      }
+      case 'ufo': { // Wurmloch: kleine Untertasse mit Traktorstrahl
+        ctx.translate(0, Math.sin(t * 3 + o.id) * 6 - 22);
+        ctx.globalAlpha = 0.25 + Math.sin(t * 8) * 0.1; Draw.tri(ctx, [-10, -18], [10, -18], [0, 22], '#7ef9ff'); ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.arc(0, -34, 16, Math.PI, 0); ctx.fillStyle = 'rgba(150,230,255,0.75)'; ctx.fill();
+        Draw.ellipse(ctx, 0, -24, 34, 10, '#9aa3c0');
+        Draw.ellipse(ctx, 0, -27, 34, 6, '#c9d0e8');
+        for (let i = 0; i < 5; i++) Draw.circle(ctx, -24 + i * 12, -22, 2.5, (Math.floor(t * 6) + i) % 2 ? '#ffd34d' : '#ff4d6d');
+        break;
+      }
+      case 'popup': { // World Wide Web: Werbe-Fenster
+        ctx.translate(Math.sin(t * 9 + o.id) * 1.5, Math.sin(t * 2 + o.id) * 3 - 12);
+        Draw.rrect(ctx, -30, -64, 60, 52, 5, '#f4f6ff');
+        Draw.rrect(ctx, -30, -64, 60, 11, 5, '#3a6df0');
+        Draw.rrect(ctx, 17, -62, 9, 7, 2, '#ff4d6d');
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 6px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('×', 21.5, -56.5);
+        ctx.fillStyle = '#ff4fd8'; ctx.font = 'bold 7px sans-serif'; ctx.fillText(['GRATIS!', 'KLICK!', '100%!', 'WOW!'][o.id % 4], 0, -18);
+        ctx.strokeStyle = '#3a6df0'; ctx.lineWidth = 1; ctx.strokeRect(-30, -64, 60, 52);
+        break;
+      }
+      case 'bug': { // World Wide Web: ein echter „Bug“
+        const w = Math.sin(t * 14 + o.id) * 3;
+        ctx.strokeStyle = '#1b4d2e'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath(); ctx.moveTo(-14, -16 + i * 7); ctx.lineTo(-26, -8 + i * 8 + (i ? w : -w)); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(14, -16 + i * 7); ctx.lineTo(26, -8 + i * 8 + (i ? -w : w)); ctx.stroke();
+        }
+        Draw.ellipse(ctx, 0, -20, 20, 17, '#2fd66b');
+        ctx.strokeStyle = '#0d7a3a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -36); ctx.lineTo(0, -4); ctx.stroke();
+        Draw.circle(ctx, 0, -42, 12, '#1b4d2e');
+        ctx.strokeStyle = '#1b4d2e'; ctx.beginPath(); ctx.moveTo(-5, -52); ctx.lineTo(-11 + w, -64); ctx.moveTo(5, -52); ctx.lineTo(11 - w, -64); ctx.stroke();
+        ctx.fillStyle = '#7dffb0'; ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; ctx.fillText('01', -8, -18); ctx.fillText('10', 8, -24);
+        break;
+      }
       case 'asteroid': {
         ctx.translate(0, Math.sin(t * 2 + o.id) * 4 - 10);
         ctx.beginPath();
@@ -371,16 +440,10 @@ const Draw = {
         break;
       }
     }
-    if (o.boss) { // Krone und wütende Augen
-      ctx.filter = 'none';
-      const hy = -OBST_H[k] - 6;
+    if (o.boss) { // Krone
+      const hy = -OBST_H[k] - 6 - (FOE_FLOAT[k] || 0); // schwebende Gegner sind schon verschoben
       ctx.beginPath(); ctx.moveTo(-14, hy); ctx.lineTo(-14, hy - 14); ctx.lineTo(-7, hy - 6); ctx.lineTo(0, hy - 18); ctx.lineTo(7, hy - 6); ctx.lineTo(14, hy - 14); ctx.lineTo(14, hy); ctx.closePath();
       ctx.fillStyle = '#ffd34d'; ctx.fill();
-      const ey = -OBST_H[k] * 0.55;
-      Draw.circle(ctx, -8, ey, 6, '#fff'); Draw.circle(ctx, 8, ey, 6, '#fff');
-      Draw.circle(ctx, -7, ey + 1, 3, '#c1121f'); Draw.circle(ctx, 7, ey + 1, 3, '#c1121f');
-      ctx.strokeStyle = '#222'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(-15, ey - 9); ctx.lineTo(-3, ey - 5); ctx.moveTo(15, ey - 9); ctx.lineTo(3, ey - 5); ctx.stroke();
     }
     ctx.restore();
   },
@@ -417,5 +480,7 @@ const Draw = {
   },
 };
 
-const OBST_H = { tree: 92, cactus: 80, snowman: 100, lavarock: 54, vending: 86, asteroid: 78, chest: 62 };
-const OBST_W = { tree: 60, cactus: 56, snowman: 46, lavarock: 66, vending: 50, asteroid: 66, chest: 60 };
+const OBST_H = { tree: 92, cactus: 80, snowman: 100, lavarock: 54, vending: 86, asteroid: 78, chest: 62, voidling: 68, eyeball: 78, shard: 92, ufo: 66, popup: 80, bug: 66 };
+const OBST_W = { tree: 60, cactus: 56, snowman: 46, lavarock: 66, vending: 50, asteroid: 66, chest: 60, voidling: 62, eyeball: 56, shard: 50, ufo: 70, popup: 62, bug: 56 };
+// Schwebe-Versatz (für Krone und Gesicht schwebender Gegner)
+const FOE_FLOAT = { asteroid: -10, eyeball: -14, shard: -8, ufo: -22, popup: -12 };

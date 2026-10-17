@@ -1,0 +1,255 @@
+'use strict';
+// ---------------------------------------------------------------------------
+// Sonderräume im Streifzug: Die Leere, Wurmloch, World Wide Web. Jeder mit
+// eigenem Hintergrund, zwei eigenen Gegnern, eigenem Boss und einer Regel:
+//   Leere   – Dunkelheit, nur um die Katze herum ist Licht, Gegner-Augen glühen
+//   Wurmloch – die Zeit schwankt (alles mal schneller, mal langsamer)
+//   Web     – Pop-up-Werbung verdeckt das Spielfeld; aufs ✕ tippen schließt sie
+// ---------------------------------------------------------------------------
+
+const SPECIAL_ROOMS = [
+  { name: 'Die Leere', special: 'void', dark: true, sky: ['#020106', '#0e0820'], hills: '#0b0614', hills2: '#120a22', ground: '#07040e', ground2: '#8a5cff',
+    obstacle: 'voidling', foes: ['voidling', 'voidling', 'eyeball'], accent: '#8a5cff', debris: ['#8a5cff', '#140a24', '#c9a6ff'],
+    desc: 'Dunkelheit – nur um die Katze ist es hell' },
+  { name: 'Wurmloch', special: 'wormhole', dark: true, sky: ['#05021a', '#1a0b3a'], hills: '#120a30', hills2: '#1a0f40', ground: '#120a30', ground2: '#7ef9ff',
+    obstacle: 'shard', foes: ['shard', 'ufo'], accent: '#7ef9ff', debris: ['#7ef9ff', '#9d7bff', '#ff7ad9'],
+    desc: 'Die Zeit schwankt – mal schneller, mal langsamer' },
+  { name: 'World Wide Web', special: 'web', dark: true, sky: ['#010a0c', '#03262b'], hills: '#021a1c', hills2: '#03262b', ground: '#021a1c', ground2: '#2fffa0',
+    obstacle: 'popup', foes: ['popup', 'bug'], accent: '#2fffa0', debris: ['#2fffa0', '#3a6df0', '#ffffff'],
+    desc: 'Pop-up-Werbung! Tippe aufs ✕ zum Wegklicken' },
+];
+const RUN_BIOMES = BIOMES.concat(SPECIAL_ROOMS);
+
+Object.assign(BOSS_NAMES, { voidling: 'Das Große Nichts', eyeball: 'Das Allsehende Auge', shard: 'Ereignishorizont', ufo: 'Admiral Untertasse', popup: 'Pop-up-Imperator', bug: 'Der Ur-Bug' });
+Object.assign(BOSS_ATTACKS, {
+  voidling: { icon: '🌑', name: 'Schattenkugeln', n: 2, speed: 0.85, size: 1.2, dmg: 1 },
+  eyeball:  { icon: '👁️', name: 'Starrblick',     n: 1, speed: 1.3,  size: 1.2, dmg: 1.2 },
+  shard:    { icon: '💠', name: 'Splitterregen',  n: 3, speed: 1.2,  size: 0.9, dmg: 0.6, sky: true },
+  ufo:      { icon: '🛸', name: 'Mini-Ufos',      n: 2, speed: 1,    size: 1,   dmg: 0.8 },
+  popup:    { icon: '📧', name: 'Spam-Welle',     n: 3, speed: 1.1,  size: 0.9, dmg: 0.6 },
+  bug:      { icon: '🐛', name: 'Fehlerflut',     n: 2, speed: 1.2,  size: 1,   dmg: 0.8 },
+});
+// Musik: vorhandene Lieder, anders getaktet
+SONGS.voidling = { ...SONGS.asteroid, tempo: 84 };
+SONGS.shard = { ...SONGS.asteroid, tempo: 132 };
+SONGS.popup = { ...SONGS.vending, tempo: 136 };
+
+const AD_TEXTS = ['DU HAST GEWONNEN!', 'Heiße Katzen in deiner Nähe', 'Gratis Thunfisch 🐟', 'Dein Kratzbaum ist veraltet!', 'Nur heute: 99 % Rabatt', 'Klick hier für Leckerlis!'];
+
+const Rooms = {
+  ads: [], adT: 6, glyphs: null,
+
+  cur() { return Run.active ? RUN_BIOMES[S.run.biome % RUN_BIOMES.length] : null; },
+  kind() { const b = this.cur(); return b && b.special; },
+
+  // Wurmloch: Spielgeschwindigkeit schwankt zwischen 0,7× und 1,3×
+  timeWarp() { return this.kind() === 'wormhole' ? 1 + 0.3 * Math.sin(Battle.t * 0.7) : 1; },
+
+  reset() { this.ads = []; this.adT = 6; },
+
+  update(dt, B) {
+    if (this.kind() !== 'web') { this.ads = []; return; }
+    this.adT -= dt;
+    if (this.adT <= 0 && this.ads.length < 3) {
+      this.adT = U.rand(6, 10);
+      const W = B.Wp || B.W, w = Math.min(220, W * 0.55), h = 96;
+      this.ads.push({ x: U.rand(10, W - w - 10), y: U.rand(70, Math.max(80, B.groundY - h - 40)), w, h, t: 0, life: 9, text: U.pick(AD_TEXTS), hue: U.randi(0, 360) });
+      SFX.play('adPop');
+    }
+    for (const a of this.ads) a.t += dt;
+    this.ads = this.ads.filter(a => a.t < a.life && !a.closed);
+  },
+
+  // Antippen: ✕ einer Werbung schließt sie (Schnurr-Meter, etwas Leben)
+  tap(B, x, y) {
+    for (let i = this.ads.length - 1; i >= 0; i--) {
+      const a = this.ads[i], cx = a.x + a.w - 14, cy = a.y + 11;
+      if (Math.hypot(x - cx, y - cy) < 22) {
+        a.closed = true;
+        B.purr = Math.min(100, B.purr + 10);
+        Vitals.heal(B, 0.03, true);
+        B.text(cx, cy, 'WEGGEKLICKT!', '#2fffa0', 16 * B.cs, true);
+        FX.addRing(cx, cy, 40, '#2fffa0', 0.25, 4);
+        SFX.play('parry');
+        return true;
+      }
+      if (x > a.x && x < a.x + a.w && y > a.y && y < a.y + a.h) { B.text(x, y, 'Werbung!', '#ff7ad9', 13 * B.cs); return true; } // Fenster schluckt den Tipp
+    }
+    return false;
+  },
+
+  // ---------------------------------------------------------------- Hintergründe
+  drawBg(ctx, B, biome) {
+    const k = biome.special;
+    if (k === 'void') this.bgVoid(ctx, B, biome);
+    else if (k === 'wormhole') this.bgWormhole(ctx, B, biome);
+    else this.bgWeb(ctx, B, biome);
+  },
+
+  sky(ctx, B, biome) {
+    const g = ctx.createLinearGradient(0, 0, 0, B.groundY);
+    g.addColorStop(0, biome.sky[0]); g.addColorStop(1, biome.sky[1]);
+    ctx.fillStyle = g; ctx.fillRect(-20, -20, B.W + 40, B.groundY + 20);
+  },
+  floor(ctx, B, biome) {
+    const gy = B.groundY;
+    ctx.fillStyle = biome.ground; ctx.fillRect(-20, gy, B.W + 40, B.H - gy + 20);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.6 + Math.sin(B.t * 2) * 0.2; ctx.fillStyle = biome.ground2; ctx.fillRect(-20, gy, B.W + 40, 2);
+    ctx.globalAlpha = 0.18; ctx.fillRect(-20, gy - 3, B.W + 40, 8);
+    ctx.restore();
+  },
+
+  bgVoid(ctx, B, biome) {
+    const W = B.W, gy = B.groundY, t = B.t;
+    this.sky(ctx, B, biome);
+    // treibende Lichtpunkte
+    for (const s of B.stars) {
+      ctx.globalAlpha = 0.15 + Math.sin(t * 1.3 + s.p) * 0.12;
+      Draw.circle(ctx, ((s.x * W - t * 6 * s.s) % W + W) % W, (s.y * gy + Math.sin(t * 0.4 + s.p) * 10), s.s * 0.8, '#c9a6ff');
+    }
+    ctx.globalAlpha = 1;
+    // riesiges Auge im Nichts, folgt der Katze und blinzelt
+    const ex = W * 0.72, ey = gy * 0.32, r = Math.min(70, W * 0.09);
+    const open = ((t % 7) < 0.25) ? 0.1 : 1;
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath(); ctx.ellipse(ex, ey, r * 1.6, r * open, 0, 0, Math.PI * 2); ctx.fillStyle = '#1d1030'; ctx.fill();
+    ctx.clip();
+    const lx = (B.catX - ex) / W * r * 0.8;
+    Draw.circle(ctx, ex + lx, ey + 4, r * 0.7, '#5a2a9a');
+    Draw.circle(ctx, ex + lx, ey + 4, r * 0.3, '#05020a');
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    this.floor(ctx, B, biome);
+  },
+
+  bgWormhole(ctx, B, biome) {
+    const W = B.W, gy = B.groundY, t = B.t;
+    this.sky(ctx, B, biome);
+    const cx = W * 0.62, cy = gy * 0.42, maxR = Math.max(W, gy) * 0.9;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    // Ringe fliegen auf den Betrachter zu
+    for (let i = 0; i < 14; i++) {
+      const p = ((i / 14) + t * 0.12) % 1, rr = p * p * maxR;
+      ctx.globalAlpha = p * 0.5;
+      ctx.strokeStyle = `hsl(${(230 + i * 12 + t * 20) % 360},90%,65%)`; ctx.lineWidth = 1 + p * 4;
+      ctx.beginPath(); ctx.ellipse(cx, cy, rr, rr * 0.62, Math.sin(t * 0.3) * 0.2, 0, Math.PI * 2); ctx.stroke();
+    }
+    // Sternen-Striche nach außen
+    for (const s of B.stars) {
+      const a = s.p * 7, p = ((s.x + t * 0.25 * s.s) % 1), d = p * p * maxR;
+      ctx.globalAlpha = p * 0.8; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = s.s * 0.6;
+      ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.62); ctx.lineTo(cx + Math.cos(a) * d * 0.85, cy + Math.sin(a) * d * 0.62 * 0.85); ctx.stroke();
+    }
+    FX.drawGlow(ctx, cx, cy, 60, '#ffffff', 0.5 + Math.sin(t * 3) * 0.1);
+    FX.drawGlow(ctx, cx, cy, 120, '#9d7bff', 0.4);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    this.floor(ctx, B, biome);
+  },
+
+  bgWeb(ctx, B, biome) {
+    const W = B.W, H = B.H, gy = B.groundY, t = B.t;
+    this.sky(ctx, B, biome);
+    // fallende Binärzahlen (feste Spalten, wenige Zeichen pro Bild)
+    if (!this.glyphs || this.glyphs.W !== W) {
+      this.glyphs = { W, cols: Array.from({ length: Math.ceil(W / 34) }, (_, i) => ({ x: i * 34 + 10, sp: U.rand(30, 70), off: U.rand(0, 400) })) };
+    }
+    ctx.font = 'bold 13px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const c of this.glyphs.cols) {
+      for (let j = 0; j < 4; j++) {
+        const y = ((c.off + t * c.sp + j * 26) % (gy + 40)) - 20;
+        ctx.globalAlpha = 0.12 + j * 0.06;
+        ctx.fillStyle = '#2fffa0';
+        ctx.fillText(((c.x + j + Math.floor(t * 2)) % 3) ? '1' : '0', c.x, y);
+      }
+    }
+    ctx.globalAlpha = 1;
+    // schwebende Browserfenster weit hinten
+    for (let i = 0; i < 3; i++) {
+      const x = ((i * 380 - t * 12) % (W + 300) + W + 300) % (W + 300) - 150, y = 50 + i * 55;
+      ctx.globalAlpha = 0.18;
+      Draw.rrect(ctx, x, y, 120, 70, 6, '#0b3a40');
+      Draw.rrect(ctx, x, y, 120, 12, 6, '#2fffa0');
+      ctx.fillStyle = '#2fffa0'; ctx.font = 'bold 18px monospace'; ctx.fillText(['404', 'www', '<html>'][i], x + 60, y + 42);
+    }
+    ctx.globalAlpha = 1;
+    // Neon-Gitter mit Fluchtpunkt
+    ctx.fillStyle = biome.ground; ctx.fillRect(-20, gy, W + 40, H - gy + 20);
+    ctx.save();
+    ctx.strokeStyle = '#2fffa0'; ctx.lineWidth = 1;
+    const vx = W * 0.5, vy = gy - 40;
+    ctx.beginPath(); ctx.rect(-20, gy, W + 40, H - gy + 20); ctx.clip();
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath();
+    for (let i = -12; i <= 12; i++) { ctx.moveTo(vx + i * 30, vy); ctx.lineTo(vx + i * 260, H + 20); }
+    const sc = (t * 0.6) % 1;
+    for (let j = 0; j < 8; j++) { const p = (j + sc) / 8, y = gy + p * p * (H - gy + 20); ctx.moveTo(-20, y); ctx.lineTo(W + 20, y); }
+    ctx.stroke();
+    ctx.restore();
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.7; ctx.fillStyle = '#2fffa0'; ctx.fillRect(-20, gy, W + 40, 2);
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  },
+
+  // ---------------------------------------------------------------- Bildschirm-Ebene
+  drawScreen(ctx, B) {
+    const k = this.kind();
+    if (k === 'void') {
+      // Dunkelheit mit Lichtkreis um die Katze, glühende Augen der Gegner schauen hindurch
+      const cx = B.catX + 10 * B.cs, cy = B.groundY - 40 * B.cs;
+      const g = ctx.createRadialGradient(cx, cy, 120 * B.cs, cx, cy, Math.max(B.W, B.H) * 0.7);
+      g.addColorStop(0, 'rgba(3,1,8,0)'); g.addColorStop(0.5, 'rgba(3,1,8,0.6)'); g.addColorStop(1, 'rgba(3,1,8,0.88)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, B.W, B.H);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (const o of B.obs) {
+        if (o.dead || o.fleeing) continue;
+        const f = FACE[o.kind]; if (!f) continue;
+        const fy = o.y + (f.y + (f.bob ? f.bob(B.t, o) : 0)) * o.scale, blink = ((B.t + o.id * 1.37) % 4) < 0.12;
+        if (blink) continue;
+        for (const sx of f.cyclops ? [-0.8] : [-1, 1]) FX.drawGlow(ctx, o.x + (f.x + sx * 7.5) * f.s * o.scale, fy, 9 * o.scale, o.boss ? '#ff1e46' : '#c9a6ff', 0.85);
+      }
+      ctx.restore();
+    } else if (k === 'wormhole') {
+      const w = this.timeWarp(), W = B.Wp || B.W;
+      ctx.save();
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      Draw.rrect(ctx, 12, B.H - 104 - (B.insetB || 0), 104, 24, 12, 'rgba(20,10,50,0.7)');
+      ctx.font = '800 12px "Segoe UI", "Segoe UI Emoji", sans-serif'; ctx.fillStyle = w > 1 ? '#7ef9ff' : '#ff7ad9';
+      ctx.fillText(`🌀 Zeit ×${w.toFixed(2)}`, 22, B.H - 92 - (B.insetB || 0));
+      ctx.restore();
+      if (W) {
+        // leichte Verzerrung am Rand: farbige Kanten
+        ctx.globalAlpha = Math.abs(w - 1) * 0.6; ctx.fillStyle = w > 1 ? '#7ef9ff' : '#ff7ad9';
+        ctx.fillRect(0, 0, 4, B.H); ctx.fillRect(B.W - 4, 0, 4, B.H); ctx.globalAlpha = 1;
+      }
+    }
+    // Pop-up-Werbung (Web)
+    for (const a of this.ads) {
+      const pop = Math.min(1, a.t * 6), fade = Math.min(1, (a.life - a.t) * 2);
+      ctx.save();
+      ctx.globalAlpha = 0.95 * fade;
+      ctx.translate(a.x + a.w / 2, a.y + a.h / 2); ctx.scale(pop, pop); ctx.translate(-a.w / 2, -a.h / 2);
+      Draw.rrect(ctx, 0, 0, a.w, a.h, 8, '#ffffff');
+      Draw.rrect(ctx, 0, 0, a.w, 22, 8, `hsl(${a.hue},80%,55%)`);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText('⚠ WERBUNG', 8, 11);
+      Draw.circle(ctx, a.w - 14, 11, 9, '#ff4d6d');
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = 'bold 13px sans-serif'; ctx.fillText('✕', a.w - 14, 12);
+      ctx.fillStyle = `hsl(${(a.hue + 180) % 360},80%,45%)`; ctx.font = `900 ${Math.min(15, a.w / 14)}px "Segoe UI", "Segoe UI Emoji", sans-serif`;
+      ctx.fillText(a.text, a.w / 2, 48);
+      ctx.globalAlpha = (0.6 + Math.sin(B.t * 10) * 0.4) * fade;
+      Draw.rrect(ctx, a.w / 2 - 40, 64, 80, 20, 10, '#ffd34d');
+      ctx.fillStyle = '#3a2600'; ctx.font = 'bold 11px sans-serif'; ctx.fillText('JETZT KLICKEN', a.w / 2, 74);
+      ctx.restore();
+    }
+  },
+};
+
+const _playR = SFX.play;
+SFX.play = function (name, arg) {
+  if (!this.on || !this.ctx) return;
+  if (name === 'adPop') { [880, 1320, 990].forEach((f, i) => this.tone(f, 0.08, 'square', 0.05, 0, i * 0.06)); return; }
+  return _playR.call(this, name, arg);
+};
