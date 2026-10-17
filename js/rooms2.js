@@ -184,13 +184,18 @@ function mainSpecial(st) {
   if (st > 5 && mainSpecial(st - 1)) return null;
   return SPECIAL_ROOMS[roomHash(st * 31 + 7) % SPECIAL_ROOMS.length];
 }
-const _baseBiomeFor = biomeFor;
-biomeFor = st => mainSpecial(st) || _baseBiomeFor(st);
+// Gebietsfolge im Hauptspiel: die Sonderräume sind reguläre Gebiete wie die Sonnenwüste
+// (je 10 Stufen). Die ersten beiden Gebiete bleiben gleich, danach wechseln sie sich ab.
+const MAIN_CYCLE = ['Flüsterwald', 'Sonnenwüste', 'Wurmloch', 'Frostgipfel', 'Untergrund', 'Lavagrund', 'Flimmerkiste',
+  'Neon-City', 'World Wide Web', 'Sternenmeer', 'Die Leere', 'Zeitreise'].map(n => BIOMES.concat(SPECIAL_ROOMS).find(b => b.name === n));
+const mainBiome = st => MAIN_CYCLE[Math.floor((st - 1) / 10) % MAIN_CYCLE.length];
+// zusätzlich ab und zu eine einzelne Sonderraum-Stufe mitten in einem normalen Gebiet
+biomeFor = st => { const b = mainBiome(st); return b.special ? b : mainSpecial(st) || b; };
 
 // ---------------------------------------------------------------- Raum-Regeln
 Object.assign(Rooms, {
   era: 0, eraT: 15, chan: 3, chanT: 10, staticT: 0, rocks: [], rockT: 4,
-  cur() { return Run.active ? RUN_BIOMES[S.run.biome % RUN_BIOMES.length] : mainSpecial(S.stage); },
+  cur() { if (Run.active) return RUN_BIOMES[S.run.biome % RUN_BIOMES.length]; const b = biomeFor(S.stage); return b.special ? b : null; },
   channel() { return this.kind() === 'tv' ? TV_CHANNELS[this.chan] : null; },
   rateMul() { const c = this.channel(); return c && c.id === 'sport' ? 1.3 : 1; },
   dmgMul() { const c = this.channel(); return c && c.id === 'crime' ? 1.3 : 1; },

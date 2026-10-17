@@ -286,7 +286,8 @@ const UI = {
       b.classList.toggle('cooling', cool);
       b.classList.toggle('frozen', fz);
       b.dataset.fz = fz ? Math.ceil(Shades.frozen['skill:' + sk.id]) : '';
-      b.classList.toggle('ready', !run && cd <= 0 && skillOpen(sk) && !fz);
+      b.classList.toggle('ready', !run && cd <= 0 && skillOpen(sk) && !fz && !(Vitals.koPending && Vitals.dazed > 0));
+      b.classList.toggle('dazed', Vitals.koPending && Vitals.dazed > 0);
       b.querySelector('.cd').textContent = run ? (left < 10 ? left.toFixed(1) : Math.ceil(left)) : cool ? Math.ceil(cd) : '';
     }
   },

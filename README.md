@@ -28,7 +28,7 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 - Nach einem Treffer sind Katzen und Begleiter ein paar Sekunden **geröstet**: schwarz, mit weiß blinzelnden Augen, Rauchfähnchen, Glut und *Hust*.
 - **Schattenwesen** (ab Stufe 6, im Streifzug ab Raum 3): drängeln sich nach vorn, eine Blase zeigt, welche Fähigkeit sie einfrieren wollen (Skill, Talent oder Geisterkatze). Nicht in 7 s besiegt → die Fähigkeit ist 15 s eingefroren (Eis auf dem Knopf bzw. Eisblock um die Geisterkatze). Pfotenhiebe machen 3× Schaden an Schatten; gebannt gibt es Münzen und Schnurr-Meter (`js/shades.js`).
 - **Risse** liegen fest auf dem Körper der Gegner (wachsen bei 75/50/25 % Leben, Gesicht bleibt frei, Brocken platzen ab; beim Boss glüht es aus den Rissen).
-- **K.O.** (Leben auf 0): eine Stufe zurück und Farm-Modus. Heilung: Schnurr-Raserei (25 %) und Fischregen (20 %).
+- **K.O.** (Leben auf 0, Hauptspiel): 6 s **gelähmt** – kein Schießen, keine Skills, keine Pfotenhiebe (Balken mit Restzeit über der Katze), danach 40 % Leben. Heilung: Schnurr-Raserei (25 %) und Fischregen (20 %).
 
 ## Streifzug – Roguelike-Modus (`js/run.js`)
 - Reiter **🗺️ Streifzug** (ab Stufe 8). Start **ganz von vorn**: Stufe 1, nur Miau-Pistole I, 0 Münzen, kein Training, keine Katzen-/Perk-/Minze-/Level-Boni. Unterwegs eigene Münzen für Kisten und Training. Skills und Waffenplätze bleiben freigeschaltet.
@@ -37,13 +37,13 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 - Jeder Raum = neues Gebiet, 10 Gegner + Boss; jeder 20. Raum (20, 40, 60 …) ist ein **Wächter** (×1,6 Leben, wirft öfter, 2 Segen). Entkommt ein Boss, wird der Raum wiederholt. Gegner werfen auch, Leben heilen **nicht** von selbst.
 - Nach jedem Boss **1 von 3 Segen**: z. B. Scharfe Krallen, Koffein-Kater, Milchbart, Spiegelpfote, Neuntes Leben, Schrödingers Kiste (Glücksspiel) – oder ein **Pakt** mit Nachteil (Schwarze Katze, Gläserne Krallen).
 - **Sonderräume** (ab Raum 3, 30 % Chance, nie zweimal hintereinander), je mit eigenem Hintergrund, zwei neuen Gegnern und eigenem Boss:
-  - 🌑 **Die Leere** – Dunkelheit, nur um die Katze herum ist Licht; Gegner-Augen glühen hindurch (Schattenklumpen, Riesenauge · Boss „Das Große Nichts“)
+  - 🌑 **Die Leere** – Dunkelheit, einziges Licht ist eine leuchtende Mieze-Lampe neben der Katze; Gegner-Augen glühen hindurch (Schattenklumpen, Riesenauge · Boss „Das Große Nichts“)
   - 🌀 **Wurmloch** – die Zeit schwankt zwischen 0,7× und 1,3× (Kristall-Splitter, Ufo · Boss „Ereignishorizont“)
   - 🌐 **World Wide Web** – Pop-up-Werbung verdeckt das Feld, Tipp aufs ✕ füllt das Schnurr-Meter (Werbefenster, Bug · Boss „Pop-up-Imperator“)
   - 📺 **Flimmerkiste** – alle 10 s wird umgeschaltet: Sport (+30 % Feuerrate), Krimi (+30 % Schaden), Kochshow (heilt), Testbild (Röhrenfernseher, Fernbedienung · Bosse „Der Quotenkönig“, „Lord Zapper“)
   - ⛏️ **Untergrund** – Tropfsteine fallen auf Gegner und manchmal auf die Katze; Schatten unter der Katze antippen zerschlägt den Stein (Maulwurf, Kanalratte · Bosse „Maulwurf-Baron“, „Rattenkönig“)
   - ⏳ **Zeitreise** – alle 15 s ein Zeitsprung: Urzeit, Mittelalter, Zukunft mit eigenen Gegnern (T-Rex, Ritter, Roboter · Bosse „Tyranno-Max“, „Sir Blechbüchse“, „Omega-Toaster“) – `js/rooms2.js`
-- Sonderräume gibt es auch im **Hauptspiel**: ab Stufe 5 ist etwa jede 7. Stufe ein Sonderraum (fest je Stufe, nie zwei hintereinander, nie auf Zehner-Stufen).
+- Im **Hauptspiel** sind die Sonderräume reguläre Gebiete (je 10 Stufen): Flüsterwald → Sonnenwüste → Wurmloch → Frostgipfel → Untergrund → Lavagrund → Flimmerkiste → Neon-City → World Wide Web → Sternenmeer → Die Leere → Zeitreise. Zusätzlich: ab Stufe 5 ist etwa jede 7. Stufe ein Sonderraum (fest je Stufe, nie zwei hintereinander, nie auf Zehner-Stufen).
 - Raum n = Stufe n des normalen Spiels. **K.O. = Lauf vorbei.** Beute: 3 🦴 je Raum plus ein Münzschatz fürs Hauptspiel.
 
 ## Auf dem iPhone spielen

@@ -17,7 +17,8 @@ const BOSS_ATTACKS = {
 };
 const ULT_WARN = 6;       // so viele Sekunden vor Ablauf lädt der Boss den Vernichtungsschlag
 const ULT_EXTRA = 8;      // überlebt: so viele Sekunden bekommt man dazu
-const ATTACK_FROM = 3;    // ab dieser Stufe greifen Bosse an (im Streifzug immer)
+const ATTACK_FROM = 3;
+const PARALYZE_TIME = 6; // Hauptspiel: so lange gelähmt nach einem K.O.    // ab dieser Stufe greifen Bosse an (im Streifzug immer)
 
 const Vitals = {
   idle: { hp: 100, maxHp: 100 },
@@ -33,7 +34,14 @@ const Vitals = {
 
   // ---------------------------------------------------------------- Ablauf
   update(dt, B) {
+    const wasDazed = this.dazed > 0;
     for (const k of ['shield', 'dazed', 'hurtT', 'healT', 'stun', 'beam', 'charred']) this[k] = Math.max(0, this[k] - dt);
+    if (wasDazed && this.dazed <= 0 && this.koPending && !Run.active) {
+      this.koPending = false;
+      const rr = this.ref(); rr.hp = Math.max(rr.hp, rr.maxHp * 0.4);
+      B.text(B.catX + 10 * B.cs, B.groundY - 90 * B.cs, 'WIEDER FIT!', '#6ee7a0', 20 * B.cs, true);
+      SFX.play('heal');
+    }
     // geröstet: Rauchfähnchen und Glut von Katzen und Begleitern
     if (this.charred > 0 && Math.random() < dt * 22) {
       const pts = [{ x: B.catX + 10 * B.cs, y: B.groundY - 60 * B.cs }];
@@ -374,8 +382,8 @@ const Vitals = {
       this.charred = 3.4; // Katzen und Begleiter sind geröstet
       setTimeout(() => SFX.play('cough'), 900);
       this.hurt(B, r.maxHp * Run.ultPct(), true);
+      if (!Run.active && B.bossState === 'active') { this.ultPenalty(B, o); return; }
       if (r.hp <= 0 || B.bossState !== 'active') return;
-      if (!Run.active) { this.ultPenalty(B, o); return; }
       this.stun = 3;
       B.showBanner('ÜBERLEBT!', `Boss erschöpft: +${ULT_EXTRA} s · 3 s lang +50 % Schaden`, '#ffd34d');
     }
@@ -408,14 +416,10 @@ const Vitals = {
       setTimeout(() => { this.koPending = false; if (Run.active) Run.die(B); }, 1700);
       return;
     }
-    const b = B.bossObj;
-    if (b) b.fleeing = true;
-    B.bossState = 'none'; B.bossObj = null;
-    S.stage = Math.max(1, S.stage - 1);
-    S.kills = 0; S.farm = true; S.farmKills = 0;
-    this.ref().hp = this.ref().maxHp * 0.3;
-    B.showBanner('K.O.!', `Zurück auf Stufe ${S.stage} – rüste auf und halte den Schild bereit!`, '#ff4d6d');
-    Game.emit('stage');
+    // Hauptspiel: 6 s gelähmt (kein Schießen, keine Skills, keine Pfotenhiebe), danach 40 % Leben
+    this.dazed = this.dazedMax = PARALYZE_TIME;
+    this.koPending = true;
+    B.showBanner('GELÄHMT!', `Leben auf null – ${PARALYZE_TIME} s bewegungsunfähig`, '#ff4d6d');
   },
 
   // ---------------------------------------------------------------- Zeichnen (Spielwelt)
@@ -450,6 +454,17 @@ const Vitals = {
       for (let i = 0; i < 3; i++) {
         const a = t * 5 + i * Math.PI * 2 / 3;
         ctx.fillText('💫', B.catX + 10 * cs + Math.cos(a) * 26 * cs, B.groundY - 82 * cs + Math.sin(a) * 7 * cs);
+      }
+      if (this.koPending && !Run.active) {
+        const w = 92 * cs, h = 10 * cs, x = B.catX + 10 * cs - w / 2, y = B.groundY - 128 * cs, f = U.clamp(this.dazed / (this.dazedMax || PARALYZE_TIME), 0, 1);
+        ctx.save();
+        Draw.rrect(ctx, x - 3, y - 3, w + 6, h + 6, 7, 'rgba(20,10,30,0.85)');
+        Draw.rrect(ctx, x, y, w * f, h, 5, Math.sin(t * 10) > 0 ? '#ff4d6d' : '#ff8a3c');
+        ctx.font = `900 ${12 * cs}px "Segoe UI", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const lbl = `GELÄHMT ${this.dazed.toFixed(1)} s`;
+        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,10,30,0.9)'; ctx.strokeText(lbl, x + w / 2, y - 11 * cs);
+        ctx.fillStyle = '#ffd6dc'; ctx.fillText(lbl, x + w / 2, y - 11 * cs);
+        ctx.restore();
       }
     }
     // Vernichtungsschlag: Aura am Boss, danach ein Strahl zur Katze

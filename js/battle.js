@@ -571,6 +571,7 @@ const Battle = {
 
   paw(x, y) {
     if (x !== undefined && Rooms.tap(this, x, y)) return;
+    if (Vitals.koPending && Vitals.dazed > 0) { if (x !== undefined) this.text(x, y, 'Gelähmt!', '#ff8a9a', 14 * this.cs); return; }
     if (x !== undefined && Vitals.tryParry(this, x, y)) return;
     if (x !== undefined && this.balloon) {
       const bp = this.balloonPos();
@@ -605,6 +606,7 @@ const Battle = {
   useSkill(id) {
     const sk = SKILLS.find(s => s.id === id);
     if (sk && Shades.skillFrozen(id)) { SFX.play('error'); Game.emit('toast', { text: `❄️ <b>${sk.name}</b> ist eingefroren – noch ${Math.ceil(Shades.frozen['skill:' + id])} s`, cls: 'warn' }); return; }
+    if (sk && Vitals.koPending && Vitals.dazed > 0) { SFX.play('error'); Game.emit('toast', { text: `💫 <b>Gelähmt</b> – noch ${Math.ceil(Vitals.dazed)} s`, cls: 'warn' }); return; }
     if (!sk || !skillOpen(sk) || S.skillsCd[id] > 0 || this.skillLeft(id) > 0) { SFX.play('error'); return; }
     S.skillsCd[id] = this.cdMax[id] = sk.cd * (id === 'shield' ? Run.shieldCdMul() : 1);
     S.stats.skills = (S.stats.skills || 0) + 1;

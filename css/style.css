@@ -805,3 +805,6 @@ body[data-gfx-mode="eco"] .dot.on { animation: none; }
 .pausegrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 .pausegrid .btn { width: 100%; }
 body.paused #game { filter: saturate(0.5) brightness(0.75); }
+
+/* Gelähmt nach einem K.O. (Hauptspiel) */
+.skill.dazed { filter: grayscale(0.8) brightness(0.7); }

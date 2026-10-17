@@ -200,6 +200,7 @@ const Foes = {
     const m = this.mood(o), s = f.s, x = f.x, y = f.y + (f.bob ? f.bob(t, o) : 0);
     ctx.save();
     ctx.translate(x, y); ctx.scale(s, s);
+    o.faceM = ctx.getTransform(); // für Effekte, die genau auf den Augen liegen (Leere)
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     const tremble = m === 'scared' ? Math.sin(t * 40 + o.id) * 0.8 : 0;
     ctx.translate(tremble, 0);
