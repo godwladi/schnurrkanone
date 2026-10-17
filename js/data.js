@@ -111,6 +111,8 @@ const SKILLS = [
   { id: 'roar',  key: '3', name: 'Wildes Fauchen',  icon: '😾', unlock: 12, cd: 45, desc: '8 s doppelte Feuerrate, +50% Krit' },
   { id: 'shield', key: '4', name: 'Schnurr-Schild', icon: '🛡️', unlock: 3,  cd: 18, desc: '2,5 s unverwundbar · wehrt auch den Vernichtungsschlag ab (Konter!)' },
 ];
+// Im Streifzug zählt auch der erreichte Raum (der Lauf startet bei Stufe 1)
+const skillOpen = sk => S.best >= sk.unlock || S.stage >= sk.unlock;
 
 const SLOT_UNLOCK = [0, 0, 5, 15]; // benötigte Bestleistung (Stufe)
 

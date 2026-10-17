@@ -159,7 +159,8 @@ const Battle = {
     this.fury += (furyWant - this.fury) * Math.min(1, realDt * 5);
     this.updateBalloon(dt);
     Events.update(dt, this);
-    for (const id of Object.keys(S.skillsCd)) S.skillsCd[id] = Math.max(0, S.skillsCd[id] - dt);
+    // Abklingzeit läuft erst, wenn die Fähigkeit vorbei ist
+    for (const id of Object.keys(S.skillsCd)) if (this.skillLeft(id) <= 0) S.skillsCd[id] = Math.max(0, S.skillsCd[id] - dt);
     this.shake *= Math.pow(0.0015, dt);
     if (this.banner) { this.banner.t += dt; if (this.banner.t > 2.2) this.banner = null; }
 
@@ -586,11 +587,21 @@ const Battle = {
     if (target) this.damage(target, R.clickDmg * (this.frenzy > 0 ? 3 : 1), true, false, 'paw');
   },
 
+  // Restdauer einer laufenden Fähigkeit (Laser inkl. Aufladen, Fauchen, Schild)
+  skillLeft(id) {
+    if (id === 'laser') return this.laserCharge > 0 ? this.laserCharge + 3 : this.laser;
+    if (id === 'roar') return this.roar;
+    if (id === 'shield') return Vitals.shield;
+    return 0;
+  },
+  cdMax: {},
+  skillDur(id) { return id === 'laser' ? 3.42 : id === 'roar' ? 8 : id === 'shield' ? Vitals.shieldMax : 0; },
+
   useSkill(id) {
     const sk = SKILLS.find(s => s.id === id);
     if (sk && Shades.skillFrozen(id)) { SFX.play('error'); Game.emit('toast', { text: `❄️ <b>${sk.name}</b> ist eingefroren – noch ${Math.ceil(Shades.frozen['skill:' + id])} s`, cls: 'warn' }); return; }
-    if (!sk || S.best < sk.unlock || S.skillsCd[id] > 0) { SFX.play('error'); return; }
-    S.skillsCd[id] = sk.cd * (id === 'shield' ? Run.shieldCdMul() : 1);
+    if (!sk || !skillOpen(sk) || S.skillsCd[id] > 0 || this.skillLeft(id) > 0) { SFX.play('error'); return; }
+    S.skillsCd[id] = this.cdMax[id] = sk.cd * (id === 'shield' ? Run.shieldCdMul() : 1);
     S.stats.skills = (S.stats.skills || 0) + 1;
     if (id === 'shield') Vitals.raiseShield(this);
     if (id === 'laser') { this.laserCharge = 0.42; SFX.play('laser'); }
@@ -924,6 +935,7 @@ const Battle = {
       ctx.globalAlpha = this.night * 0.8; ctx.fillStyle = '#3b3f8f';
       ctx.fillRect(-60, -60, W + 120, H + 120);
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+      if (!biome.special && !Events.active('storm')) this.drawSkyLights(ctx, biome, this.night);
     }
 
     // Augenlaser: Strahlen direkt aus den Pupillen aller Katzen, laufen am Ziel
@@ -1126,6 +1138,30 @@ const Battle = {
     this.drawOverlay(ctx, biome);
   },
 
+  // Sterne und leuchtender Mond. Wird nach der Nacht-Tönung erneut gezeichnet,
+  // damit der Mond wirklich leuchtet statt mit abgedunkelt zu werden.
+  drawSkyLights(ctx, biome, a, moonA = 1) {
+    const W = this.W, gy = this.groundY, t = this.t;
+    const lava = biome.name === 'Lavagrund', top = gy - 150 * this.cs;
+    for (const s of this.stars) {
+      const y = s.y * gy;
+      if (y > top) continue;
+      ctx.globalAlpha = a * (0.45 + Math.sin(t * 2 + s.p) * 0.4);
+      Draw.circle(ctx, ((s.x * W - this.scroll * 0.05) % W + W) % W, y, s.s, lava ? '#ffb38a' : '#fff');
+    }
+    if (moonA > 0.02) {
+      const mx = W * (lava ? 0.82 : 0.18), my = gy * 0.2, r = 26;
+      const col = lava ? '#ff7a4a' : '#f4f2ff', glow = lava ? '255,110,60' : '210,220,255';
+      const mg = ctx.createRadialGradient(mx, my, r * 0.8, mx, my, r * 3.4);
+      mg.addColorStop(0, `rgba(${glow},0.5)`); mg.addColorStop(1, `rgba(${glow},0)`);
+      ctx.globalAlpha = a * moonA; ctx.fillStyle = mg; ctx.fillRect(mx - r * 3.4, my - r * 3.4, r * 6.8, r * 6.8);
+      Draw.circle(ctx, mx, my, r, col);
+      ctx.globalAlpha = a * moonA * 0.35;
+      Draw.circle(ctx, mx + 8, my - 6, 6, lava ? '#b8402a' : '#b9bad8'); Draw.circle(ctx, mx - 9, my + 7, 4, lava ? '#b8402a' : '#b9bad8'); Draw.circle(ctx, mx - 3, my - 11, 3, lava ? '#b8402a' : '#b9bad8');
+    }
+    ctx.globalAlpha = 1;
+  },
+
   drawBackground(ctx, biome) {
     if (biome.special) { Rooms.drawBg(ctx, this, biome); return; }
     const W = this.W, H = this.H, gy = this.groundY, t = this.t;
@@ -1133,31 +1169,36 @@ const Battle = {
     g.addColorStop(0, biome.sky[0]); g.addColorStop(1, biome.sky[1]);
     ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, gy + 20);
     const dark = (biome.dark || ['Lavagrund', 'Neon-City', 'Sternenmeer'].includes(biome.name));
-    if (dark) {
-      for (const s of this.stars) {
-        ctx.globalAlpha = 0.4 + Math.sin(t * 2 + s.p) * 0.4;
-        Draw.circle(ctx, ((s.x * W - this.scroll * 0.05) % W + W) % W, s.y * gy, s.s, biome.name === 'Lavagrund' ? '#ffb38a' : '#fff');
+    const n = this.night, storm = Events.active('storm') ? 1 : 0;
+    // Nachthimmel: der Taghimmel blendet in tiefes Nachtblau über (nicht nur abgedunkelt)
+    if (!dark && n > 0.01) {
+      const ng = ctx.createLinearGradient(0, 0, 0, gy);
+      ng.addColorStop(0, '#141b46'); ng.addColorStop(0.6, '#26336b'); ng.addColorStop(1, '#3d4f8f');
+      ctx.globalAlpha = n; ctx.fillStyle = ng; ctx.fillRect(-20, -20, W + 40, gy + 20); ctx.globalAlpha = 1;
+    }
+    // Gewitter: grauer Wolkenhimmel, Sonne und Mond verschwinden
+    if (storm) {
+      ctx.globalAlpha = 0.65; ctx.fillStyle = dark ? '#1a1626' : '#4a5468'; ctx.fillRect(-20, -20, W + 40, gy + 20); ctx.globalAlpha = 1;
+    }
+    if (dark) this.drawSkyLights(ctx, biome, 1, 1 - storm);
+    else {
+      // Sonne nur am Tag und ohne Gewitter
+      const sunA = (1 - n) * (1 - storm);
+      if (sunA > 0.02) {
+        const sx = W * 0.82, sy = gy * 0.22 + n * 40;
+        const sg = ctx.createRadialGradient(sx, sy, 20, sx, sy, 120);
+        sg.addColorStop(0, 'rgba(255,246,194,0.55)'); sg.addColorStop(1, 'rgba(255,246,194,0)');
+        ctx.globalAlpha = sunA; ctx.fillStyle = sg; ctx.fillRect(sx - 120, sy - 120, 240, 240);
+        Draw.circle(ctx, sx, sy, 34, '#fff6c2'); Draw.circle(ctx, sx, sy, 26, '#fffbe6');
+        ctx.globalAlpha = 1;
       }
-      ctx.globalAlpha = 1;
-      Draw.circle(ctx, W * 0.82, gy * 0.22, 28, biome.name === 'Lavagrund' ? '#ff9a5a' : '#f1f0ff');
-    } else {
-      const n = this.night;
-      if (n > 0.02) {
-        for (const s of this.stars) {
-          ctx.globalAlpha = n * (0.5 + Math.sin(t * 2 + s.p) * 0.4);
-          Draw.circle(ctx, ((s.x * W - this.scroll * 0.05) % W + W) % W, s.y * gy, s.s, '#fff');
-        }
-        ctx.globalAlpha = n; Draw.circle(ctx, W * 0.18, gy * 0.2, 26, '#f1f0ff');
-        ctx.globalAlpha = n * 0.25; Draw.circle(ctx, W * 0.18, gy * 0.2, 44, '#f1f0ff');
-        ctx.globalAlpha = n; Draw.circle(ctx, W * 0.18 + 8, gy * 0.2 - 5, 6, 'rgba(180,180,210,0.6)');
-      }
-      ctx.globalAlpha = 0.9 * (1 - n); Draw.circle(ctx, W * 0.82, gy * 0.22 + n * 40, 34, '#fff6c2');
-      ctx.globalAlpha = 0.25 * (1 - n); Draw.circle(ctx, W * 0.82, gy * 0.22 + n * 40, 52, '#fff6c2'); ctx.globalAlpha = 1;
-      // Wolken
-      for (let i = 0; i < 4; i++) {
-        const cx = ((i * 330 - this.scroll * 0.15) % (W + 300) + W + 300) % (W + 300) - 150, cy = 40 + i * 28;
-        ctx.globalAlpha = 0.7;
-        Draw.ellipse(ctx, cx, cy, 50, 16, '#fff'); Draw.ellipse(ctx, cx + 30, cy - 8, 30, 14, '#fff');
+      // Wolken: am Tag weiß, nachts kaum sichtbar, bei Gewitter dicht und dunkel
+      const cn = storm ? 7 : 4;
+      for (let i = 0; i < cn; i++) {
+        const cx = ((i * 330 - this.scroll * (storm ? 0.4 : 0.15)) % (W + 300) + W + 300) % (W + 300) - 150, cy = 40 + (i % 4) * 28 + (i >= 4 ? 18 : 0);
+        const col = storm ? (i % 2 ? '#6b7385' : '#565d70') : '#fff', sc = storm ? 1.6 : 1;
+        ctx.globalAlpha = storm ? 0.9 : 0.7 * (1 - 0.75 * n);
+        Draw.ellipse(ctx, cx, cy, 50 * sc, 16 * sc, col); Draw.ellipse(ctx, cx + 30 * sc, cy - 8 * sc, 30 * sc, 14 * sc, col);
         ctx.globalAlpha = 1;
       }
     }
@@ -1206,6 +1247,90 @@ const Battle = {
     if (o.boss && o.shield > 0) Draw.rrect(ctx, x, y - h - 4, w * o.shield / o.shieldMax, h * 0.7, 3, '#5ab0ff');
   },
 
+  // Raumleiste: Pfotenspur mit 10 Stationen, die Katze läuft mit, am Ende wartet der Boss.
+  // Im Bosskampf wird daraus eine brennende Lunte (Countdown).
+  drawTrail(ctx, biome, label, bx, by, bw, cx) {
+    const t = this.t, guard = Run.guardian();
+    // Kasten mit Farbkante im Gebietston
+    Draw.rrect(ctx, bx - 12, by - 7, bw + 24, 52, 14, 'rgba(14,10,32,0.62)');
+    ctx.save();
+    ctx.globalAlpha = 0.85; ctx.strokeStyle = guard ? '#ffd34d' : biome.accent || '#c7b3ff'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(bx - 12, by - 7, bw + 24, 52, 14); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = '#fff';
+    ctx.fillText(label, cx, by + 9);
+    const ty = by + 30, x0 = bx + 6, x1 = bx + bw - 22;
+    if (this.bossState === 'active' && this.bossObj) {
+      // Lunte: brennt von rechts nach links ab, vorne sprüht ein Funke
+      const frac = U.clamp(this.bossTimer / this.bossTimeMax, 0, 1), fx = x0 + (x1 + 18 - x0) * frac;
+      const hot = frac < 0.3;
+      Draw.rrect(ctx, x0, ty - 3, x1 + 18 - x0, 6, 3, 'rgba(255,255,255,0.12)');
+      const lg = ctx.createLinearGradient(x0, 0, x1, 0);
+      lg.addColorStop(0, hot ? '#ff2d55' : '#ff8a3c'); lg.addColorStop(1, '#ffd34d');
+      ctx.fillStyle = lg; ctx.beginPath(); ctx.roundRect(x0, ty - 3, Math.max(0.001, fx - x0), 6, 3); ctx.fill();
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const fl = 7 + Math.sin(t * 30) * 2;
+      const sg = ctx.createRadialGradient(fx, ty, 0, fx, ty, fl * 2);
+      sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.3, '#ffd34d'); sg.addColorStop(1, 'rgba(255,90,40,0)');
+      ctx.fillStyle = sg; ctx.fillRect(fx - fl * 2, ty - fl * 2, fl * 4, fl * 4);
+      ctx.restore();
+      if (Math.random() < 0.4) this.particle(fx, ty, U.rand(-40, 20), U.rand(-60, -10), U.pick(['#ffd34d', '#ff8a3c', '#fff']), 0.35, 2.2, 200, false, 'spark');
+      ctx.font = '800 11px "Segoe UI", sans-serif'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,10,30,0.9)';
+      const tt = `⏱ ${this.bossTimer.toFixed(1)} s`;
+      ctx.strokeText(tt, cx, ty + 0.5); ctx.fillStyle = hot && Math.sin(t * 12) > 0 ? '#ffb3c1' : '#fff'; ctx.fillText(tt, cx, ty + 0.5);
+    } else {
+      const N = KILLS_PER_STAGE, done = S.farm ? Math.min(S.farmKills, N) : Math.min(S.kills, N);
+      const col = S.farm ? '#ffb347' : '#6ee7a0', step = (x1 - x0) / (N - 1);
+      // gestrichelter Pfad, der bereits gelaufene Teil leuchtet
+      ctx.save(); ctx.setLineDash([3, 4]); ctx.lineDashOffset = -t * 12;
+      ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x0, ty); ctx.lineTo(x1 + 8, ty); ctx.stroke(); ctx.restore();
+      if (done > 1) { ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x0, ty); ctx.lineTo(x0 + step * (done - 1), ty); ctx.stroke(); }
+      for (let i = 0; i < N; i++) {
+        const nx = x0 + i * step;
+        if (i < done - 1) this.drawPawMark(ctx, nx, ty, 8, col);
+        else if (i === done - 1) Draw.circle(ctx, nx, ty, 8.5, col);
+        else {
+          const next = i === done, pr = next ? 4.5 + Math.sin(t * 6) * 1.2 : 3.5;
+          ctx.save(); ctx.strokeStyle = next ? '#ffffff' : 'rgba(255,255,255,0.35)'; ctx.lineWidth = next ? 2 : 1.5;
+          Draw.circle(ctx, nx, ty, pr, 'rgba(14,10,32,0.9)');
+          ctx.beginPath(); ctx.arc(nx, ty, pr, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+        }
+      }
+      // Katzenkopf läuft weich zur aktuellen Station
+      const want = x0 + step * Math.max(0, done - 1);
+      this.trailX = this.trailX === undefined || Math.abs(this.trailX - want) > step * 3 ? want : this.trailX + (want - this.trailX) * 0.12;
+      if (done > 0) {
+        const hx = this.trailX, hy = ty + 1.5 - Math.abs(Math.sin(t * 5)) * 1.2;
+        ctx.fillStyle = '#ffb04d';
+        ctx.beginPath(); ctx.moveTo(hx - 5.5, hy - 1); ctx.lineTo(hx - 4.5, hy - 8); ctx.lineTo(hx - 0.5, hy - 4); ctx.lineTo(hx + 0.5, hy - 4); ctx.lineTo(hx + 4.5, hy - 8); ctx.lineTo(hx + 5.5, hy - 1); ctx.closePath(); ctx.fill();
+        Draw.circle(ctx, hx, hy, 5.5, '#ffb04d');
+        Draw.circle(ctx, hx - 2, hy - 0.5, 0.9, '#2a1a10'); Draw.circle(ctx, hx + 2, hy - 0.5, 0.9, '#2a1a10');
+      }
+      // Boss-Medaillon am Ende: glüht, sobald der Boss kommt (Wächter: gold)
+      const ready = done >= N, mx = x1 + 18, pulse = ready ? 1 + Math.sin(t * 8) * 0.12 : 1;
+      ctx.save();
+      if (ready || guard) {
+        const mg = ctx.createRadialGradient(mx, ty, 2, mx, ty, 18 * pulse);
+        mg.addColorStop(0, ready ? 'rgba(255,77,109,0.8)' : 'rgba(255,211,77,0.6)'); mg.addColorStop(1, 'rgba(255,77,109,0)');
+        ctx.fillStyle = mg; ctx.fillRect(mx - 20, ty - 20, 40, 40);
+      }
+      Draw.circle(ctx, mx, ty, 10 * pulse, guard ? '#5a4210' : 'rgba(40,20,50,0.95)');
+      ctx.strokeStyle = guard ? '#ffd34d' : ready ? '#ff4d6d' : 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(mx, ty, 10 * pulse, 0, Math.PI * 2); ctx.stroke();
+      ctx.font = `${Math.round(12 * pulse)}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+      ctx.fillText(guard ? '👑' : '😼', mx, ty + 1);
+      ctx.restore();
+    }
+  },
+  drawPawMark(ctx, x, y, r, col) {
+    Draw.ellipse(ctx, x, y + r * 0.28, r * 0.5, r * 0.4, col);
+    Draw.circle(ctx, x - r * 0.48, y - r * 0.18, r * 0.22, col);
+    Draw.circle(ctx, x - r * 0.17, y - r * 0.5, r * 0.22, col);
+    Draw.circle(ctx, x + r * 0.17, y - r * 0.5, r * 0.22, col);
+    Draw.circle(ctx, x + r * 0.48, y - r * 0.18, r * 0.22, col);
+  },
+
   drawOverlay(ctx, biome) {
     // W = nutzbare Breite (ohne Symbolleiste rechts), iB = Leiste unten
     const W = this.Wp || this.W, H = this.H, iB = this.insetB || 0;
@@ -1221,26 +1346,11 @@ const Battle = {
     let fs = 15 * k;
     ctx.font = `800 ${fs}px "Segoe UI", system-ui, sans-serif`;
     const tw = ctx.measureText(label).width;
-    const bw = Math.min(W - 64, Math.max(Math.min(360, W * 0.5), tw + 6)), bx = W / 2 - bw / 2, by = 14;
+    const bw = Math.min(W - 64, Math.max(Math.min(360, W * 0.5), tw + 6)), by = 14;
+    // mittig im ganzen Spielfeld, aber nie unter die Symbolleiste rechts
+    const bcx = Math.min(this.W / 2, W - bw / 2 - 20), bx = bcx - bw / 2;
     if (tw > bw) { fs *= bw / tw; ctx.font = `800 ${fs}px "Segoe UI", system-ui, sans-serif`; }
-    Draw.rrect(ctx, bx - 10, by - 6, bw + 20, 50, 12, 'rgba(20,14,40,0.55)');
-    ctx.fillStyle = '#fff';
-    ctx.fillText(label, W / 2, by + 9);
-    if (this.bossState === 'active' && this.bossObj) {
-      const frac = U.clamp(this.bossTimer / this.bossTimeMax, 0, 1);
-      Draw.rrect(ctx, bx, by + 22, bw, 14, 7, 'rgba(255,255,255,0.15)');
-      Draw.rrect(ctx, bx, by + 22, bw * frac, 14, 7, frac < 0.3 ? '#ff4d6d' : '#ffb347');
-      ctx.font = '800 11px "Segoe UI", sans-serif'; ctx.fillStyle = '#fff';
-      ctx.fillText(`⏱ ${this.bossTimer.toFixed(1)} s`, W / 2, by + 29);
-    } else {
-      const done = S.farm ? Math.min(S.farmKills, KILLS_PER_STAGE) : S.kills;
-      const seg = bw / KILLS_PER_STAGE;
-      for (let i = 0; i < KILLS_PER_STAGE; i++) {
-        Draw.rrect(ctx, bx + i * seg + 2, by + 22, seg - 4, 14, 4, i < done ? (S.farm ? '#ffb347' : '#6ee7a0') : 'rgba(255,255,255,0.18)');
-      }
-      ctx.font = '13px "Segoe UI Emoji", sans-serif';
-      ctx.fillText('👑', bx + bw + 14, by + 29);
-    }
+    this.drawTrail(ctx, biome, label, bx, by, bw, bcx);
 
     // Combo (breit: rechts oben; schmal: rechts unter den Boss-Knöpfen, kleiner)
     {
@@ -1280,12 +1390,16 @@ const Battle = {
       ctx.save();
       ctx.globalAlpha = U.clamp(a, 0, 1);
       // unter dem Auto-Boss-Knopf; schmal zusätzlich unter der Combo-Anzeige
-      ctx.translate(W / 2, narrow ? Math.max(H * 0.46, uiTop + 84) : Math.max(H * 0.36, 132)); ctx.scale(sc, sc);
       ctx.textAlign = 'center';
       // Schrift so wählen, dass Titel und Untertitel sicher in die Breite passen
       let bf = Math.min(52, W / 14);
+      ctx.font = `700 ${17 * k}px "Segoe UI", "Segoe UI Emoji", sans-serif`;
+      const subW = b.sub ? ctx.measureText(b.sub).width : 0;
       ctx.font = `900 ${bf}px "Segoe UI", system-ui, sans-serif`;
       const bt = ctx.measureText(b.text).width;
+      // mittig im ganzen Spielfeld (nicht nur im Bereich links der Symbolleiste)
+      const half = Math.min(W - 28, Math.max(bt, subW)) / 2;
+      ctx.translate(Math.max(half + 14, Math.min(this.W / 2, W - half - 14)), narrow ? Math.max(H * 0.46, uiTop + 84) : Math.max(H * 0.36, 132)); ctx.scale(sc, sc);
       if (bt > W - 28) { bf *= (W - 28) / bt; ctx.font = `900 ${bf}px "Segoe UI", system-ui, sans-serif`; }
       ctx.lineWidth = Math.max(5, bf * 0.16); ctx.strokeStyle = 'rgba(20,10,30,0.85)';
       ctx.strokeText(b.text, 0, 0);

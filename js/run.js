@@ -22,7 +22,7 @@ const BOONS = [
   { id: 'yarn',    icon: '🍀', name: 'Glückssträhne',       desc: '+12 % Krit-Chance' },
   { id: 'time',    icon: '⏳', name: 'Katzenzeit',          desc: '+5 s Boss-Countdown' },
   { id: 'paw',     icon: '🐾', name: 'Pfotenwirbel',        desc: 'Pfotenhiebe machen doppelten Schaden' },
-  { id: 'nap',     icon: '💤', name: 'Katzenschläfchen',    desc: 'Schild lädt 30 % schneller, hält +1 s' },
+  { id: 'nap',     icon: '💤', name: 'Katzenschläfchen',    desc: 'Schild lädt 20 % schneller (höchstens −45 %), hält +1 s', max: 3 },
   { id: 'night',   icon: '🌙', name: 'Nachtjäger',          desc: 'Unter 40 % Leben: +60 % Schaden' },
   { id: 'purr',    icon: '💞', name: 'Schnurrmotor',        desc: 'Raserei heilt zusätzlich 20 %' },
   { id: 'magnet',  icon: '🧲', name: 'Grätenmagnet',        desc: '+50 % Fischgräten am Ende', max: 1 },
@@ -60,7 +60,8 @@ const Run = {
   atkMul() { return this.active ? Math.pow(0.6, this.n('black')) * (this.guardian() ? 0.8 : 1) : 1; },
   ultPct() { return this.active ? Math.min(0.9, 0.7 + 0.01 * S.run.depth) : 0.65; },
   shieldAdd() { return this.n('nap'); },
-  shieldCdMul() { return Math.pow(0.7, this.n('nap')); },
+  // gedeckelt: die Abklingzeit beginnt erst nach dem Schild und bleibt spürbar
+  shieldCdMul() { return Math.max(0.55, Math.pow(0.8, this.n('nap'))); },
   mirrorMul() { return 1 + 2 * this.n('mirror'); },
   tryRevive() {
     if (!this.active || !S.run.boons.life) return false;

@@ -84,7 +84,7 @@ const UI = {
         if (el) { el.classList.add('merged'); this.burstAt(el, tierColor(d.w.r)); }
       }); break;
       case 'newItem': requestAnimationFrame(() => { const el = $(`.cell[data-k="g"][data-i="${d}"]`); if (el) el.classList.add('fresh'); }); break;
-      case 'stage': this.updateBossBtn(); break;
+      case 'stage': this.updateBossBtn(); this.checkSkillLocks(); break;
       case 'stageUp': this.onStageUp(d); break;
       case 'skill': this.refreshSkills(); break;
       case 'rebirthDone':
@@ -205,9 +205,22 @@ const UI = {
       : '👑 Boss herausfordern';
   },
 
+  // Im Streifzug schalten Skills mit dem erreichten Raum frei (Hauptspiel: über onStageUp)
+  checkSkillLocks() {
+    const sig = SKILLS.map(sk => skillOpen(sk) ? 1 : 0).join('');
+    if (this._skillSig && sig !== this._skillSig) {
+      SKILLS.forEach((sk, i) => {
+        if (sig[i] === '1' && this._skillSig[i] === '0') { this.toast(`${sk.icon} <b>${sk.name} bereit!</b><br><small>Taste ${sk.key} · ${sk.desc}</small>`, 'ach'); SFX.play('achievement'); }
+      });
+      this.renderSkills();
+    }
+    this._skillSig = sig;
+  },
+
   renderSkills() {
+    this._skillSig = SKILLS.map(sk => skillOpen(sk) ? 1 : 0).join('');
     $('#skills').innerHTML = SKILLS.map(sk => {
-      const locked = S.best < sk.unlock;
+      const locked = !skillOpen(sk);
       return `<button class="skill ${locked ? 'locked' : ''}" data-skill="${sk.id}" title="${sk.name} (Taste ${sk.key}): ${sk.desc}">
         <span class="si">${locked ? '🔒' : sk.icon}</span><span class="sk">${locked ? 'St. ' + sk.unlock : sk.key}</span><i class="cd"></i></button>`;
     }).join('') + `<div class="skill talent"><span class="si"></span><span class="sk">Talent</span><i class="cd"></i></div>`;
@@ -222,16 +235,23 @@ const UI = {
       tb.title = `Katzen-Talent – ${d.name}: ${d.desc}`;
       tb.style.setProperty('--p', `${U.clamp(Talents.cd / d.cd, 0, 1) * 360}deg`);
       tb.classList.toggle('fired', Talents.cd > d.cd - 0.4);
-      tb.classList.toggle('frozen', Shades.isFrozen('talent'));
+      const tf = Shades.isFrozen('talent');
+      tb.classList.toggle('frozen', tf);
+      tb.dataset.fz = tf ? Math.ceil(Shades.frozen.talent) : '';
     }
+    // rot = Fähigkeit läuft (Restdauer), blau = kühlt ab, Eis = von einem Schatten eingefroren
     for (const b of $$('#skills .skill[data-skill]')) {
       const sk = SKILLS.find(s => s.id === b.dataset.skill);
-      const cd = S.skillsCd[sk.id];
-      b.style.setProperty('--p', `${(cd / sk.cd) * 360}deg`);
-      const fz = Shades.skillFrozen(sk.id);
+      const cd = S.skillsCd[sk.id], left = Battle.skillLeft(sk.id), fz = Shades.skillFrozen(sk.id);
+      const run = left > 0, cool = !run && cd > 0;
+      const full = Math.max(cd, Battle.cdMax[sk.id] || sk.cd);
+      b.style.setProperty('--p', `${(run ? left / Math.max(0.1, Battle.skillDur(sk.id)) : cool ? cd / full : 0) * 360}deg`);
+      b.classList.toggle('running', run);
+      b.classList.toggle('cooling', cool);
       b.classList.toggle('frozen', fz);
-      b.classList.toggle('ready', cd <= 0 && S.best >= sk.unlock && !fz);
-      b.querySelector('.cd').textContent = cd > 0 ? Math.ceil(cd) : '';
+      b.dataset.fz = fz ? Math.ceil(Shades.frozen['skill:' + sk.id]) : '';
+      b.classList.toggle('ready', !run && cd <= 0 && skillOpen(sk) && !fz);
+      b.querySelector('.cd').textContent = run ? (left < 10 ? left.toFixed(1) : Math.ceil(left)) : cool ? Math.ceil(cd) : '';
     }
   },
 

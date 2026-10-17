@@ -22,7 +22,7 @@ const Shades = {
   // was könnte eingefroren werden? (Hauptkatze/Platz 1 nie)
   targets() {
     const out = [];
-    for (const sk of SKILLS) if (S.best >= sk.unlock && !this.skillFrozen(sk.id)) out.push({ key: 'skill:' + sk.id, icon: sk.icon, name: sk.name });
+    for (const sk of SKILLS) if (skillOpen(sk) && !this.skillFrozen(sk.id)) out.push({ key: 'skill:' + sk.id, icon: sk.icon, name: sk.name });
     for (let i = 1; i < 4; i++) if (S.slots[i] && !this.slotFrozen(i)) out.push({ key: 'slot:' + i, icon: WEAPONS[S.slots[i].t].icon, name: `Geisterkatze ${i + 1}` });
     if (!this.isFrozen('talent')) { const d = Talents.def(); out.push({ key: 'talent', icon: d.icon, name: d.name }); }
     return out;

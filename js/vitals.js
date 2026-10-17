@@ -499,7 +499,7 @@ const Vitals = {
     ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(20,10,30,0.9)';
     const txt = `⚠️ VERNICHTUNGSSCHLAG ${sec} s`;
     ctx.strokeText(txt, W / 2, y); ctx.fillStyle = Math.sin(t * 12) > 0 ? '#ff4d6d' : '#ffd34d'; ctx.fillText(txt, W / 2, y);
-    const ready = S.best >= 3 && S.skillsCd.shield <= 0;
+    const ready = skillOpen(SKILLS.find(s => s.id === 'shield')) && S.skillsCd.shield <= 0;
     const sub = this.shield > 0 ? '🛡️ Schild steht – Konter bereit!' : ready ? '🛡️ Jetzt Schild (Taste 4) für einen Konter!' : 'Besieg ihn vorher – oder überlebe den Treffer';
     ctx.font = `700 ${Math.min(13, W / 32)}px "Segoe UI", "Segoe UI Emoji", sans-serif`; ctx.lineWidth = 4;
     ctx.strokeText(sub, W / 2, y + fs * 0.9); ctx.fillStyle = '#fff'; ctx.fillText(sub, W / 2, y + fs * 0.9);
