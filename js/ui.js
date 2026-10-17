@@ -159,9 +159,10 @@ const UI = {
       const target = S[k], cur = this.disp[k];
       this.disp[k] = Math.abs(target - cur) < 0.5 ? target : cur + (target - cur) * Math.min(1, dt * 7);
     }
-    $('#vCoins').textContent = U.fmt(this.disp.coins);
-    $('#vBones').textContent = U.fmt(this.disp.bones);
-    $('#vMinze').textContent = U.fmt(this.disp.minze);
+    // nur bei Änderung ins DOM schreiben – sonst zeichnet Safari die Leiste jedes Bild neu
+    this.setText('#vCoins', U.fmt(this.disp.coins));
+    this.setText('#vBones', U.fmt(this.disp.bones));
+    this.setText('#vMinze', U.fmt(this.disp.minze));
     this.refreshT -= dt;
     if (this.refreshT <= 0) { this.refreshT = 0.2; this.refresh(); }
   },
@@ -187,6 +188,9 @@ const UI = {
     this.dot('quests', Quests.claimable());
     this.dot('weapons', S.grid.indexOf(null) >= 0 && S.coins >= Econ.boxCost());
   },
+
+  textCache: {},
+  setText(sel, v) { if (this.textCache[sel] === v) return; this.textCache[sel] = v; $(sel).textContent = v; },
 
   dot(tab, on) { const el = $(`.tab[data-tab="${tab}"] .dot`); if (el) el.classList.toggle('on', on); },
 
@@ -619,7 +623,12 @@ const UI = {
 
   // ---- Optionen
   tab_options() {
-    return `<div class="sec"><h3>Optionen</h3>
+    const gm = Perf.mode();
+    return `<div class="sec"><h3>Grafik <small>${S.gfx === 'auto' ? 'automatisch gewählt' : ''}</small></h3>
+        <div class="gfxrow">${Object.entries(GFX_MODES).map(([id, m]) => `<button class="gfxb ${id === gm ? 'on' : ''}" data-gfx="${id}"><span>${m.icon}</span><b>${m.name}</b><small>${m.desc}</small></button>`).join('')}</div>
+        <p class="hint">Wird das Handy warm, hilft „Akku sparen“ am meisten.</p>
+      </div>
+      <div class="sec"><h3>Optionen</h3>
         <label class="opt"><input type="checkbox" id="optSound" ${S.sound ? 'checked' : ''}> Soundeffekte</label>
         <label class="opt slider">Effekt-Lautstärke <input type="range" id="optSfxVol" min="0" max="1" step="0.05" value="${S.sfxVol}"></label>
         <label class="opt"><input type="checkbox" id="optMusic" ${S.music ? 'checked' : ''}> Musik (Taste <kbd>N</kbd>)</label>
@@ -652,6 +661,7 @@ const UI = {
         </ul></div>`;
   },
   after_options() {
+    $$('[data-gfx]').forEach(b => b.addEventListener('click', () => { SFX.play('paw'); Perf.set(b.dataset.gfx); this.renderTab(); }));
     $('#optSound').addEventListener('change', e => { S.sound = SFX.on = e.target.checked; });
     $('#optSfxVol').addEventListener('input', e => { S.sfxVol = +e.target.value; SFX.setVolume(S.sfxVol); });
     $('#optSfxVol').addEventListener('change', () => SFX.play('coin'));

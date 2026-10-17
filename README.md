@@ -53,6 +53,8 @@ Schnelltest ohne Upload: am PC `python -m http.server 8000` im Ordner starten un
 
 Der Spielstand auf dem iPhone ist unabhängig vom PC-Spielstand; zum Umziehen *Optionen → Export/Import* nutzen.
 
+**Handy wird warm?** *Optionen → Grafik → Akku sparen* (30 Bilder/s, 1,5× statt 3× Pixeldichte, weniger Teilchen, ruhende Knopf-Animationen). „Auto“ wählt auf Handy/Tablet „Ausgeglichen“ (2× Pixeldichte).
+
 ## Fehler melden / Feedback 🐞
 Rechts oben schwebt der **🐞-Knopf** (am PC auch Taste **F8**), auch über offenen Fenstern wie der Glückskiste.
 - Macht sofort ein Bild vom Spielfeld und merkt sich, was gerade offen ist (bei der Glückskiste auch die Karte unter der Nadel).
@@ -75,6 +77,7 @@ Der Bericht (`schnurrkanone-<art>-<datum>.json`) enthält Beschreibung, Gerät/B
 - `js/dock.js` – Symbolleiste und Menü-Schublade für Handy/Tablet
 - `js/vitals.js` – Katzen-Leben, Boss-Geschosse und Parade, Vernichtungsschlag, Schild, Heilung
 - `js/run.js` – Streifzug (Roguelike) mit Segen, Pakten, Wächter-Räumen und Pause beim Verwalten
+- `js/perf.js` – Grafik-Stufen (Hoch / Ausgeglichen / Akku sparen): Leinwand-Auflösung (iPhone sonst 3×), Bildrate, Teilchenzahl; hinter Menüs automatisch 30 Bilder/s
 - `js/combo.js` – Combo-Anzeige: Abzeichen mit Zeit-Ring, Stufen (Nett!, Super!, Wahnsinn!, Schnurrtastisch!, Legendär!), Funken, Flammen, „Kette gerissen“
 - `js/splash.js` – Startbildschirm mit Logo-Animation, Querformat-Hinweis
 - `js/touch.js` – Touch-Drag & Doppeltipp im Rucksack, Zoom-Sperre, Audio-Fortsetzung, Service-Worker-Registrierung

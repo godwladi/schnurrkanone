@@ -33,6 +33,7 @@ function defaultState() {
     sound: true, music: true, musicVol: 0.5, sfxVol: 0.7,
     buyAmount: 1,
     seenHelp: false,
+    gfx: 'auto',
   };
 }
 

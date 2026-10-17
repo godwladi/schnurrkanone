@@ -28,7 +28,7 @@ const Battle = {
     // Spielfeldgröße beobachten und nach dem Drehen mehrfach nachmessen.
     const fit = () => {
       const r = this.cv.parentElement.getBoundingClientRect();
-      if (Math.abs(Math.max(300, r.width) - this.W) > 0.5 || Math.abs(Math.max(240, r.height) - this.H) > 0.5 || (window.devicePixelRatio || 1) !== this.dpr) this.resize();
+      if (Math.abs(Math.max(300, r.width) - this.W) > 0.5 || Math.abs(Math.max(240, r.height) - this.H) > 0.5 || Perf.dpr() !== this.dpr) this.resize();
     };
     window.addEventListener('resize', fit);
     if (window.ResizeObserver) new ResizeObserver(fit).observe(this.cv.parentElement);
@@ -43,7 +43,7 @@ const Battle = {
   resize() {
     const r = this.cv.parentElement.getBoundingClientRect();
     const old = this.W ? { W: this.Wp || this.W, gy: this.groundY, cs: this.cs, front: this.frontX } : null;
-    this.dpr = window.devicePixelRatio || 1;
+    this.dpr = Perf.dpr(); // iPhone: 3× Pixeldichte wäre sehr teuer, siehe perf.js
     this.W = Math.max(300, r.width);
     this.H = Math.max(240, r.height);
     this.cv.width = Math.round(this.W * this.dpr);
@@ -611,7 +611,7 @@ const Battle = {
 
   // ---------------------------------------------------------------- Effekte
   particle(x, y, vx, vy, color, life, size, grav = 0, floor = false, shape) {
-    if (this.parts.length > 600) return null;
+    if (this.parts.length > Perf.cfg().parts) return null;
     const p = { x, y, vx, vy, color, life, max: life, size, grav, floor, shape, rot: Math.random() * 6 };
     this.parts.push(p);
     return p;

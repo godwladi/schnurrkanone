@@ -742,3 +742,25 @@ body.in-run #bossWrap { display: none; }
   #skills { gap: 5px; }
   .skill { width: 42px; height: 42px; }
 }
+
+/* ------------------------------------------------------------- Grafik-Stufen & Leistung
+   backdrop-filter über der ständig bewegten Leinwand muss iOS jedes Bild neu berechnen
+   (heiß, Akku) – auf Touch-Geräten daher deckende Flächen statt Weichzeichner. */
+@media (pointer: coarse) {
+  .dk { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(20, 14, 40, 0.62); }
+  .backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(8, 4, 20, 0.8); }
+}
+/* Akku sparen: Dauer-Animationen der Oberfläche ruhen (box-shadow-Pulsieren kostet Zeichenzeit) */
+body[data-gfx="eco"] .skill.ready, body[data-gfx="eco"] .btn.glow, body[data-gfx="eco"] .logocat,
+body[data-gfx="eco"] .btn.primary:not(.cant):not(:disabled), body[data-gfx="eco"] .cell.shiny::after,
+body[data-gfx="eco"] .cell.rainbow { animation: none; }
+body[data-gfx="eco"] .dot.on { animation: none; }
+.gfxrow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.gfxb {
+  border: 2px solid transparent; border-radius: 12px; background: var(--card2); cursor: pointer; padding: 8px 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; color: var(--text);
+}
+.gfxb span { font-family: var(--emoji); font-size: 20px; line-height: 1.1; }
+.gfxb b { font-size: 12px; }
+.gfxb small { font-size: 9.5px; color: var(--muted); line-height: 1.25; }
+.gfxb.on { border-color: var(--gold); background: rgba(157, 123, 255, 0.35); }

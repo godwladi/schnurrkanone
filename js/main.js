@@ -17,6 +17,7 @@ const Main = {
     Music.on = S.music;
     Music.vol = S.musicVol;
     recalc();
+    Perf.apply();
     Battle.init($('#game'));
     UI.init();
 
@@ -68,6 +69,9 @@ const Main = {
   },
 
   loop(now) {
+    // Bildrate begrenzen (Akku-Modus, hinter Menüs): Bilder überspringen, dt läuft weiter
+    if (now - (this.lastDraw || 0) < 1000 / Perf.fps() - 4) { requestAnimationFrame(t => this.loop(t)); return; }
+    this.lastDraw = now;
     const dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
     this.lastWall = Date.now();

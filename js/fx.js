@@ -47,8 +47,9 @@ const FX = {
     const W = B.W, gy = B.groundY, list = this.ambient;
     const kind = biome.obstacle;
     const rate = { tree: 5, cactus: 9, snowman: 26, lavarock: 14, vending: 45, asteroid: 3 }[kind];
-    let n = rate * dt;
-    while (n > 0 && list.length < 110) {
+    const cap = Perf.cfg().amb;
+    let n = rate * dt * cap / 110;
+    while (n > 0 && list.length < cap) {
       if (Math.random() < n) list.push(this.spawnAmbient(kind, W, gy));
       n -= 1;
     }
