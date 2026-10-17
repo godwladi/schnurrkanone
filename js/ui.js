@@ -461,15 +461,18 @@ const UI = {
     this.modal({ title: '🎁 Glückskiste', html, cls: 'chest', buttons: [], noClose: true });
     const box = $('.modal.chest');
     this.drawPortraits(box);
-    const strip = $('.strip', box), reel = $('.reel', box);
-    const w = reel.getBoundingClientRect().width;
-    const final = -(WIN * CARD + CARD / 2 - w / 2) + U.rand(-38, 38);
+    const strip = $('.strip', box), reel = $('.reel', box), winCard = $$('.rcard', box)[WIN];
+    // Layout-Maße statt getBoundingClientRect: das Modal zoomt gerade mit scale(0.8) herein,
+    // sonst wäre die Breite zu klein und die Nadel landete auf der Nachbarkarte
+    const w = reel.clientWidth;
+    const pitch = $$('.rcard', box)[1].offsetLeft - $$('.rcard', box)[0].offsetLeft || CARD;
+    const final = -(winCard.offsetLeft + winCard.offsetWidth / 2 - w / 2) + U.rand(-0.35, 0.35) * winCard.offsetWidth;
     strip.style.transform = 'translateX(0px)';
     let lastIdx = -1, running = true;
     const tickLoop = () => {
       if (!running) return;
       const m = new DOMMatrixReadOnly(getComputedStyle(strip).transform);
-      const idx = Math.floor((-m.m41 + w / 2) / CARD);
+      const idx = Math.floor((-m.m41 + w / 2) / pitch);
       if (idx !== lastIdx) { lastIdx = idx; SFX.play('tick'); }
       requestAnimationFrame(tickLoop);
     };

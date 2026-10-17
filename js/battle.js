@@ -185,6 +185,8 @@ const Battle = {
     const target = this.front();
     // Laserzeit läuft nur, solange ein Ziel da ist – kein ungenutztes Glühen
     if (target) this.laser = Math.max(0, this.laser - dt);
+    // Strahl-Brummen läuft genau so lange wie der Laser (nicht fest 3 s)
+    SFX.laserHum(this.laser > 0 && document.visibilityState === 'visible');
     const rm = this.rateMul();
     S.slots.forEach((w, i) => {
       this.recoil[i] = Math.max(0, this.recoil[i] - dt * 6);

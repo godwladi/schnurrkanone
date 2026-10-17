@@ -141,7 +141,8 @@ const Mobile = {
     };
     for (const ev of ['touchend', 'pointerup', 'click', 'keydown']) document.addEventListener(ev, wake, { passive: true });
     document.addEventListener('visibilitychange', () => {
-      if (SFX.ctx && document.visibilityState === 'visible') wake();
+      if (document.visibilityState === 'hidden') { if (SFX.hum) SFX.laserHum(false); return; } // Spielschleife ruht, Brummen nicht hängen lassen
+      if (SFX.ctx) wake();
     });
     window.addEventListener('pageshow', wake);
 

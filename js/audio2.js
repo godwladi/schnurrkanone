@@ -20,7 +20,7 @@ Object.assign(SFX, {
     src.start(t); src.stop(t + dur + 0.02);
   },
 
-  // Aufladen (0,42 s) + brummender Strahl (3 s) mit Knistern
+  // Aufladen (0,42 s); der brummende Strahl läuft danach als laserHum(), solange der Laser aktiv ist
   laserSfx() {
     const c = this.ctx, t = c.currentTime;
     const o = c.createOscillator(), f = c.createBiquadFilter(), g = c.createGain();
@@ -29,25 +29,42 @@ Object.assign(SFX, {
     f.type = 'bandpass'; f.frequency.setValueAtTime(600, t); f.frequency.exponentialRampToValueAtTime(3000, t + 0.42); f.Q.value = 3;
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.38); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.47);
     o.connect(f); f.connect(g); g.connect(this.master); o.start(t); o.stop(t + 0.5);
-
-    const t1 = t + 0.42, dur = 3;
-    const out = c.createGain(), lp = c.createBiquadFilter();
-    out.gain.setValueAtTime(0.0001, t1); out.gain.exponentialRampToValueAtTime(0.16, t1 + 0.04);
-    out.gain.setValueAtTime(0.16, t1 + dur - 0.3); out.gain.exponentialRampToValueAtTime(0.0001, t1 + dur);
-    lp.type = 'lowpass'; lp.frequency.value = 2400;
-    lp.connect(out); out.connect(this.master);
-    const lfo = c.createOscillator(), lg = c.createGain();
-    lfo.frequency.value = 14; lg.gain.value = 16; lfo.connect(lg);
-    for (const [type, fr, v] of [['sawtooth', 110, 0.5], ['square', 221, 0.22], ['sawtooth', 332, 0.18]]) {
-      const os = c.createOscillator(), og = c.createGain();
-      os.type = type; os.frequency.value = fr; lg.connect(os.frequency);
-      og.gain.value = v; os.connect(og); og.connect(lp);
-      os.start(t1); os.stop(t1 + dur + 0.05);
-    }
-    lfo.start(t1); lfo.stop(t1 + dur + 0.05);
     this.noise(0.25, 0.18, 0.42, 3000);
-    for (let i = 0; i < 16; i++) this.noiseF(0.04, 0.07, 0.5 + i * 0.17 + Math.random() * 0.08, 6000, 'highpass');
-    this.tone(700, 0.4, 'sine', 0.07, -550, 0.42 + dur - 0.1);
+  },
+
+  // Brummender Strahl mit Knistern ohne feste Länge: Battle ruft laserHum(on) jedes Bild auf,
+  // der Ton folgt damit der echten Laserzeit (die pausiert ohne Ziel und in Zeitlupe).
+  hum: null,
+  laserHum(on) {
+    if (on && (!this.on || !this.ctx || this.ctx.state !== 'running')) on = false;
+    if (on === !!this.hum) return;
+    const c = this.ctx, t = c.currentTime;
+    if (on) {
+      const out = c.createGain(), lp = c.createBiquadFilter();
+      out.gain.setValueAtTime(0.0001, t); out.gain.exponentialRampToValueAtTime(0.16, t + 0.04);
+      lp.type = 'lowpass'; lp.frequency.value = 2400;
+      lp.connect(out); out.connect(this.master);
+      const lfo = c.createOscillator(), lg = c.createGain();
+      lfo.frequency.value = 14; lg.gain.value = 16; lfo.connect(lg);
+      const oscs = [lfo];
+      for (const [type, fr, v] of [['sawtooth', 110, 0.5], ['square', 221, 0.22], ['sawtooth', 332, 0.18]]) {
+        const os = c.createOscillator(), og = c.createGain();
+        os.type = type; os.frequency.value = fr; lg.connect(os.frequency);
+        og.gain.value = v; os.connect(og); og.connect(lp);
+        oscs.push(os);
+      }
+      for (const os of oscs) os.start(t);
+      const crackle = setInterval(() => { if (this.ctx.state === 'running') this.noiseF(0.04, 0.07, Math.random() * 0.08, 6000, 'highpass'); }, 170);
+      this.hum = { out, oscs, crackle };
+    } else {
+      const h = this.hum; this.hum = null;
+      clearInterval(h.crackle);
+      h.out.gain.cancelScheduledValues(t);
+      h.out.gain.setValueAtTime(Math.max(0.0001, h.out.gain.value), t);
+      h.out.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+      for (const os of h.oscs) os.stop(t + 0.35);
+      if (this.ctx.state === 'running' && this.on) this.tone(700, 0.4, 'sine', 0.07, -550);
+    }
   },
 
   // Platschen, fallende Tropfen, Münzregen
