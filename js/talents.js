@@ -25,8 +25,10 @@ const CAT_TALENT = {
   galaxia: 'galaxy', midas: 'midas', schroedinger: 'quantum', neunschwanz: 'ninefire',
 };
 
+const LEVEL_T = 2.6, LEVEL_STRIKE = 0.14; // Dauer des Level-Up-Effekts (s), Anteil des Herabfahrens
+
 const Talents = {
-  cd: 4, fx: [], hole: null, espresso: 0, focus: 0, levelFx: 0, lastCat: null,
+  cd: 4, fx: [], hole: null, espresso: 0, focus: 0, levelFx: 0, levelHit: true, lastCat: null,
 
   id() { return CAT_TALENT[S.activeCat] || 'hairball'; },
   def() { return TALENTS[this.id()]; },
@@ -40,7 +42,9 @@ const Talents = {
     this.levelFx = Math.max(0, this.levelFx - dt);
     for (const f of this.fx) f.life -= dt;
     this.fx = this.fx.filter(f => f.life > 0);
-    if (this.levelFx > 0 && Math.random() < dt * 30) {
+    const lp = this.levelFx > 0 ? 1 - this.levelFx / LEVEL_T : 1;
+    if (!this.levelHit && lp >= LEVEL_STRIKE) { this.levelHit = true; this.levelImpact(B); }
+    if (lp > 0.2 && lp < 0.75 && Math.random() < dt * 30) {
       B.particle(B.catX + U.rand(-30, 30) * B.cs, B.groundY - U.rand(0, 40) * B.cs, U.rand(-20, 20), U.rand(-260, -120), U.pick(['#ffe680', '#ffffff', '#ffd34d']), 1, U.rand(5, 9) * B.cs, 0, false, 'star');
     }
     const h = this.hole;
@@ -185,20 +189,9 @@ const Talents = {
   // Effekte in der Szene (mit Kamera)
   draw(ctx, B) {
     const cs = B.cs, t = B.t;
-    // Level-Up-Lichtsäule
-    if (this.levelFx > 0) {
-      const a = Math.min(1, this.levelFx / 0.5);
-      const g = ctx.createLinearGradient(0, 0, 0, B.groundY);
-      g.addColorStop(0, 'rgba(255,230,128,0)'); g.addColorStop(1, 'rgba(255,230,128,0.7)');
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = a;
-      ctx.fillStyle = g;
-      const w = (60 + Math.sin(t * 12) * 6) * cs;
-      ctx.fillRect(B.catX + 5 * cs - w / 2, 0, w, B.groundY);
-      FX.drawGlow(ctx, B.catX + 5 * cs, B.groundY - 30 * cs, 110 * cs, '#ffd34d', a * 0.8);
-      ctx.restore();
-    }
+    // Level-Up-Lichtsäule: Strahl fährt vom Himmel herab, blüht zur Säule auf,
+    // atmet kurz und zerfällt dann in aufsteigende Funken
+    if (this.levelFx > 0) this.drawLevel(ctx, B, 1 - this.levelFx / LEVEL_T);
     // Nebelfokus-Aura
     if (this.focus > 0) {
       ctx.save(); ctx.globalAlpha = 0.5;
@@ -256,14 +249,68 @@ const Talents = {
   },
 
   levelUp(B, d) {
-    this.levelFx = 1.8;
+    this.levelFx = LEVEL_T; this.levelHit = false;
+    B.showBanner(`LEVEL ${d.level}!`, `+1% Schaden & Münzen · +${d.bones} 🦴${d.chest ? ' · Gratis-Kiste!' : ''}`, '#ffd34d');
+    SFX.play('levelup');
+  },
+  // Einschlag, sobald der Strahl die Katze erreicht: Ringe, Konfetti, Zoom-Stoß
+  levelImpact(B) {
     const cx = B.catX + 5 * B.cs, cy = B.groundY - 35 * B.cs;
     FX.addRing(cx, cy, 160 * B.cs, '#ffd34d', 0.6, 10);
-    FX.addRing(cx, cy, 300 * B.cs, '#fff1a8', 0.9, 5);
+    FX.addRing(cx, B.groundY, 300 * B.cs, '#fff1a8', 0.9, 5);
     for (let i = 0; i < 60; i++) B.particle(cx + U.rand(-60, 60), cy - U.rand(0, 80), U.rand(-200, 200), U.rand(-450, -150), `hsl(${U.randi(30, 60)},95%,${U.randi(55, 80)}%)`, U.rand(1, 2), U.rand(4, 8), 400, false, 'confetti');
-    B.showBanner(`LEVEL ${d.level}!`, `+1% Schaden & Münzen · +${d.bones} 🦴${d.chest ? ' · Gratis-Kiste!' : ''}`, '#ffd34d');
     B.punchZoom(0.05, cx, cy);
-    SFX.play('levelup');
+  },
+  drawLevel(ctx, B, p) {
+    const cs = B.cs, t = B.t, gy = B.groundY, cx = B.catX + 5 * cs;
+    const out = x => 1 - Math.pow(1 - U.clamp(x, 0, 1), 3);
+    const pA = U.clamp(p / LEVEL_STRIKE, 0, 1);              // Strahl fährt herab
+    const pB = out((p - LEVEL_STRIKE) / 0.16);                // Säule blüht auf
+    const pD = U.clamp((p - 0.66) / 0.34, 0, 1);              // Auflösen
+    const fade = Math.pow(1 - pD, 1.6);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    // 1) Leitstrahl von oben, mit hellem Kopf
+    if (pA < 1 || p < LEVEL_STRIKE + 0.08) {
+      const tipY = gy * out(pA), a = pA < 1 ? 1 : 1 - (p - LEVEL_STRIKE) / 0.08;
+      const lg = ctx.createLinearGradient(0, tipY - 160 * cs, 0, tipY);
+      lg.addColorStop(0, 'rgba(255,240,170,0)'); lg.addColorStop(1, 'rgba(255,250,220,0.95)');
+      ctx.globalAlpha = a; ctx.fillStyle = lg;
+      ctx.fillRect(cx - 2.5 * cs, 0, 5 * cs, tipY);
+      FX.drawGlow(ctx, cx, tipY, 26 * cs, '#fff6d0', a);
+    }
+    if (pB > 0) {
+      // 2) weiche Säule: elliptischer Verlauf, am Boden am hellsten, nach oben/außen weich
+      const breathe = 1 + Math.sin(t * 5) * 0.04;
+      const w = 52 * cs * pB * (1 - pD * 0.75) * breathe, lift = pD * pD * 90 * cs;
+      for (const [k, c0, c1] of [[1, 'rgba(255,214,100,0.32)', 'rgba(255,200,80,0.14)'], [0.32, 'rgba(255,250,225,0.45)', 'rgba(255,236,170,0.22)']]) {
+        ctx.save();
+        ctx.translate(cx, gy - lift); ctx.scale(w * k, gy * (0.85 + 0.15 * pB));
+        const rg = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+        rg.addColorStop(0, c0); rg.addColorStop(0.4, c1); rg.addColorStop(1, 'rgba(255,200,80,0)');
+        ctx.globalAlpha = fade; ctx.fillStyle = rg;
+        ctx.beginPath(); ctx.arc(0, 0, 1, Math.PI, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+      // 3) Aura um die Katze + Bodenring, der sich beim Auflösen weitet
+      ctx.globalAlpha = 1;
+      FX.drawGlow(ctx, cx, gy - 32 * cs, (78 + Math.sin(t * 9) * 6) * cs * (0.6 + 0.4 * pB), '#ffd34d', 0.32 * fade);
+      const rx = (34 + 14 * pB + pD * 50) * cs;
+      ctx.globalAlpha = 0.75 * fade; ctx.strokeStyle = '#ffe680'; ctx.lineWidth = 2.2 * cs;
+      ctx.setLineDash([10 * cs, 7 * cs]); ctx.lineDashOffset = -t * 40 * cs;
+      ctx.beginPath(); ctx.ellipse(cx, gy, rx, rx * 0.22, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      // 4) Lichtfunken steigen in der Säule auf und stieben beim Auflösen auseinander
+      for (let i = 0; i < 22; i++) {
+        const ph = (t * (0.45 + (i % 5) * 0.08) + i * 0.618) % 1;
+        const spread = (0.35 + pD * 1.8) * 52 * cs;
+        const x = cx + Math.sin(i * 12.9898 + t * 1.7) * spread * (0.4 + ph * 0.6);
+        const y = gy - 10 * cs - ph * gy * (0.75 + pD * 0.3);
+        const a = Math.sin(ph * Math.PI) * (pD > 0 ? 1 - pD * pD : pB);
+        FX.drawGlow(ctx, x, y, (3 + (i % 3)) * cs * (1 + pD), i % 4 ? '#ffe680' : '#ffffff', a);
+      }
+    }
+    ctx.restore();
   },
 };
 

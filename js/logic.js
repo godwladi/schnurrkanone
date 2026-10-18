@@ -98,7 +98,17 @@ const Game = {
       S.codex[key] = true;
       if (w.r >= 2) Game.emit('discover', w);
     }
+    // Kisten liefern erst ab Stufe II (später höher): niedrigere Stufen gelten als bekannt
+    for (let r = 1; r < w.r; r++) S.codex[`${w.t}:${r}`] = true;
     if (w.r > S.stats.maxTier) S.stats.maxTier = w.r;
+  },
+
+  // ältere Spielstände: Lücken unter der höchsten entdeckten Stufe auffüllen
+  fillCodex() {
+    for (const key of Object.keys(S.codex)) {
+      const [t, r] = key.split(':');
+      for (let i = 1; i < +r; i++) S.codex[`${t}:${i}`] = true;
+    }
   },
 
   buyBox(count = 1) {

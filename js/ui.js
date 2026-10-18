@@ -323,6 +323,7 @@ const UI = {
   tab_weapons() {
     const slots = S.slots.map((w, i) => this.cellHtml(w, 's', i, !Game.slotUnlocked(i))).join('');
     const grid = S.grid.map((w, i) => this.cellHtml(w, 'g', i)).join('');
+    Game.fillCodex();
     const codexCount = Object.keys(S.codex).length;
     return `
       <div class="sec"><h3>Ausgerüstet <small>Gesamt-DPS <b id="wDps">${U.fmt(R.dps)}</b></small></h3>
