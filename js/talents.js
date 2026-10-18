@@ -93,15 +93,21 @@ const Talents = {
         for (let i = 0; i < 10; i++) B.particle(mx, my, U.rand(-60, 60), U.rand(-120, -20), 'rgba(255,255,255,0.6)', 0.8, U.rand(8, 14) * cs, -20, false, 'smoke');
         B.shake = Math.max(B.shake, 6);
         SFX.play('boom'); break;
-      case 'stars':
+      case 'stars': {
+        // reihum auf alle sichtbaren Gegner verteilt; jeder Stern fliegt durch zu seinem Ziel
+        const foes = B.obs.filter(o => !o.dead && !o.fleeing && !(o.dying > 0) && o.x < B.W - 20);
+        if (!foes.length) foes.push(tgt);
         for (let k = 0; k < 5; k++) {
+          const o = foes[k % foes.length], y0 = -40 - k * 45, vx = 260, vy = 760;
+          const hy = o.y - OBST_H[o.kind] * o.scale * 0.55;
           B.bul.push({
-            x: tgt.x - 170 * cs + U.rand(-40, 40) * cs, y: -40 - k * 45, vx: 260, vy: 760,
+            x: o.x - vx * (hy - y0) / vy + U.rand(-10, 10) * cs, y: y0, vx, vy, aim: o,
             dmg: R.dps * 1.5 * p, color: '#ffe680', size: 9 * cs, pierce: 0, splash: 0, arc: false, phase: 0, life: 3,
             hit: new Set(), type: 'talent', sprite: 'star', src: 'bullet', needY: true, trail: [],
           });
         }
         SFX.play('event'); break;
+      }
       case 'espresso':
         this.espresso = 4;
         B.text(B.catX + 10 * cs, B.groundY - 120 * cs, '+60% Feuerrate', '#ffd6a5', 13 * cs);

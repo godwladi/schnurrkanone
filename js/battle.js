@@ -270,8 +270,10 @@ const Battle = {
       b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
       if (b.arc) b.phase += dt * 9;
       if (b.trail) { b.trail.push(b.x, b.y); if (b.trail.length > 12) b.trail.splice(0, 2); }
+      // gezielte Geschosse (Sternschauer) treffen nur ihr Ziel, solange es noch steht
+      if (b.aim && (b.aim.dead || b.aim.fleeing || b.aim.dying > 0)) b.aim = null;
       for (const o of this.obs) {
-        if (o.dead || o.fleeing || o.dying > 0 || b.hit.has(o.id)) continue;
+        if (o.dead || o.fleeing || o.dying > 0 || b.hit.has(o.id) || (b.aim && o !== b.aim)) continue;
         if (b.x >= o.x - OBST_W[o.kind] * 0.45 * o.scale && (!b.needY || b.y >= o.y - OBST_H[o.kind] * o.scale)) {
           b.hit.add(o.id);
           this.onBulletHit(b, o);
