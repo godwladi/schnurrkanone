@@ -195,41 +195,20 @@ const Rooms = {
   },
 
   // ---------------------------------------------------------------- Mieze-Lampe (Leere)
-  // Leuchtende Nachtlampe in Katzenform neben der Katze – die einzige Lichtquelle
-  lampPos(B) { return { x: Math.max(20 * B.cs, B.catX - 46 * B.cs), y: B.groundY - 26 * B.cs }; },
+  // Die Katze trägt eine kleine Laterne am Hüftgurt (Draw.hipLamp) – die einzige Lichtquelle.
+  // Hier nur der Lichtschein über der Dunkelheit und die Motten drumherum.
+  lampPos(B) { return B.lampPt || { x: B.catX - 11 * B.cs, y: B.groundY - 6 * B.cs }; },
   drawLamp(ctx, B, lp, fl) {
-    const cs = B.cs, t = B.t, gy = B.groundY, x = lp.x, k = cs;
-    // warmer Lichtschein auf Boden und Katze
+    const cs = B.cs, t = B.t, gy = B.groundY, x = lp.x;
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    FX.drawGlow(ctx, x, lp.y, 160 * cs * fl, '#ffcf7a', 0.22);
-    FX.drawGlow(ctx, x, lp.y, 50 * cs * fl, '#fff1c9', 0.5);
-    ctx.globalAlpha = 0.14; Draw.ellipse(ctx, x + 34 * cs, gy + 2, 115 * cs * fl, 12 * cs, '#ffcf7a');
-    ctx.restore();
-    // Sockel
-    Draw.rrect(ctx, x - 17 * k, gy - 6 * k, 34 * k, 7 * k, 3 * k, '#3a3048');
-    // Glaskörper als sitzende Katze: Schwanz, Körper, Kopf, Ohren
-    const body = '#ffe3a3', glow = `rgba(255,236,190,${0.85 + (fl - 1) * 3})`;
-    ctx.save();
-    ctx.strokeStyle = body; ctx.lineWidth = 5 * k; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(x + 11 * k, gy - 10 * k); ctx.quadraticCurveTo(x + 26 * k, gy - 14 * k, x + 22 * k, gy - 30 * k + Math.sin(t * 1.5) * 2 * k); ctx.stroke();
-    Draw.ellipse(ctx, x, gy - 20 * k, 14 * k, 15 * k, body);
-    Draw.circle(ctx, x, gy - 41 * k, 11 * k, body);
-    Draw.tri(ctx, [x - 10 * k, gy - 45 * k], [x - 3 * k, gy - 50 * k], [x - 9 * k, gy - 58 * k], body);
-    Draw.tri(ctx, [x + 10 * k, gy - 45 * k], [x + 3 * k, gy - 50 * k], [x + 9 * k, gy - 58 * k], body);
-    // heller Kern, damit es wie Licht im Glas wirkt
-    ctx.globalCompositeOperation = 'lighter';
-    Draw.ellipse(ctx, x, gy - 22 * k, 8 * k, 9 * k, glow);
-    Draw.circle(ctx, x, gy - 41 * k, 6 * k, glow);
-    ctx.globalCompositeOperation = 'source-over';
-    // Gesicht: geschlossene, zufriedene Augen und Schnäuzchen
-    ctx.strokeStyle = '#a0742c'; ctx.lineWidth = 1.4 * k;
-    for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(x + sx * 4.5 * k, gy - 42 * k, 2.4 * k, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke(); }
-    ctx.beginPath(); ctx.moveTo(x - 2 * k, gy - 37 * k); ctx.quadraticCurveTo(x, gy - 35 * k, x + 2 * k, gy - 37 * k); ctx.stroke();
+    FX.drawGlow(ctx, x + 12 * cs, lp.y - 14 * cs, 150 * cs * fl, '#ffcf7a', 0.2);
+    FX.drawGlow(ctx, x, lp.y, 42 * cs * fl, '#ffe2a8', 0.3);
+    ctx.globalAlpha = 0.14; Draw.ellipse(ctx, x + 14 * cs, gy + 2, 95 * cs * fl, 11 * cs, '#ffcf7a');
     ctx.restore();
     // Motten tanzen um das Licht
     for (let i = 0; i < 3; i++) {
       const a = t * (2 + i * 0.7) + i * 2.1;
-      Draw.circle(ctx, x + Math.cos(a) * (20 + i * 5) * cs, gy - 46 * cs + Math.sin(a * 1.3) * (12 + i * 3) * cs, 1.6 * cs, 'rgba(255,245,220,0.85)');
+      Draw.circle(ctx, x + Math.cos(a) * (14 + i * 4) * cs, lp.y - 6 * cs + Math.sin(a * 1.3) * (9 + i * 3) * cs, 1.4 * cs, 'rgba(255,245,220,0.85)');
     }
   },
 
@@ -237,11 +216,11 @@ const Rooms = {
   drawScreen(ctx, B) {
     const k = this.kind();
     if (k === 'void') {
-      // Dunkelheit: einziges Licht ist die Mieze-Lampe neben der Katze (flackert leicht),
+      // Dunkelheit: einziges Licht ist die Mieze-Lampe an der Hüfte der Katze (flackert leicht),
       // glühende Augen der Gegner schauen hindurch
       const cs = B.cs, t = B.t, lp = this.lampPos(B);
       const fl = 1 + Math.sin(t * 7.3) * 0.03 + Math.sin(t * 13.1) * 0.02 + (Math.random() < 0.02 ? -0.06 : 0);
-      const cx = (lp.x + B.catX + 10 * cs) / 2, cy = lp.y + 20 * cs;
+      const cx = (lp.x + B.catX + 10 * cs) / 2, cy = B.groundY - 24 * cs;
       const g = ctx.createRadialGradient(cx, cy, 70 * cs * fl, cx, cy, Math.max(B.W, B.H) * 0.62 * fl);
       g.addColorStop(0, 'rgba(3,1,8,0)'); g.addColorStop(0.28, 'rgba(3,1,8,0.55)'); g.addColorStop(0.6, 'rgba(3,1,8,0.86)'); g.addColorStop(1, 'rgba(3,1,8,0.94)');
       ctx.fillStyle = g; ctx.fillRect(0, 0, B.W, B.H);

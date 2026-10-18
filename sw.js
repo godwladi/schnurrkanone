@@ -5,7 +5,7 @@
 // nach, weil jeder Treffer im Hintergrund aktualisiert wird). Immer am HTTP-Cache
 // des Browsers vorbei laden, sonst landen alte Dateien im Offline-Speicher.
 // ---------------------------------------------------------------------------
-const CACHE = 'schnurrkanone-20261018-0003';
+const CACHE = 'schnurrkanone-20261018-1223';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png',

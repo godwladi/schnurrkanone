@@ -35,6 +35,8 @@ const Draw = {
     // Pfoten
     Draw.ellipse(ctx, -12, -3, 6, 4, cat.fur);
     Draw.ellipse(ctx, 12, -3, 6, 4, cat.pattern === 'tux' ? cat.belly : cat.fur);
+    // Mieze-Lampe am Hüftgurt (nur im Kampf, opt.lamp = Leuchtstärke 0..1)
+    if (opt.lamp != null) Draw.hipLamp(ctx, t, bob, opt);
 
     // Kopf
     ctx.save();
@@ -60,6 +62,56 @@ const Draw = {
 
     // Waffe in der Pfote
     if (opt.weapon) Draw.weapon(ctx, 18, -20 + bob * 0.3, opt.weapon, t, 1, opt.recoil || 0);
+    ctx.restore();
+  },
+
+  // Hüftgurt mit kleiner Laterne in Katzenform, im Katzen-Koordinatensystem.
+  // Pendelt sanft im Takt des Wippens, Rückstoß der Waffe stößt sie an.
+  // opt.lampOut erhält die Mitte des Glases (Gerätepixel) für den Lichtschein.
+  hipLamp(ctx, t, bob, opt) {
+    const lit = U.clamp(opt.lamp, 0, 1), by = bob * 0.3;
+    // Gurt quer über die Hüfte, auf den Körper zugeschnitten
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(0, -18 + by, 22, 16, 0, 0, Math.PI * 2); ctx.clip();
+    ctx.strokeStyle = '#6b3f22'; ctx.lineWidth = 3.4;
+    ctx.beginPath(); ctx.moveTo(-24, -19 + by); ctx.quadraticCurveTo(-8, -10 + by, 24, -14 + by); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,220,170,0.25)'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(-24, -20.2 + by); ctx.quadraticCurveTo(-8, -11.2 + by, 24, -15.2 + by); ctx.stroke();
+    ctx.restore();
+    // Öse am Gurt
+    const hx = -11, hy = -13.6 + by;
+    ctx.strokeStyle = '#c9a25a'; ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.arc(hx, hy, 1.5, 0, Math.PI * 2); ctx.stroke();
+    // Pendel: ruhiges Schwingen + Mitwippen + Stoß beim Schießen
+    const ang = Math.sin(t * 2.6) * 0.2 + Math.sin(t * 7 - 0.8) * 0.06 + (opt.recoil || 0) * 0.45;
+    ctx.save();
+    ctx.translate(hx, hy + 1); ctx.rotate(ang);
+    // Kettchen + Deckel
+    ctx.strokeStyle = '#8a7a6a'; ctx.lineWidth = 0.9;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 2.2); ctx.stroke();
+    // Glaskörper als sitzende Katze (Schwanz, Körper, Kopf, Ohren)
+    const glass = lit > 0 ? `rgb(${255},${Math.round(235 - 8 * lit)},${Math.round(225 - 62 * lit)})` : '#e8ecf4';
+    ctx.globalAlpha *= 0.85 + lit * 0.15;
+    ctx.strokeStyle = glass; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(3, 11.5); ctx.quadraticCurveTo(6.5, 10.5, 5.6, 6.6 + Math.sin(t * 1.5) * 0.6); ctx.stroke();
+    Draw.ellipse(ctx, 0, 9.3, 4.2, 3.6, glass);
+    Draw.circle(ctx, 0, 4.6, 3, glass);
+    Draw.tri(ctx, [-2.8, 3.6], [-2.4, 0.7], [-0.7, 2.2], glass);
+    Draw.tri(ctx, [2.8, 3.6], [2.4, 0.7], [0.7, 2.2], glass);
+    ctx.globalAlpha /= 0.85 + lit * 0.15;
+    Draw.rrect(ctx, -2.6, 12.2, 5.2, 1.4, 0.6, '#5a4a3a');
+    if (lit > 0) {
+      // heller Kern, damit es wie Licht im Glas wirkt
+      const a0 = ctx.globalAlpha;
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a0 * lit;
+      Draw.ellipse(ctx, 0, 9.6, 2.6, 2.2, '#fff1c9');
+      Draw.circle(ctx, 0, 4.8, 1.7, '#fff1c9');
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = a0;
+    }
+    // zufriedene, geschlossene Augen
+    ctx.strokeStyle = '#a0742c'; ctx.lineWidth = 0.55;
+    for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(sx * 1.2, 4.4, 0.75, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke(); }
+    if (opt.lampOut) opt.lampOut.push(ctx.getTransform().transformPoint(new DOMPoint(0, 7.5)));
     ctx.restore();
   },
 

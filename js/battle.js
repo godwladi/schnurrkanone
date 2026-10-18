@@ -907,9 +907,13 @@ const Battle = {
     const laserEyes = this.laser > 0 ? 1 : this.laserCharge > 0 ? 1 - this.laserCharge / 0.42 : 0;
     const steady = laserEyes > 0; // beim Lasern keine Rückstoß-Stauchung, sonst zittert der Strahl-Ursprung
     const fury = this.fury, roar = this.roar > 7;
-    const mainEyes = [];
-    Draw.cat(cc, this.catX, this.groundY, cs, cat, t, { ear: Anim.ear('main'), weapon: S.slots[0], recoil: this.recoil[0], squash: steady ? 0 : this.recoil[0] * 0.07, look, laserEyes, roar, fury, eyesOut: mainEyes });
+    const mainEyes = [], lampOut = [];
+    // Mieze-Lampe an der Hüfte: leuchtet nachts und in der Leere
+    const lampLit = Rooms.kind() === 'void' ? 1 : U.clamp((this.night - 0.25) / 0.4, 0, 1);
+    Draw.cat(cc, this.catX, this.groundY, cs, cat, t, { ear: Anim.ear('main'), weapon: S.slots[0], recoil: this.recoil[0], squash: steady ? 0 : this.recoil[0] * 0.07, look, laserEyes, roar, fury, eyesOut: mainEyes, lamp: lampLit, lampOut });
     this.mainEyes = toWorld(mainEyes, true);
+    this.lampPt = lampOut.length ? toWorld(lampOut)[0] : null;
+    this.lampLit = lampLit;
     const ghostEyes = [];
     for (let i = 1; i < 4; i++) {
       const w = S.slots[i];
@@ -952,6 +956,14 @@ const Battle = {
       ctx.fillRect(-60, -60, W + 120, H + 120);
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
       if (!biome.special && !Events.active('storm')) this.drawSkyLights(ctx, biome, this.night);
+    }
+    // warmer Lichtschein der Hüftlampe (in der Leere zeichnet Rooms ihn über die Dunkelheit)
+    if (this.lampLit > 0.01 && this.lampPt && Rooms.kind() !== 'void') {
+      const lp = this.lampPt, k = this.lampLit, fl = 1 + Math.sin(t * 7.3) * 0.03 + Math.sin(t * 13.1) * 0.02;
+      ctx.globalCompositeOperation = 'lighter';
+      FX.drawGlow(ctx, lp.x + 10 * cs, lp.y - 8 * cs, 95 * cs * fl, '#ffcf7a', 0.16 * k);
+      FX.drawGlow(ctx, lp.x, lp.y, 32 * cs * fl, '#ffe2a8', 0.3 * k);
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
     }
 
     // Augenlaser: Strahlen direkt aus den Pupillen aller Katzen, laufen am Ziel
