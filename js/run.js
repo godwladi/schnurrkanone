@@ -10,6 +10,9 @@
 
 const RUN_UNLOCK = 8;
 const GUARDIAN_EVERY = 20; // Wächter-Raum (stärker, 2 Segen als Beute)
+// Gegner werden je geschafftem Raum zäher (Bot-Läufe: ohne das fielen Bosse in Raum 1–30
+// nach 1–3 s, mit 11 % je Raum enden gute Läufe etwa zwischen Raum 25 und 45)
+const RUN_HP_GROWTH = 1.11;
 
 // rar: seltener angeboten · max: höchstens so oft · pact: Pakt mit Nachteil (rote Karte)
 // fx(n): Gesamtwirkung bei n Stapeln (für die Übersicht und die Vorschau beim Wählen)
@@ -213,6 +216,7 @@ const Run = {
   },
 
   adjustObstacle(o) {
+    if (this.active) o.hp = o.maxHp = o.maxHp * Math.pow(RUN_HP_GROWTH, S.run.depth);
     if (this.active && o.boss && this.guardian()) o.hp = o.maxHp = o.maxHp * 1.6;
     // Elite-Raum: zähere Gegner (gewählt auf der Wegkarte, dafür bessere Beute)
     if (this.active && S.run.elite) { o.hp = o.maxHp = o.maxHp * (o.boss ? 1.5 : 1.4); o.elite = true; o.scale *= 1.06; }
@@ -349,7 +353,8 @@ const Run = {
 
   pick(id) {
     const r = S.run, b = BOON_BY_ID[id], B = Battle;
-    if (!r.choosing || !b) return;
+    // nur eine Karte des aktuellen Angebots, und nur einmal (veraltete Fenster zählen nicht)
+    if (!r.choosing || !b || (r.phase || 'boon') !== 'boon' || !r.offer || !r.offer.includes(id)) return;
     this.grant(id);
     SFX.play('merge', 3);
     r.picks--;
@@ -371,7 +376,7 @@ const Run = {
       title: record ? '🏆 Streifzug beendet – Rekord!' : '💫 Streifzug beendet',
       html: `<p>Deine Katze ist in <b>Raum ${depth + 1}</b> k.o. gegangen.</p>
         <p class="big">+${bones} 🦴${coins ? ` · +${U.fmt(coins)} 💰` : ''}</p>
-        <p class="muted">Geschaffte Räume: ${depth} · Rekord: ${r.best}</p>`,
+        <p class="muted">Geschaffte Räume: ${depth} · Rekord: ${r.best}</p>${typeof RunLog !== 'undefined' ? RunLog.html() : ''}`, cls: 'runend',
       buttons: [{ label: 'Zurück nach Hause', cls: 'primary', action: () => { if (bones) Battle.spawnFlyers(Battle.W / 2, Battle.H / 2, Math.min(12, bones), 'bone'); } }],
     });
   },
@@ -457,6 +462,7 @@ UI.tab_run = function () {
         <h3>🗺️ Streifzug <small>Roguelike-Abenteuer</small></h3>
         <ul class="runrules">
           <li>🐣 Du startest <b>ganz von vorn</b>: Stufe 1, nur die Miau-Pistole I, keine Münzen, kein Training, keine Katzen-Boni. Unterwegs verdienst du eigene Münzen für Kisten und Training.</li>
+          <li>🗺️ Nach jedem Boss wählst du den Weg: Kampf, <b>Elite</b>, Händler, Katzenkorb oder Ereignis. Gegner werden mit jedem Raum zäher.</li>
           <li>🚪 Jeder Raum: neues Gebiet, 10 Gegner und ein <b>Boss</b>. Jeder 20. Raum ist ein <b>Wächter</b> (stärker, dafür 2 Segen). Entkommt ein Boss, musst du den Raum wiederholen.</li>
           <li>⏸️ Solange ein Menü offen ist, ist der Streifzug <b>pausiert</b> – in Ruhe verschmelzen und kaufen.</li>
           <li>❤️ Leben heilen sich <b>nicht</b> von selbst – nur Segen, Raserei, Fischregen und Schatztruhen helfen.</li>

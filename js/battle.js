@@ -275,6 +275,7 @@ const Battle = {
       if (b.aim && (b.aim.dead || b.aim.fleeing || b.aim.dying > 0)) b.aim = null;
       for (const o of this.obs) {
         if (o.dead || o.fleeing || o.dying > 0 || b.hit.has(o.id) || (b.aim && o !== b.aim)) continue;
+        if (b.arc && o.trait === 'flyer') continue; // Bogenschüsse fliegen unter Fliegern durch
         if (b.x >= o.x - OBST_W[o.kind] * 0.45 * o.scale && (!b.needY || b.y >= o.y - OBST_H[o.kind] * o.scale)) {
           b.hit.add(o.id);
           this.onBulletHit(b, o);
@@ -389,13 +390,13 @@ const Battle = {
     // Mündung aus dem letzten Bild (genau am gezeichneten Lauf), sonst Schätzung
     const mx = mz ? mz.x : p.x + 30 * p.s, my = mz ? mz.y : p.y - 1 * p.s;
     const sb = setBonus(w.t);
-    const dmg = d.dmg * Econ.tierMult(w.r) * this.dmgMul() * (1 + sb.dmg);
+    const dmg = d.dmg * Econ.tierMult(w.r) * this.dmgMul() * (1 + sb.dmg) * (w.v === 'heavy' ? 1.3 : 1);
     const pellets = d.pellets + sb.pellets;
     for (let k = 0; k < pellets; k++) {
       this.shootBullet(mx, my, target, {
         dmg, color: tierColor(w.r, this.t), size: d.size * (1 + w.r * 0.06) * this.cs, speed: d.speed,
         pierce: d.pierce + sb.pierce, splash: d.splash * (1 + sb.splash) * this.cs, fullSplash: sb.fullSplash,
-        arc: d.arc, spread: d.spread * (pellets > d.pellets ? 1.3 : 1), type: w.t,
+        arc: d.arc, spread: d.spread * (pellets > d.pellets ? 1.3 : 1), type: w.t, v: w.v,
       });
     }
     this.recoil[i] = 1;
@@ -425,7 +426,7 @@ const Battle = {
       x, y, vx: Math.cos(ang) * o.speed, vy: Math.sin(ang) * o.speed,
       ox: x, oy: y, dmg: o.dmg, color: o.color, size: o.size, pierce: o.pierce || 0, splash: o.splash || 0,
       arc: o.arc, phase: 0, life: 3, hit: new Set(), noCrit: o.noCrit, type: o.type, src: o.src || 'bullet',
-      sprite: o.sprite, needY: o.needY, fullSplash: o.fullSplash,
+      sprite: o.sprite, needY: o.needY, fullSplash: o.fullSplash, v: o.v,
       trail: o.type === 'rocket' || o.type === 'laser' ? [] : null,
     });
   },

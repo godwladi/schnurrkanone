@@ -1078,3 +1078,39 @@ b, strong { font-weight: 800; }
   .doors { gap: 8px; }
   .door small { display: none; }
 }
+
+/* ------------------------------------------------------------- Waffen-Varianten, Tages-Streifzug, Lauf-Auswertung, Hinweise */
+.cell.item.variant { box-shadow: inset 0 0 14px color-mix(in srgb, var(--tc) 40%, transparent), 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.vbadge {
+  position: absolute; left: 3px; top: 3px; z-index: 1; width: clamp(16px, 26cqw, 24px); height: clamp(16px, 26cqw, 24px);
+  display: grid; place-items: center; border-radius: 50%; background: rgba(14, 10, 32, 0.85); border: 1.5px solid var(--vc);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--vc) 60%, transparent); font-size: clamp(10px, 16cqw, 15px); line-height: 1;
+}
+.vbadge .ic { width: 78%; height: 78%; }
+.toast.tip { border-left-color: var(--gold); background: linear-gradient(90deg, rgba(70, 56, 24, 0.98), rgba(36, 28, 66, 0.98)); max-width: 380px; }
+.toast.tip small { color: #f4ead0; }
+.dailybox { background: linear-gradient(135deg, rgba(255, 211, 77, 0.14), rgba(255, 122, 217, 0.06)); padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 211, 77, 0.3); }
+.dailybox.on { padding: 8px 10px; }
+.dailymod { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.dailybox.on .dailymod { margin: 0; }
+.dailymod > div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.dailymod b { font-size: 15px; }
+.dailymod small { font-size: 11.5px; color: var(--muted); }
+.dailymod em { font-style: normal; font-size: 11px; font-weight: 800; color: var(--gold); }
+.dailymod .dicon { width: 52px; height: 52px; font-size: 30px; }
+.dailymod .dicon .ic { width: 34px; height: 34px; }
+.dailyhist { display: flex; flex-direction: column; gap: 4px; }
+.dailyhist > div { display: grid; grid-template-columns: 44px 22px 1fr auto; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 9px; background: rgba(0, 0, 0, 0.2); font-size: 12px; }
+.dailyhist span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.dailyhist i { font-style: normal; } .dailyhist i .ic { width: 18px; height: 18px; }
+.dailyhist small { color: var(--muted); }
+.modal.runend { width: min(520px, 94vw); }
+.runlog { margin-top: 10px; text-align: left; }
+.runpath { display: flex; flex-wrap: wrap; gap: 3px; }
+.runpath i { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: rgba(0, 0, 0, 0.25); font-style: normal; border: 1px solid var(--edge); }
+.runpath i .ic { width: 20px; height: 20px; }
+.dmgbars { display: flex; flex-direction: column; gap: 5px; }
+.dmgbars > div { display: grid; grid-template-columns: 110px 1fr 44px; align-items: center; gap: 8px; font-size: 12px; }
+.dmgbars i { height: 10px; border-radius: 5px; background: rgba(0, 0, 0, 0.3); overflow: hidden; }
+.dmgbars em { display: block; height: 100%; border-radius: 5px; }
+.dmgbars b { text-align: right; font-variant-numeric: tabular-nums; }

@@ -51,17 +51,20 @@ const Build = {
     if (n('frost') && Math.random() < 0.08 * n('frost')) this.chill(B, o);
     if (n('chain') && src !== 'chain' && Math.random() < 0.12 * n('chain')) this.chain(B, o);
   },
-  ignite(B, o) {
+  // auch von Waffen-Varianten genutzt (variants.js), deshalb mit Stärke als Parameter
+  ignite(B, o, dps = R.dps * 0.35 * Run.n('ember')) {
     if (o.chill > 0 && this.syn('thermo')) { this.thermo(B, o); return; }
-    o.burn = { t: 3, dps: R.dps * 0.35 * Run.n('ember') };
+    o.burn = { t: 3, dps: Math.max(dps, o.burn && o.burn.t > 0 ? o.burn.dps : 0) };
   },
-  chill(B, o) {
+  chill(B, o, dur = 1.5) {
     if (o.burn && o.burn.t > 0 && this.syn('thermo')) { this.thermo(B, o); return; }
     if (!(o.chill > 0)) for (let i = 0; i < 6; i++) B.particle(o.x + U.rand(-20, 20) * B.cs, this.cy(o) + U.rand(-25, 25) * B.cs, U.rand(-60, 60), U.rand(-90, -10), '#e6fbff', 0.5, 2.4 * B.cs, 0, false, 'streak');
-    o.chill = 1.5;
+    o.chill = Math.max(o.chill || 0, dur);
   },
   thermo(B, o) {
     o.burn = null; o.chill = 0;
+    if (B.t - (o.thermoAt || -9) < 2) return; // je Gegner höchstens alle 2 s (sonst stapelt es sich ins Unendliche)
+    o.thermoAt = B.t;
     const cy = this.cy(o);
     FX.addRing(o.x, cy, 120 * B.cs, '#ffffff', 0.35, 8);
     FX.addRing(o.x, cy, 70 * B.cs, '#7ec8ff', 0.3, 6);
@@ -70,8 +73,7 @@ const Build = {
     if (B.t - (this.thermoT || -9) > 0.7) { this.thermoT = B.t; B.text(o.x, cy - 40 * B.cs, 'THERMOSCHOCK!', '#bfeaff', 18 * B.cs, true); B.shake = Math.max(B.shake, 6); SFX.play('boom'); }
     B.damage(o, R.dps * 3, false, false, 'build');
   },
-  chain(B, from) {
-    const hops = this.syn('luck') ? 3 : 1;
+  chain(B, from, hops = this.syn('luck') ? 3 : 1) {
     let src = from;
     const hit = new Set([from.id]);
     for (let h = 0; h < hops; h++) {
@@ -123,7 +125,6 @@ const Build = {
   },
 
   update(dt, B) {
-    if (!Run.active) { this.bolts = []; return; }
     for (const o of B.obs) {
       if (o.dead || o.fleeing || o.dying > 0) continue;
       if (o.burn && o.burn.t > 0) {
@@ -142,7 +143,6 @@ const Build = {
 
   // Zustände sichtbar machen (in der Welt, nach den Gegnern)
   draw(ctx, B) {
-    if (!Run.active) return;
     const t = B.t, cs = B.cs;
     ctx.save();
     for (const o of B.obs) {
@@ -201,7 +201,7 @@ const Build = {
 // ---------------------------------------------------------------- Einhängen
 const _bDamage = Battle.damage;
 Battle.damage = function (o, amount, canCrit, quiet, src = 'bullet') {
-  if (Run.active && o && o.chill > 0) amount *= 1.25 + 0.5 * Run.n('shatter'); // Vereiste nehmen mehr Schaden
+  if (o && o.chill > 0) amount *= 1.25 + 0.5 * Run.n('shatter'); // Vereiste nehmen mehr Schaden
   const before = o && o.hp;
   _bDamage.call(this, o, amount, canCrit, quiet, src);
   if (Run.active && o && o.hp < before && src !== 'burn' && src !== 'build' && src !== 'parry') Build.onHit(this, o, src);

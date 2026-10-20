@@ -71,8 +71,8 @@ const Rooms = {
   },
 
   spawnAd(B, open) {
-    // k: auf niedrigen Bildschirmen (Handy quer) kleinere Fenster
-    const W = B.Wp || B.W, k = U.clamp(B.H / 620, 0.72, 1), w = Math.min(220 * k, W * 0.5), h = 96 * k;
+    // k: Fenster wachsen mit dem Spielfeld – Handy quer kleiner, großer Desktop bis 1,55×
+    const W = B.Wp || B.W, k = Math.min(U.clamp(Math.min(B.H / 500, W / 620), 0.72, 1.55), W * 0.46 / 220), w = 220 * k, h = 96 * k;
     const top = 70, bottom = Math.max(top + 10, B.groundY - h - 30);
     let x, y;
     const last = open[open.length - 1];
@@ -108,7 +108,7 @@ const Rooms = {
       const a = this.ads[i];
       if (a.closing) continue;
       const cx = a.x + a.w - 14 * a.k, cy = a.y + 11 * a.k;
-      if (Math.hypot(x - cx, y - cy) < AD_CLOSE_R) {
+      if (Math.hypot(x - cx, y - cy) < AD_CLOSE_R * Math.max(1, a.k)) {
         a.closing = 0.0001;
         this.adBurst(B, a);
         B.purr = Math.min(100, B.purr + 10);

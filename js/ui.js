@@ -854,7 +854,7 @@ const UI = {
       el.className = 'toast ' + cls;
       el.innerHTML = html; el.dataset.html = html;
       $('#toasts').appendChild(el);
-      const stay = this.toastQ.length ? 2200 : 3200; // bei Andrang schneller weiter
+      const stay = cls === 'tip' ? 7500 : this.toastQ.length ? 2200 : 3200; // Hinweise länger, bei Andrang schneller weiter
       setTimeout(() => { el.classList.add('out'); this.pumpToasts(); }, stay);
       setTimeout(() => el.remove(), stay + 450);
     }

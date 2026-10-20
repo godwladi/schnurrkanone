@@ -32,6 +32,23 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 - **Risse** liegen fest auf dem Körper der Gegner (wachsen bei 75/50/25 % Leben, Gesicht bleibt frei, Brocken platzen ab; beim Boss glüht es aus den Rissen).
 - **K.O.** (Leben auf 0, Hauptspiel): 6 s **gelähmt** – kein Schießen, keine Skills, keine Pfotenhiebe (Balken mit Restzeit über der Katze), danach 40 % Leben. Heilung: Schnurr-Raserei (25 %) und Fischregen (20 %).
 
+## Gegner-Eigenschaften & Boss-Phasen (`js/traits.js`)
+- Ab Stufe 12 (Streifzug ab Raum 2) haben manche Gegner eine Eigenschaft (Plakette am Lebensbalken):
+  - **Gepanzert** – Kugeln machen nur 35 %; Pfote, Rakete, Laser und Talente wirken voll („KLONK“)
+  - **Flieger** (ab 14) – Bogenschüsse (Wollknäuel, Haarballen) fliegen darunter durch
+  - **Teiler** (ab 16) – zerfällt beim Tod in zwei kleine Hälften (zählen nicht als eigene Zerstörung)
+  - **Heiler** (ab 20) – heilt die anderen Gegner mit grünen Strahlen
+  - **Bombe** (ab 25) – Lunte brennt vorne 7 s; Pfotenhiebe schubsen sie zurück, sonst Explosion an der Katze (Leben, kurz benommen)
+- **Boss-Phase 2** (ab Stufe 8, Streifzug ab Raum 3): ab 50 % Leben wird der Boss wütend (rote Aura, wirft schneller) und kündigt **Großangriffe** an – riesige Geschosse mit „ANTIPPEN!“. Pariert: Volltreffer (6 % Boss-Leben) und kurz betäubt; sonst viel Schaden (Schild blockt).
+- Beim ersten Auftauchen jeder Neuerung erklärt ein Hinweis (💡) kurz, was zu tun ist.
+
+## Waffen-Varianten (`js/variants.js`)
+- Kisten (6 %), Schatztruhen und Händler-Kisten (25 %) liefern manchmal Waffen mit Eigenschaft: **Brennend** (15 % Brand), **Frostig** (12 % Vereisen), **Blitz** (15 % Kettenblitz), **Wuchtig** (+30 % Schaden). Symbol oben links im Waffenfeld, bleibt beim Verschmelzen erhalten.
+
+## Tages-Streifzug & Lauf-Auswertung (`js/daily.js`)
+- Im Reiter 🗺️ Streifzug: jeden Tag eine andere Sonderregel (Glaskanone, Pfotentag, Eiltag, Elitetag, Feuertag, Frosttag, Sonderbar), Beute ×1,5 (Eiltag ×2), Bestenliste der letzten 14 Tage (auf diesem Gerät).
+- Am Ende jedes Streifzugs: gewählter Weg, Zerstörungen, Dauer und **Schaden nach Quelle** als Balken.
+
 ## Symbole & Oberfläche
 - **Eigener Symbolsatz** (`js/icons.js`, ~120 SVG-Symbole im Stil der Katzen) statt System-Emojis – sieht auf iPhone, Windows und Android gleich aus. Emojis in Texten werden automatisch ersetzt (HTML per MutationObserver, Leinwand über `fillText`/`measureText`). Neue Symbole: in `ICONS` zeichnen und in `EMOJI_ICON` zuordnen.
 - Modernisierte Oberfläche: Glasflächen, runde Systemschrift, Ressourcen-Chips, Reiter mit Akzentlinie, einheitliche Karten/Knöpfe, schwebende Symbolleiste am Handy, Meldungen am Handy oben links. Banner weichen dem Boss-Lebensbalken aus.
@@ -61,7 +78,7 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 - **Sonderräume** (ab Raum 3, 30 % Chance, nie zweimal hintereinander), je mit eigenem Hintergrund, zwei neuen Gegnern und eigenem Boss:
   - 🌑 **Die Leere** – Dunkelheit, einziges Licht ist eine leuchtende Mieze-Lampe neben der Katze; Gegner-Augen glühen hindurch (Schattenklumpen, Riesenauge · Boss „Das Große Nichts“)
   - 🌀 **Wurmloch** – die Zeit schwankt zwischen 0,7× und 1,3× (Kristall-Splitter, Ufo · Boss „Ereignishorizont“)
-  - 🌐 **World Wide Web** – Pop-up-Werbung verdeckt das Feld: Fenster stapeln sich (bis 6) und bleiben offen, bis man sie per ✕ schließt (füllt das Schnurr-Meter); **Fauchen** fegt alle weg (Werbefenster, Bug · Boss „Pop-up-Imperator“)
+  - 🌐 **World Wide Web** – Pop-up-Werbung verdeckt das Feld: Fenster wachsen mit dem Bildschirm (am Desktop bis 1,55×), stapeln sich (bis 6) und bleiben offen, bis man sie per ✕ schließt (füllt das Schnurr-Meter); **Fauchen** fegt alle weg (Werbefenster, Bug · Boss „Pop-up-Imperator“)
   - 📺 **Flimmerkiste** – alle 10 s wird umgeschaltet: Sport (+30 % Feuerrate), Krimi (+30 % Schaden), Kochshow (heilt), Testbild (Röhrenfernseher, Fernbedienung · Bosse „Der Quotenkönig“, „Lord Zapper“)
   - ⛏️ **Untergrund** – Tropfsteine fallen auf Gegner und manchmal auf die Katze; Schatten unter der Katze antippen zerschlägt den Stein (Maulwurf, Kanalratte · Bosse „Maulwurf-Baron“, „Rattenkönig“)
   - ⏳ **Zeitreise** – alle 15 s ein Zeitsprung: Urzeit, Mittelalter, Zukunft mit eigenen Gegnern (T-Rex, Ritter, Roboter · Bosse „Tyranno-Max“, „Sir Blechbüchse“, „Omega-Toaster“) – `js/rooms2.js`
@@ -114,6 +131,9 @@ Der Bericht (`schnurrkanone-<art>-<datum>.json`) enthält Beschreibung, Gerät/B
 - `js/path.js` – Wegkarte des Streifzugs: Kampf, Elite, Händler-Maus, Katzenkorb, Ereignisse
 - `js/build.js` – Build-Segen (Feuer, Eis, Pfote, Parade, Blitz) und Kombis
 - `js/icons.js` – eigener SVG-Symbolsatz, ersetzt Emojis in Oberfläche und Leinwand
+- `js/traits.js` – Gegner-Eigenschaften, Boss-Phase 2, Hinweise beim ersten Mal
+- `js/variants.js` – Waffen-Varianten
+- `js/daily.js` – Tages-Streifzug, Lauf-Auswertung, Töne der neuen Elemente
 - `js/foes.js` – lebendige Gegner: Atmen, Wiegen, Hüpfen, Ausholen vor dem Wurf, Gesichter mit Stimmungen, Treffer-Reaktionen (Rückstoß, Kippen, Aufblitzen, Splitter)
 - `js/shades.js` – Schattenwesen mit Frost-Fluch (friert Skills, Talent oder Geisterkatzen ein)
 - `js/rooms.js` – Sonderräume im Streifzug: Die Leere, Wurmloch, World Wide Web

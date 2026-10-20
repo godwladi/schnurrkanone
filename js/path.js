@@ -105,6 +105,7 @@ const Path = {
   next() {
     const r = S.run;
     r.shop = null; r.event = null;
+    r.phase = 'path'; // sofort umschalten: sonst könnte ein Zwischenhalt doppelt öffnen (doppelte Belohnung)
     r.path = { doors: this.rollDoors(true) };
     Run.renderBar();
     setTimeout(() => this.offer(), 200);
@@ -129,6 +130,7 @@ const Path = {
   price(id) { return SHOP_ITEMS[id].price * this.coinUnit(); },
   shop() {
     const r = S.run, sh = r.shop;
+    if (!sh) { this.next(); return; }
     const items = sh.items.map(id => {
       const it = SHOP_ITEMS[id], p = this.price(id), sold = sh.bought[id], cant = !sold && S.coins < p;
       const full = id === 'box' && S.grid.indexOf(null) < 0;
@@ -150,7 +152,7 @@ const Path = {
     if (id === 'boon') this.giftBoon(b => !b.pact && !b.heal);
     if (id === 'box') {
       const free = S.grid.indexOf(null);
-      if (free >= 0) { const w = { t: U.pick(WEAPON_IDS), r: Math.min(MAX_TIER, 2 + S.up.box) }; S.grid[free] = w; Game.discover(w); recalc(); Game.emit('weapons'); UI.toast(`📦 <b>${WEAPONS[w.t].name} ${U.roman(w.r)}</b><br><small>im Rucksack</small>`, 'good'); }
+      if (free >= 0) { const w = { t: U.pick(WEAPON_IDS), r: Math.min(MAX_TIER, 2 + S.up.box), v: Variants.roll(0.25) }; S.grid[free] = w; Game.discover(w); recalc(); Game.emit('weapons'); UI.toast(`📦 <b>${WEAPONS[w.t].name} ${U.roman(w.r)}</b><br><small>im Rucksack</small>`, 'good'); }
     }
     if (id === 'sharpen') {
       const own = Run.owned().filter(o => this.sharpenable(o.b));
@@ -159,7 +161,7 @@ const Path = {
     SFX.play('buy');
     Run.renderBar();
     UI.closeModal();
-    setTimeout(() => this.shop(), 120);
+    setTimeout(() => { if (S.run.phase === 'shop' && S.run.shop) this.shop(); }, 120); // nicht, wenn schon weitergezogen
     Save.write();
   },
   // zufälligen Segen schenken (mit Meldung)

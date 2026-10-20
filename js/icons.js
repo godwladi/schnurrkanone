@@ -199,6 +199,11 @@ const ICONS = {
   castle: P('M4 29 L4 11 L8 11 L8 14 L11 14 L11 11 L15 11 L15 14 L17 14 L17 11 L21 11 L21 14 L24 14 L24 11 L28 11 L28 29Z', '#c9d0e0') + P('M13 29 L13 22 C13 19 19 19 19 22 L19 29Z', '#5b6b8f') + R(7, 17, 3, 4, 1, '#ffd34d', NS) + R(22, 17, 3, 4, 1, '#ffd34d', NS),
   ball: C(16, 16, 12.5, '#fff') + P('M16 10.5 L21 14 L19 20 L13 20 L11 14Z', IK, NS) + LN('M16 10.5 L16 4 M21 14 L27 12 M19 20 L23 26 M13 20 L9 26 M11 14 L5 12', IK, 1.4),
   warnAd: R(3.5, 6, 25, 20, 3.5, '#fff') + R(3.5, 6, 25, 6, 3, '#ff5d73') + C(24.5, 9, 1.6, '#fff', NS) + LN('M8 17 L24 17 M8 21 L18 21', '#c7b3ff', 1.8),
+  wing: P('M4 22 C4 12 12 5 27 4 C25 8 22 10 18 11 C22 11 24 12 25 13 C22 15 19 16 15 16 C18 17 20 18 20 19 C15 22 9 23 4 22Z', '#e6ecf8') + LN('M8 19 C12 14 17 11 22 9', 'rgba(42,22,48,0.35)', 1.2),
+  plus: R(11.5, 4, 9, 24, 3, '#6ee7a0') + R(4, 11.5, 24, 9, 3, '#6ee7a0') + HI('M13.5 6.5 L15.5 6.5 L15.5 13 L13.5 13Z'),
+  split: C(10, 18, 7, '#ff8fb0') + C(22, 18, 7, '#ff8fb0') + P('M16 3 L14 10 L18 12 L15 19', 'none', ' stroke="#ffd34d" stroke-width="2.4"'),
+  fuse: C(13, 19, 9.5, '#3a3a4a') + BAR('M19 12 Q23 6 27 7', '#c4864a', 1.6) + STAR(27.5, 6.5, 4.6, 1.8, 6, '#ff8a3c') + HI('M7.5 16 C8.5 13.4 11 12 13.4 12 C11.2 13 9.6 14.6 9 16.8Z'),
+  armor: P('M16 3 L27 7 L26 17 C25 23 21 27 16 29.5 C11 27 7 23 6 17 L5 7Z', '#9aa3c0') + P('M16 7 L23 9.5 L22.4 16.5 C21.8 21 19.4 24 16 25.8Z', '#c9d0e0', NS) + C(10, 11, 1.4, '#5b6b8f', NS) + C(22, 11, 1.4, '#5b6b8f', NS) + C(16, 20, 1.4, '#5b6b8f', NS),
   cards: `<g transform="rotate(-14 16 18)">${R(6, 8, 13, 18, 2.5, '#fff')}${P('M12.5 13 L15 16.5 L12.5 20 L10 16.5Z', '#ff5d73', NS)}</g><g transform="rotate(12 16 18)">${R(13, 6, 13, 18, 2.5, '#fff')}${HEART('#ff5d73', 0.3, 14.7, 9.5)}</g>`,
   return: BAR('M26 25 L26 18 C26 12 22 10 17 10 L9 10', '#9fd0ff', 2.6) + P('M11 4 L3.5 10 L11 16Z', '#9fd0ff'),
 };
@@ -299,6 +304,8 @@ const Icons = {
     }
     return im.complete && im.naturalWidth ? im : null;
   },
+  // Symbol direkt auf die Leinwand zeichnen (Mitte x/y, Größe s)
+  draw(ctx, key, x, y, s) { const im = this.img(key); if (im) ctx.drawImage(im, x - s / 2, y - s / 2, s, s); },
   preload() { for (const k of Object.keys(ICONS)) this.img(k); },
   // Text in Stücke zerlegen: { t: 'Text' } oder { k: 'symbol' }
   split(text) {
