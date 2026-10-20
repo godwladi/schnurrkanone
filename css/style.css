@@ -808,3 +808,94 @@ body.paused #game { filter: saturate(0.5) brightness(0.75); }
 
 /* Gelähmt nach einem K.O. (Hauptspiel) */
 .skill.dazed { filter: grayscale(0.8) brightness(0.7); }
+
+
+/* ------------------------------------------------------------- Eingefrorener Waffenplatz (Geisterkatze vereist) */
+.cell.item.frozen { cursor: not-allowed; border-color: #bff8ff; box-shadow: 0 0 14px rgba(126, 249, 255, 0.6), inset 0 0 18px rgba(190, 240, 255, 0.55); }
+.cell.item.frozen:hover { transform: none; }
+.cell.item.frozen .wi { filter: grayscale(0.4) brightness(1.1) drop-shadow(0 0 4px #7ef9ff); }
+.cell.item.frozen::before {
+  content: '❄\A' attr(data-fz) 's'; position: absolute; inset: 0; z-index: 2; display: grid; place-items: center;
+  white-space: pre; text-align: center; font-weight: 900; font-size: clamp(11px, 17cqw, 19px); line-height: 1.05;
+  color: #0b3b5c; text-shadow: 0 0 4px #ffffff; border-radius: inherit;
+  background: linear-gradient(135deg, rgba(200, 245, 255, 0.7), rgba(120, 200, 255, 0.45)),
+    repeating-linear-gradient(60deg, rgba(255, 255, 255, 0.25) 0 2px, transparent 2px 9px);
+  animation: iceIn 0.35s ease-out;
+}
+@keyframes iceIn { from { opacity: 0; transform: scale(1.3); } }
+
+/* Begleiter: Live-Status und Eis */
+.pst { position: relative; height: 16px; margin-top: 5px; border-radius: 8px; background: rgba(0, 0, 0, 0.3); overflow: hidden; }
+.pst i { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #ffd34d, #ff9a3c); border-radius: 8px; transition: width 0.2s linear; }
+.pst span { position: relative; display: block; text-align: center; font-size: 10px; font-weight: 800; line-height: 16px; text-shadow: 0 1px 2px #000; }
+.card.petcard.frozen { background: linear-gradient(135deg, rgba(126, 249, 255, 0.22), var(--card2)); box-shadow: 0 0 0 1px rgba(191, 248, 255, 0.55), 0 0 14px rgba(126, 249, 255, 0.25); }
+.card.petcard.frozen .ci { filter: grayscale(0.5) drop-shadow(0 0 6px #7ef9ff); }
+.card.petcard.frozen .pst i { background: linear-gradient(90deg, #7ec8ff, #bff8ff); }
+
+/* ------------------------------------------------------------- Streifzug: Segen-Leiste & Übersicht */
+#boonBar {
+  position: absolute; z-index: 3; top: 74px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 3px; max-width: calc(100% - 24px); overflow: hidden;
+  padding: 3px 8px 3px 10px; border-radius: 999px; cursor: pointer;
+  background: rgba(14, 10, 32, 0.62); border: 1px solid rgba(199, 179, 255, 0.45); color: var(--text);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3); transition: background 0.15s, border-color 0.15s;
+}
+#boonBar[hidden] { display: none; }
+#boonBar:hover { background: rgba(40, 30, 80, 0.85); border-color: var(--gold); }
+#boonBar .bl { font-size: 10px; font-weight: 800; letter-spacing: 0.4px; color: #c7b3ff; text-transform: uppercase; margin-right: 3px; white-space: nowrap; }
+#boonBar .bc { position: relative; font-family: var(--emoji); font-size: 17px; line-height: 1; padding: 2px; }
+#boonBar .bc.pact { filter: drop-shadow(0 0 3px #ff5d73); }
+#boonBar sup, .boonhave sup { position: absolute; right: -3px; top: -3px; font: 900 9px/1 var(--font); color: #fff; background: var(--accent2); border-radius: 6px; padding: 1px 3px; }
+#boonBar .bn { font-size: 11px; color: var(--muted); }
+#boonBar .bi { font-size: 13px; color: var(--muted); margin-left: 3px; }
+#boonBar.pop { animation: boonPop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1); }
+@keyframes boonPop { 0% { transform: translateX(-50%) scale(0.7); box-shadow: 0 0 0 rgba(255, 211, 77, 0); } 50% { box-shadow: 0 0 24px rgba(255, 211, 77, 0.8); } }
+@media (max-width: 1000px), (max-height: 500px) {
+  #boonBar { top: 62px; left: calc((100% - var(--dockR) * 1px) / 2); }
+  #boonBar .bc { font-size: 15px; }
+}
+.modal.boonview { width: min(560px, 96vw); }
+.mh { margin: 12px 0 6px; font-size: 13px; color: #c7b3ff; text-transform: uppercase; letter-spacing: 0.6px; }
+.boonsum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.boonsum div { background: rgba(0, 0, 0, 0.22); border-radius: 10px; padding: 6px 8px; min-width: 0; border: 1px solid transparent; }
+.boonsum span { display: block; font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.boonsum b { font-size: 14px; }
+.boonsum .up b { color: var(--good); }
+.boonsum .down b { color: var(--danger); }
+.boonsum .live { border-color: rgba(110, 231, 160, 0.6); box-shadow: 0 0 10px rgba(110, 231, 160, 0.25); }
+.boonnone { font-size: 12px; margin: 4px 0; }
+.lexd { margin-top: 10px; }
+.lexd summary { cursor: pointer; font-weight: 700; font-size: 12px; color: var(--muted); padding: 4px 0; }
+.lexd summary:hover { color: var(--text); }
+.boonlex { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; margin-top: 6px; }
+.boonlex > div { position: relative; display: grid; grid-template-columns: 26px 1fr; column-gap: 6px; align-items: center; padding: 5px 7px; border-radius: 9px; background: rgba(0, 0, 0, 0.18); opacity: 0.7; min-width: 0; }
+.boonlex > div.own { opacity: 1; background: rgba(157, 123, 255, 0.2); box-shadow: inset 0 0 0 1px rgba(199, 179, 255, 0.45); }
+.boonlex > div.pact { box-shadow: inset 3px 0 0 var(--danger); }
+.boonlex > div.rare { box-shadow: inset 3px 0 0 var(--gold); }
+.boonlex > div.heal { box-shadow: inset 3px 0 0 var(--good); }
+.boonlex i { grid-row: span 2; font-style: normal; font-family: var(--emoji); font-size: 20px; text-align: center; }
+.boonlex b { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.boonlex small { font-size: 9.5px; color: var(--muted); line-height: 1.25; }
+.boonlex em { position: absolute; top: 3px; right: 5px; font-style: normal; font-size: 9px; font-weight: 800; color: var(--gold); }
+.boon .bnext { font-size: 10.5px; color: var(--good); line-height: 1.25; }
+.boon .bnext b { font-size: 10.5px; }
+.boonhave { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 12px; padding: 6px 10px; border-radius: 10px; background: rgba(0, 0, 0, 0.2); font-size: 11px; color: var(--muted); }
+.boonhave i { position: relative; font-style: normal; font-family: var(--emoji); font-size: 17px; padding: 1px 3px; }
+@media (max-width: 500px) {
+  .boonsum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .boonlex { grid-template-columns: minmax(0, 1fr); }
+  .boon .bnext { flex-basis: 100%; padding-left: 38px; }
+}
+
+.boonview .list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.boonview .list .card { padding: 7px 8px; gap: 8px; }
+.boonview .list .card .ci { font-size: 22px; width: 28px; }
+@media (max-width: 500px) { .boonview .list { grid-template-columns: minmax(0, 1fr); } }
+
+/* Tastenkürzel */
+.keylist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.keylist div { display: flex; flex-direction: column; gap: 3px; background: rgba(0, 0, 0, 0.22); border-radius: 10px; padding: 7px 9px; }
+.keylist kbd { font-size: 12px; padding: 1px 7px; }
+.keylist small { color: var(--muted); font-size: 11px; line-height: 1.3; }
+#optKeys { width: 100%; margin-top: 6px; }
+@media (max-width: 500px) { .keylist { grid-template-columns: minmax(0, 1fr); } }

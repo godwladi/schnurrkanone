@@ -12,24 +12,26 @@ const RUN_UNLOCK = 8;
 const GUARDIAN_EVERY = 20; // Wächter-Raum (stärker, 2 Segen als Beute)
 
 // rar: seltener angeboten · max: höchstens so oft · pact: Pakt mit Nachteil (rote Karte)
+// fx(n): Gesamtwirkung bei n Stapeln (für die Übersicht und die Vorschau beim Wählen)
+const pct = x => Math.round(x * 100);
 const BOONS = [
-  { id: 'claws',   icon: '🔥', name: 'Scharfe Krallen',     desc: '+30 % Schaden' },
-  { id: 'coffee',  icon: '☕', name: 'Koffein-Kater',       desc: '+20 % Feuerrate' },
-  { id: 'nine',    icon: '💗', name: 'Dickes Herz',         desc: '+25 max. Leben und volle Heilung' },
-  { id: 'milk',    icon: '🥛', name: 'Milchbart',           desc: 'Jede Zerstörung heilt 2 % Leben' },
-  { id: 'fur',     icon: '🧥', name: 'Dickes Fell',         desc: '−20 % erlittener Schaden' },
-  { id: 'mirror',  icon: '🪞', name: 'Spiegelpfote',        desc: 'Parierte Geschosse treffen 3× so hart' },
-  { id: 'yarn',    icon: '🍀', name: 'Glückssträhne',       desc: '+12 % Krit-Chance' },
-  { id: 'time',    icon: '⏳', name: 'Katzenzeit',          desc: '+5 s Boss-Countdown' },
-  { id: 'paw',     icon: '🐾', name: 'Pfotenwirbel',        desc: 'Pfotenhiebe machen doppelten Schaden' },
-  { id: 'nap',     icon: '💤', name: 'Katzenschläfchen',    desc: 'Schild lädt 20 % schneller (höchstens −45 %), hält +1 s', max: 3 },
-  { id: 'night',   icon: '🌙', name: 'Nachtjäger',          desc: 'Unter 40 % Leben: +60 % Schaden' },
-  { id: 'purr',    icon: '💞', name: 'Schnurrmotor',        desc: 'Raserei heilt zusätzlich 20 %' },
-  { id: 'magnet',  icon: '🧲', name: 'Grätenmagnet',        desc: '+50 % Fischgräten am Ende', max: 1 },
-  { id: 'life',    icon: '👼', name: 'Neuntes Leben',       desc: 'Einmal ein K.O. mit 40 % Leben überstehen', max: 1, rare: true },
+  { id: 'claws',   icon: '🔥', name: 'Scharfe Krallen',     desc: '+30 % Schaden', fx: n => `+${30 * n} % Schaden` },
+  { id: 'coffee',  icon: '☕', name: 'Koffein-Kater',       desc: '+20 % Feuerrate', fx: n => `+${20 * n} % Feuerrate` },
+  { id: 'nine',    icon: '💗', name: 'Dickes Herz',         desc: '+25 max. Leben und volle Heilung', fx: n => `+${25 * n} max. Leben` },
+  { id: 'milk',    icon: '🥛', name: 'Milchbart',           desc: 'Jede Zerstörung heilt 2 % Leben', fx: n => `${2 * n} % Heilung je Zerstörung` },
+  { id: 'fur',     icon: '🧥', name: 'Dickes Fell',         desc: '−20 % erlittener Schaden', fx: n => `−${pct(1 - Math.pow(0.8, n))} % erlittener Schaden` },
+  { id: 'mirror',  icon: '↩️', name: 'Spiegelpfote',        desc: 'Parierte Geschosse treffen 3× so hart', fx: n => `Paraden treffen ${1 + 2 * n}× so hart` },
+  { id: 'yarn',    icon: '🍀', name: 'Glückssträhne',       desc: '+12 % Krit-Chance', fx: n => `+${12 * n} % Krit-Chance` },
+  { id: 'time',    icon: '⏳', name: 'Katzenzeit',          desc: '+5 s Boss-Countdown', fx: n => `+${5 * n} s Boss-Countdown` },
+  { id: 'paw',     icon: '🐾', name: 'Pfotenwirbel',        desc: 'Pfotenhiebe machen doppelten Schaden', fx: n => `Pfotenhiebe ×${1 + n}` },
+  { id: 'nap',     icon: '💤', name: 'Katzenschläfchen',    desc: 'Schild lädt 20 % schneller (höchstens −45 %), hält +1 s', max: 3, fx: n => `Schild lädt ${pct(1 - Math.max(0.55, Math.pow(0.8, n)))} % schneller, hält +${n} s` },
+  { id: 'night',   icon: '🌙', name: 'Nachtjäger',          desc: 'Unter 40 % Leben: +60 % Schaden', fx: n => `Unter 40 % Leben: +${60 * n} % Schaden` },
+  { id: 'purr',    icon: '💞', name: 'Schnurrmotor',        desc: 'Raserei heilt zusätzlich 20 %', fx: n => `Raserei heilt +${20 * n} %` },
+  { id: 'magnet',  icon: '🧲', name: 'Grätenmagnet',        desc: '+50 % Fischgräten am Ende', max: 1, fx: n => `+${50 * n} % Fischgräten am Ende` },
+  { id: 'life',    icon: '👼', name: 'Neuntes Leben',       desc: 'Einmal ein K.O. mit 40 % Leben überstehen', max: 1, rare: true, fx: n => n ? 'Das nächste K.O. wird überstanden' : 'Verbraucht' },
   { id: 'box',     icon: '📦', name: 'Schrödingers Kiste',  desc: '50 %: +60 % Schaden · 50 %: −15 % Schaden', rare: true },
-  { id: 'black',   icon: '🐈‍⬛', name: 'Pakt der schwarzen Katze', desc: '+70 % Schaden, aber Gegner werfen 40 % öfter', pact: true },
-  { id: 'glass',   icon: '🔮', name: 'Gläserne Krallen',    desc: '+100 % Schaden, aber −40 max. Leben', pact: true },
+  { id: 'black',   icon: '🖤', name: 'Pakt der schwarzen Katze', desc: '+70 % Schaden, aber Gegner werfen 40 % öfter', pact: true, fx: n => `+${70 * n} % Schaden · Wurfpausen −${pct(1 - Math.pow(0.6, n))} %` },
+  { id: 'glass',   icon: '🔮', name: 'Gläserne Krallen',    desc: '+100 % Schaden, aber −40 max. Leben', pact: true, fx: n => `+${100 * n} % Schaden · −${40 * n} max. Leben` },
   { id: 'bowl',    icon: '🍲', name: 'Fischsuppe',          desc: 'Heilt sofort 60 % Leben', heal: true },
 ];
 const BOON_BY_ID = Object.fromEntries(BOONS.map(b => [b.id, b]));
@@ -69,6 +71,87 @@ const Run = {
     return true;
   },
   reward() { return Math.round(S.run.depth * 3 * (1 + 0.5 * this.n('magnet'))); },
+
+  // ---------------------------------------------------------------- Segen-Übersicht
+  // gesammelte Segen (ohne Hilfszähler wie boxWin) in Reihenfolge der Liste
+  owned() {
+    const b = S.run.boons || {};
+    return BOONS.filter(x => b[x.id] > 0 || (x.id === 'life' && b.lifeUsed)).map(x => ({ b: x, n: b[x.id] || 0 }));
+  },
+  boxText() {
+    const w = this.n('boxWin'), l = this.n('boxLose');
+    return [w ? `${w}× Glück: +${pct(Math.pow(1.6, w) - 1)} % Schaden` : '', l ? `${l}× Pech: −${pct(1 - Math.pow(0.85, l))} % Schaden` : ''].filter(Boolean).join(' · ');
+  },
+  fxText(b, n) { return b.id === 'box' ? this.boxText() : b.fx ? b.fx(n) : b.desc; },
+  // alle Werte zusammengerechnet – was der Lauf gerade wirklich ausmacht
+  summary() {
+    const r = S.run, out = [];
+    const dmg = (1 + 0.3 * this.n('claws')) * Math.pow(1.6, this.n('boxWin')) * Math.pow(0.85, this.n('boxLose')) * (1 + 0.7 * this.n('black')) * (1 + this.n('glass'));
+    const add = (icon, label, val, cls = '') => out.push({ icon, label, val, cls });
+    add('⚔️', 'Schaden', `×${dmg.toFixed(2)}`, dmg > 1 ? 'up' : dmg < 1 ? 'down' : '');
+    add('🔫', 'Feuerrate', `×${this.rateMul().toFixed(2)}`, this.rateMul() > 1 ? 'up' : '');
+    add('🎯', 'Krit-Chance', `+${pct(this.critAdd())} %`, this.critAdd() ? 'up' : '');
+    add('❤️', 'Leben', `${Math.ceil(r.hp)} / ${r.maxHp}`, r.hp / r.maxHp < 0.35 ? 'down' : '');
+    const taken = Math.pow(0.8, this.n('fur')) * (1 + 0.02 * r.depth);
+    add('🛡️', 'Erlittener Schaden', `×${taken.toFixed(2)}`, taken > 1 ? 'down' : taken < 1 ? 'up' : '');
+    if (this.n('paw')) add('🐾', 'Pfotenhiebe', `×${1 + this.n('paw')}`, 'up');
+    if (this.n('night')) add('🌙', 'Unter 40 % Leben', `+${60 * this.n('night')} %`, Vitals.frac() < 0.4 ? 'up live' : 'up');
+    if (this.n('milk')) add('🥛', 'Heilung/Zerstörung', `${2 * this.n('milk')} %`, 'up');
+    if (this.n('purr')) add('💞', 'Raserei heilt', `+${20 * this.n('purr')} %`, 'up');
+    if (this.n('mirror')) add('↩️', 'Paraden', `×${this.mirrorMul()}`, 'up');
+    if (this.n('time')) add('⏳', 'Boss-Countdown', `+${5 * this.n('time')} s`, 'up');
+    if (this.n('nap')) add('💤', 'Schild', `−${pct(1 - this.shieldCdMul())} % · +${this.n('nap')} s`, 'up');
+    if (this.n('black')) add('🖤', 'Wurfpausen', `−${pct(1 - Math.pow(0.6, this.n('black')))} %`, 'down');
+    if (r.boons.life || r.boons.lifeUsed) add('👼', 'Neuntes Leben', r.boons.life ? 'bereit' : 'verbraucht', r.boons.life ? 'up' : 'down');
+    add('🦴', 'Beute', `${this.reward()} 🦴${this.n('magnet') ? ' (+50 %)' : ''}`);
+    return out;
+  },
+  summaryHtml() {
+    return `<div class="boonsum">${this.summary().map(s => `<div class="${s.cls}"><span>${s.icon} ${s.label}</span><b>${s.val}</b></div>`).join('')}</div>`;
+  },
+  ownedHtml() {
+    const own = this.owned();
+    if (!own.length) return '<p class="muted boonnone">Noch keine Segen – nach jedem Boss darfst du einen wählen.</p>';
+    return `<div class="list">${own.map(({ b, n }) => `<div class="card ${b.pact ? 'pactcard' : ''}"><div class="ci">${b.icon}</div><div class="cb"><div class="cn">${b.name}${n > 1 ? ` <small>×${n}</small>` : ''}${b.max ? ` <small>(max. ${b.max})</small>` : ''}</div><div class="cd">${this.fxText(b, n)}</div></div></div>`).join('')}</div>`;
+  },
+  lexiconHtml() {
+    const r = S.run.boons || {};
+    return `<div class="boonlex">${BOONS.map(b => {
+      const n = r[b.id] || 0, full = b.max && n + (b.id === 'life' ? r.lifeUsed || 0 : 0) >= b.max;
+      return `<div class="${n ? 'own' : ''} ${b.pact ? 'pact' : ''} ${b.rare ? 'rare' : ''} ${b.heal ? 'heal' : ''}" title="${b.desc}"><i>${b.icon}</i><b>${b.name}</b><small>${b.desc}</small>${full ? '<em>max</em>' : n ? `<em>×${n}</em>` : b.pact ? '<em>Pakt</em>' : b.rare ? '<em>selten</em>' : ''}</div>`;
+    }).join('')}</div>`;
+  },
+  // kleine Leiste über dem Spielfeld: gesammelte Segen auf einen Blick, Tipp = Übersicht
+  renderBar() {
+    let el = document.getElementById('boonBar');
+    if (!el) {
+      el = document.createElement('button');
+      el.id = 'boonBar'; el.title = 'Segen-Übersicht';
+      el.addEventListener('click', () => { SFX.init(); SFX.play('paw'); this.showOverview(); });
+      document.getElementById('battle').appendChild(el);
+    }
+    if (!this.active) { el.hidden = true; return; }
+    const own = this.owned(), sig = own.map(o => o.b.id + o.n).join() + '|' + (S.run.boons.boxWin || 0) + (S.run.boons.boxLose || 0);
+    el.hidden = false;
+    if (el.dataset.sig === sig) return;
+    const fresh = el.dataset.sig !== undefined && own.length > (el.dataset.n || 0);
+    el.dataset.sig = sig; el.dataset.n = own.length;
+    el.innerHTML = `<span class="bl">✨ Segen</span>${own.length ? own.map(({ b, n }) => `<span class="bc ${b.pact ? 'pact' : ''}" title="${b.name}: ${this.fxText(b, n)}">${b.icon}${n > 1 ? `<sup>${n}</sup>` : ''}</span>`).join('') : '<span class="bn">noch keine</span>'}<span class="bi">ⓘ</span>`;
+    if (fresh) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+  },
+  showOverview() {
+    if (!this.active) return;
+    const r = S.run;
+    UI.modal({
+      title: '✨ Deine Segen',
+      cls: 'boonview',
+      html: `<p class="muted runinfo">Streifzug · Raum ${this.room()}${this.guardian() ? ' · Wächter' : ''} · ${r.depth} geschafft · Rekord ${r.best}</p>
+        <h4 class="mh">Gesamtwirkung</h4>${this.summaryHtml()}
+        <h4 class="mh">Gesammelt</h4>${this.ownedHtml()}
+        <details class="lexd"><summary>📖 Alle Segen & Pakte (${BOONS.length})</summary>${this.lexiconHtml()}</details>`,
+      buttons: [{ label: '▶️ Weiter', cls: 'primary' }],
+    });
+  },
   // Münzschatz fürs Hauptspiel (nach Stufe und Münz-Bonus des Hauptspiels)
   coinReward(stage, mult) { return S.run.depth ? Econ.coins(stage) * mult * 60 * S.run.depth : 0; },
   homeCoins() { const h = S.run.stash; return h ? this.coinReward(h.stage, h.coinMult || 1) : 0; },
@@ -76,6 +159,7 @@ const Run = {
   // ---------------------------------------------------------------- Ablauf
   init() {
     // Spielstand mitten im Lauf geladen
+    this.renderBar();
     if (this.active) {
       document.body.classList.add('in-run');
       recalc(); UI.renderTab();
@@ -101,6 +185,7 @@ const Run = {
     recalc(); Game.emit('weapons');
     this.clearField(B);
     document.body.classList.add('in-run');
+    this.renderBar();
     if (typeof Dock !== 'undefined') Dock.close();
     B.whiteFlash = 0.8; FX.ambient = [];
     B.showBanner('STREIFZUG!', `Raum 1 · ${biomeFor(S.stage).name} · Leben heilen nicht von selbst`, '#c7b3ff');
@@ -152,6 +237,7 @@ const Run = {
     S.run.picks = g ? 2 : 1;
     S.run.choosing = true;
     S.run.offer = null;
+    this.chooseAt = Date.now();
     Game.emit('stage');
     setTimeout(() => this.offerChoice(), 1100);
   },
@@ -192,16 +278,22 @@ const Run = {
 
   offerChoice() {
     if (!this.active || !S.run.choosing) return;
+    // nie zwei Auswahlfenster gleichzeitig (offen oder in der Warteschlange)
+    if ((UI.modalOpts && UI.modalOpts.cls === 'boonmodal') || UI.modalQueue.some(o => o.cls === 'boonmodal')) return;
     if (!S.run.offer) S.run.offer = this.rollOffer();
     const r = S.run;
     const cards = r.offer.map(id => {
       const b = BOON_BY_ID[id], have = r.boons[id] || 0;
+      // schon vorhanden: zeigen, was der neue Stapel insgesamt bewirkt
+      const next = have && b.fx ? `<span class="bnext">Gesamt danach: <b>${b.fx(have + 1)}</b></span>` : '';
       return `<button class="boon ${b.pact ? 'pact' : ''} ${b.heal ? 'heal' : ''} ${b.rare ? 'rare' : ''}" data-boon="${id}">
-        <span class="bi">${b.icon}</span><b>${b.name}</b><small>${b.desc}</small>${have ? `<em>Stufe ${have + 1}</em>` : b.pact ? '<em>Pakt</em>' : b.rare ? '<em>Selten</em>' : ''}</button>`;
+        <span class="bi">${b.icon}</span><b>${b.name}</b><small>${b.desc}</small>${next}${have ? `<em>Stufe ${have + 1}</em>` : b.pact ? '<em>Pakt</em>' : b.rare ? '<em>Selten</em>' : ''}</button>`;
     }).join('');
+    const own = this.owned();
+    const have = own.length ? `<div class="boonhave"><span>Bisher:</span>${own.map(({ b, n }) => `<i title="${b.name}: ${this.fxText(b, n)}">${b.icon}${n > 1 ? `<sup>${n}</sup>` : ''}</i>`).join('')}</div>` : '';
     UI.modal({
       title: r.picks > 1 ? `✨ Wähle einen Segen (noch ${r.picks})` : '✨ Wähle einen Segen',
-      html: `<p class="muted runinfo">Raum ${r.depth} geschafft · ❤️ ${Math.ceil(r.hp)} / ${r.maxHp}</p><div class="boons">${cards}</div>`,
+      html: `<p class="muted runinfo">Raum ${r.depth} geschafft · ❤️ ${Math.ceil(r.hp)} / ${r.maxHp}</p><div class="boons">${cards}</div>${have}`,
       cls: 'boonmodal', buttons: [], noClose: true,
       onShow: root => { for (const el of $$('[data-boon]', root)) el.addEventListener('click', () => { UI.closeModal(); this.pick(el.dataset.boon); }); },
     });
@@ -227,6 +319,7 @@ const Run = {
     r.offer = null;
     if (r.picks > 0) { setTimeout(() => this.offerChoice(), 250); return; }
     r.choosing = false;
+    this.renderBar();
     this.nextBiome();
     B.whiteFlash = 0.6;
     const nb = biomeFor(S.stage);
@@ -272,6 +365,7 @@ const Run = {
     this.clearField(B);
     Vitals.idle.hp = Vitals.idle.maxHp;
     document.body.classList.remove('in-run');
+    this.renderBar();
     B.whiteFlash = 0.6; FX.ambient = [];
     UI.updateBossBtn(); UI.renderTab();
     Game.emit('stage');
@@ -346,19 +440,24 @@ UI.tab_run = function () {
         <button class="btn primary wide" id="runStart">🗺️ Streifzug starten</button>
       </div>`;
   }
-  const boons = Object.entries(r.boons).filter(([id, n]) => n > 0 && BOON_BY_ID[id]);
+  const own = Run.owned();
   return `<div class="sec runbox">
       <h3>🗺️ Streifzug läuft <small>Raum ${r.depth + 1}${Run.guardian() ? ' · Wächter' : ''}</small></h3>
       <div class="rbstats">
-        <div><span>Leben</span><b>❤️ ${Math.ceil(r.hp)} / ${r.maxHp}</b></div>
+        <div><span>Leben</span><b id="runHp">❤️ ${Math.ceil(r.hp)} / ${r.maxHp}</b></div>
         <div><span>Geschafft</span><b>${r.depth} Räume</b></div>
         <div><span>Beute bisher</span><b>${Run.reward()} 🦴 · ${U.fmt(Run.homeCoins())} 💰</b></div>
       </div>
     </div>
-    <div class="sec"><h3>Deine Segen <small>${boons.length ? '' : 'noch keine'}</small></h3>
-      <div class="list">${boons.map(([id, n]) => { const b = BOON_BY_ID[id]; return `<div class="card ${b.pact ? 'pactcard' : ''}"><div class="ci">${b.icon}</div><div class="cb"><div class="cn">${b.name}${n > 1 ? ` <small>×${n}</small>` : ''}</div><div class="cd">${b.desc}</div></div></div>`; }).join('')}</div>
+    <div class="sec"><h3>Gesamtwirkung <small>alle Segen zusammengerechnet</small></h3>${Run.summaryHtml()}</div>
+    <div class="sec"><h3>Deine Segen <small>${own.length ? `${own.length} gesammelt` : 'noch keine'}</small></h3>${Run.ownedHtml()}
+      <details class="lexd"><summary>📖 Alle Segen & Pakte (${BOONS.length})</summary>${Run.lexiconHtml()}</details>
     </div>
     <button class="btn wide" id="runQuit">🏳️ Streifzug beenden & Beute mitnehmen</button>`;
+};
+UI.refresh_run = function () {
+  const hp = $('#runHp');
+  if (hp && Run.active) hp.textContent = `❤️ ${Math.ceil(S.run.hp)} / ${S.run.maxHp}`;
 };
 UI.after_run = function () {
   const s = $('#runStart'); if (s) s.addEventListener('click', () => { SFX.init(); Run.start(); });
@@ -366,3 +465,5 @@ UI.after_run = function () {
 };
 
 window.addEventListener('load', () => Run.init());
+// Absicherung: steht eine Segen-Wahl aus, aber kein Fenster ist da (z. B. weggeklickt), erneut anbieten
+setInterval(() => { if (Run.active && S.run.choosing && !UI.modalOpen && !UI.modalQueue.length && Date.now() - (Run.chooseAt || 0) > 1500) Run.offerChoice(); }, 2000);

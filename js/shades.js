@@ -3,8 +3,10 @@
 // Schattenwesen: tauchen ab Stufe 6 gelegentlich auf, drängeln sich nach vorn und
 // wirken einen Frost-Fluch. Ein Ring zeigt die verbleibende Zeit, eine Blase über
 // dem Kopf, WAS eingefroren wird (ein Skill, das Katzen-Talent oder eine
-// Geisterkatze samt Waffe). Wird das Wesen nicht rechtzeitig besiegt, ist die
-// Fähigkeit 15 s eingefroren. Pfotenhiebe machen 3× Schaden an Schatten (Licht!).
+// Geisterkatze samt Waffe oder einen Begleiter: Maus-Drohne, Goldfisch, Eule).
+// Wird das Wesen nicht rechtzeitig besiegt, ist die Fähigkeit 15 s eingefroren –
+// eingefrorene Geisterkatzen lassen sich nicht umrüsten, eingefrorene Begleiter
+// verlieren so lange ihren Bonus. Pfotenhiebe machen 3× Schaden an Schatten (Licht!).
 // ---------------------------------------------------------------------------
 
 const SHADE_FROM = 6;          // ab dieser Stufe (im Streifzug ab Raum 3)
@@ -12,10 +14,19 @@ const SHADE_CHANCE = 0.07;     // je neu erscheinendem Gegner
 const SHADE_CAST = 7;          // Sekunden bis zum Fluch
 const FREEZE_TIME = 15;        // so lange bleibt die Fähigkeit eingefroren
 
+const ICE_IN = 0.35;           // Sekunden, bis das Eis ganz geschlossen ist
+
 const Shades = {
-  frozen: {},   // 'skill:laser' | 'talent' | 'slot:2' → Restsekunden
+  frozen: {},   // 'skill:laser' | 'talent' | 'slot:2' | 'pet:owl' → Restsekunden
+  at: {},       // Schlüssel → Battle.t beim Einfrieren (Figur erstarrt in dieser Haltung)
 
   isFrozen(key) { return (this.frozen[key] || 0) > 0; },
+  since(key) { return this.at[key] !== undefined ? this.at[key] : Battle.t; },
+  // Stärke des Eises: wächst beim Einfrieren zu, flackert kurz vor dem Auftauen (Risse)
+  iceAmt(key) {
+    const grow = U.clamp((Battle.t - this.since(key)) / ICE_IN, 0, 1), left = this.frozen[key] || 0;
+    return left < 2.5 ? grow * (0.72 + Math.sin(Battle.t * (14 - left * 3)) * 0.28) : grow;
+  },
   skillFrozen(id) { return this.isFrozen('skill:' + id); },
   slotFrozen(i) { return this.isFrozen('slot:' + i); },
 
@@ -24,6 +35,7 @@ const Shades = {
     const out = [];
     for (const sk of SKILLS) if (skillOpen(sk) && !this.skillFrozen(sk.id)) out.push({ key: 'skill:' + sk.id, icon: sk.icon, name: sk.name });
     for (let i = 1; i < 4; i++) if (S.slots[i] && !this.slotFrozen(i)) out.push({ key: 'slot:' + i, icon: WEAPONS[S.slots[i].t].icon, name: `Geisterkatze ${i + 1}` });
+    for (const p of PETS) if (S.pets[p.id] > 0 && !this.isFrozen('pet:' + p.id)) out.push({ key: 'pet:' + p.id, icon: p.icon, name: p.name });
     if (!this.isFrozen('talent')) { const d = Talents.def(); out.push({ key: 'talent', icon: d.icon, name: d.name }); }
     return out;
   },
@@ -74,6 +86,8 @@ const Shades = {
     o.shade.cast = true;
     o.fleeing = true;
     this.frozen[tg.key] = FREEZE_TIME;
+    this.at[tg.key] = B.t;
+    if (tg.key === 'pet:owl') B.owlBuff = 0; // laufender Eulenruf verstummt
     // dunkler Strahl zum Ziel, Eis-Splitter
     const to = this.targetPoint(B, tg.key);
     this.beams.push({ x1: o.x, y1: o.y - OBST_H.shade * o.scale * 0.6, x2: to.x, y2: to.y, t: 0.5 });
@@ -82,15 +96,29 @@ const Shades = {
       B.particle(to.x, to.y, Math.cos(a) * v, Math.sin(a) * v - 60, U.pick(['#bff8ff', '#7ef9ff', '#ffffff']), U.rand(0.5, 0.9), U.rand(3, 6) * B.cs, 500, false, 'spark');
     }
     FX.addRing(to.x, to.y, 90 * B.cs, '#bff8ff', 0.4, 8);
+    FX.addRing(to.x, to.y, 40 * B.cs, '#ffffff', 0.25, 4);
+    // Eiskristalle schießen sternförmig zusammen
+    for (let i = 0; i < 10; i++) {
+      const a = i / 10 * Math.PI * 2, d = 46 * B.cs;
+      B.particle(to.x + Math.cos(a) * d, to.y + Math.sin(a) * d, -Math.cos(a) * d * 6, -Math.sin(a) * d * 6, '#e6fbff', 0.18, 2.4 * B.cs, 0, false, 'streak');
+    }
     B.shake = Math.max(B.shake, 10);
-    B.showBanner('EINGEFROREN!', `${tg.icon} ${tg.name} ist ${FREEZE_TIME} s gesperrt`, '#7ef9ff');
+    const what = tg.key.startsWith('pet:') ? 'Bonus fällt weg' : tg.key.startsWith('slot:') ? 'Waffe gesperrt' : 'gesperrt';
+    B.showBanner('EINGEFROREN!', `${tg.icon} ${tg.name} · ${FREEZE_TIME} s ${what}`, '#7ef9ff');
     SFX.play('freeze');
     UI.refreshSkills();
   },
 
   thaw(B, key) {
     const to = this.targetPoint(B, key);
-    for (let i = 0; i < 12; i++) B.particle(to.x, to.y, U.rand(-120, 120), U.rand(-160, 0), '#bff8ff', 0.6, 4 * B.cs, 500, true, 'chunk');
+    delete this.at[key];
+    // Eis zerspringt in Splitter, die zu Boden fallen
+    for (let i = 0; i < 18; i++) {
+      const p = B.particle(to.x + U.rand(-14, 14) * B.cs, to.y + U.rand(-14, 14) * B.cs, U.rand(-170, 170), U.rand(-220, -20), U.pick(['#bff8ff', '#e6fbff', '#7ec8ff']), U.rand(0.6, 1), U.rand(3, 6) * B.cs, 900, true, 'chunk');
+      if (p) p.spin = U.rand(-14, 14);
+    }
+    FX.addRing(to.x, to.y, 60 * B.cs, '#e6fbff', 0.3, 5);
+    if (!key.startsWith('skill:') && key !== 'talent') B.text(to.x, to.y - 30 * B.cs, 'AUFGETAUT!', '#bff8ff', 15 * B.cs, true);
     SFX.play('thaw');
     UI.refreshSkills();
   },
@@ -113,6 +141,7 @@ const Shades = {
   // Bildschirmpunkt des eingefrorenen Ziels (Skill-Knopf → in Spielfeld-Koordinaten)
   targetPoint(B, key) {
     if (key.startsWith('slot:')) { const p = B.slotPos(+key.slice(5)); return { x: p.x, y: p.y - 10 * B.cs }; }
+    if (key.startsWith('pet:')) return B.petPos(key.slice(4), this.since(key));
     const sel = key === 'talent' ? '#skills .talent' : `#skills .skill[data-skill="${key.slice(6)}"]`;
     const el = document.querySelector(sel), cr = B.cv.getBoundingClientRect();
     if (el) { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2 - cr.left, y: r.top + r.height / 2 - cr.top }; }
@@ -132,14 +161,14 @@ const Shades = {
     x.setTransform(ctx.getTransform());
     return x;
   },
-  iceEnd(ctx, x) {
+  iceEnd(ctx, x, amt = 1) {
     const c = this.iceCv;
     x.setTransform(1, 0, 0, 1, 0, 0);
     x.globalCompositeOperation = 'source-atop';
-    x.globalAlpha = 0.72; x.fillStyle = '#5fc8ff'; x.fillRect(0, 0, c.width, c.height);
+    x.globalAlpha = 0.72 * amt; x.fillStyle = '#5fc8ff'; x.fillRect(0, 0, c.width, c.height);
     const g = x.createLinearGradient(0, 0, c.width * 0.3, c.height);
     for (let k = 0; k <= 10; k++) g.addColorStop(k / 10, k % 2 ? 'rgba(255,255,255,0)' : 'rgba(255,255,255,0.35)');
-    x.globalAlpha = 1; x.fillStyle = g; x.fillRect(0, 0, c.width, c.height);
+    x.globalAlpha = amt; x.fillStyle = g; x.fillRect(0, 0, c.width, c.height);
     x.globalCompositeOperation = 'source-over';
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
     ctx.drawImage(c, 0, 0);
@@ -148,11 +177,18 @@ const Shades = {
   beams: [],
   drawWorld(ctx, B) {
     const t = B.t, cs = B.cs;
-    // eingefrorene Geisterkatzen: Frost-Glitzern, Eiszapfen und Restzeit
-    for (let i = 1; i < 4; i++) {
-      if (!this.slotFrozen(i) || !S.slots[i]) continue;
-      const p = B.slotPos(i), s = p.s, left = this.frozen['slot:' + i];
+    // eingefrorene Geisterkatzen und Begleiter: Frost-Glitzern, Eiszapfen und Restzeit
+    const iced = [];
+    for (let i = 1; i < 4; i++) if (this.slotFrozen(i) && S.slots[i]) { const p = B.slotPos(i); iced.push({ key: 'slot:' + i, x: p.x, y: p.y, s: p.s, i, ly: 46 }); }
+    for (const id of ['mouse', 'fish', 'owl']) {
+      if (!this.isFrozen('pet:' + id) || !(S.pets[id] > 0)) continue;
+      const p = B.petPos(id, this.since('pet:' + id));
+      iced.push({ key: 'pet:' + id, x: p.x + 4 * cs, y: p.y + (id === 'owl' ? 6 : 10) * cs, s: cs * 0.75, i: id.length, ly: id === 'fish' ? 34 : 30 });
+    }
+    for (const q of iced) {
+      const p = q, s = q.s, i = q.i, left = this.frozen[q.key];
       ctx.save();
+      ctx.globalAlpha = this.iceAmt(q.key);
       for (let k = 0; k < 5; k++) {
         const a = k * 1.9 + i, tw = 0.5 + Math.sin(t * 4 + k * 2.3) * 0.5;
         const sx = p.x + Math.cos(a) * 22 * s - 4 * s, sy = p.y - 14 * s + Math.sin(a) * 18 * s;
@@ -165,7 +201,7 @@ const Shades = {
         ctx.beginPath(); ctx.moveTo(ix - 2.5 * s, iy); ctx.lineTo(ix + 2.5 * s, iy); ctx.lineTo(ix, iy + ih); ctx.closePath(); ctx.fill();
       }
       ctx.globalAlpha = 1; ctx.font = `800 ${11 * cs}px "Segoe UI", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      const lx = p.x - 4 * s, ly = p.y - 46 * s;
+      const lx = p.x - 4 * s, ly = p.y - q.ly * s - (q.key.startsWith('pet:') ? 14 * cs : 0);
       ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,30,50,0.85)'; ctx.strokeText(`❄ ${Math.ceil(left)} s`, lx, ly);
       ctx.fillStyle = '#e6fbff'; ctx.fillText(`❄ ${Math.ceil(left)} s`, lx, ly);
       ctx.restore();

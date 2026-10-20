@@ -41,7 +41,7 @@ Object.assign(BOSS_NAMES, { telly: 'Der Quotenkönig', remote: 'Lord Zapper', mo
 Object.assign(BOSS_ATTACKS, {
   telly:  { icon: '📡', name: 'Störsignal', n: 2, speed: 1,   size: 1,   dmg: 0.8 },
   remote: { icon: '🔋', name: 'Batterien',  n: 3, speed: 1.2, size: 0.9, dmg: 0.6 },
-  mole:   { icon: '🪨', name: 'Erdbrocken', n: 3, speed: 1,   size: 1,   dmg: 0.7, sky: true },
+  mole:   { icon: '🟤', name: 'Erdbrocken', n: 3, speed: 1,   size: 1,   dmg: 0.7, sky: true },
   rat:    { icon: '🧀', name: 'Käsewurf',   n: 2, speed: 1.2, size: 1,   dmg: 0.8 },
   dino:   { icon: '🦴', name: 'Knochen',    n: 2, speed: 1,   size: 1.1, dmg: 0.9 },
   knight: { icon: '🗡️', name: 'Dolche',     n: 3, speed: 1.3, size: 0.9, dmg: 0.6 },
@@ -54,10 +54,10 @@ const bobRobot = (t, o) => Math.sin(t * 2.5 + o.id) * 3 - 4;
 Object.assign(FACE, {
   telly:  { x: -5, y: -40, s: 0.8, glow: '#e6fbff' },
   remote: { x: 0,  y: -56, s: 0.62, bob: bobRemote },
-  mole:   { x: 0,  y: -34, s: 0.85 },
-  rat:    { x: -22, y: -30, s: 0.55 },
-  dino:   { x: -16, y: -58, s: 0.62 },
-  knight: { x: 0,  y: -74, s: 0.62, glow: '#ffd34d' },
+  mole:   { x: 0,  y: -37, s: 0.8, my: 22 },               // Mund unter der rosa Nase
+  rat:    { x: -25, y: -32, s: 0.6, eyes: [-7, 6], my: 12 }, // Kopf schaut leicht zur Schnauze
+  dino:   { x: -8, y: -62, s: 0.7, profile: true, mx: -17, my: 22, nx: -30, ny: -4 }, // Seitenauge, Maul unter den Zähnen
+  knight: { x: 0,  y: -78, s: 0.62, glow: '#ffd34d', visor: true }, // Augen im Sehschlitz
   robot:  { x: 0,  y: -74, s: 0.62, glow: '#5ef0ff', bob: bobRobot },
 });
 Object.assign(FOE_FLOAT, { robot: -4, remote: -3 });

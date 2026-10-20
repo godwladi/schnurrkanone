@@ -35,10 +35,13 @@ SONGS.voidling = { ...SONGS.asteroid, tempo: 84 };
 SONGS.shard = { ...SONGS.asteroid, tempo: 132 };
 SONGS.popup = { ...SONGS.vending, tempo: 136 };
 
-const AD_TEXTS = ['DU HAST GEWONNEN!', 'Heiße Katzen in deiner Nähe', 'Gratis Thunfisch 🐟', 'Dein Kratzbaum ist veraltet!', 'Nur heute: 99 % Rabatt', 'Klick hier für Leckerlis!'];
+const AD_TEXTS = ['DU HAST GEWONNEN!', 'Heiße Katzen in deiner Nähe', 'Gratis Thunfisch 🐟', 'Dein Kratzbaum ist veraltet!', 'Nur heute: 99 % Rabatt', 'Klick hier für Leckerlis!',
+  'Dein PC hat 37 Mäuse!', 'Wollknäuel-Flatrate 💶', 'Katzenklo 2.0 jetzt vorbestellen', 'Du bist Besucher Nr. 1.000.000!'];
+const AD_MAX = 6;       // so viele Fenster können gleichzeitig offen sein
+const AD_CLOSE_R = 24;  // Trefferradius des ✕ (Finger)
 
 const Rooms = {
-  ads: [], adT: 6, glyphs: null,
+  ads: [], adT: 4, glyphs: null,
 
   cur() { return Run.active ? RUN_BIOMES[S.run.biome % RUN_BIOMES.length] : null; },
   kind() { const b = this.cur(); return b && b.special; },
@@ -46,27 +49,68 @@ const Rooms = {
   // Wurmloch: Spielgeschwindigkeit schwankt zwischen 0,7× und 1,3×
   timeWarp() { return this.kind() === 'wormhole' ? 1 + 0.3 * Math.sin(Battle.t * 0.7) : 1; },
 
-  reset() { this.ads = []; this.adT = 6; },
+  reset() { this.ads = []; this.adT = 4; },
 
+  // Werbefenster bleiben offen, bis man sie wegklickt. Neue Fenster stapeln sich
+  // kaskadenartig über den alten (wie echte Pop-ups), höchstens AD_MAX auf einmal.
   update(dt, B) {
     if (this.kind() !== 'web') { this.ads = []; return; }
     this.adT -= dt;
-    if (this.adT <= 0 && this.ads.length < 3) {
-      this.adT = U.rand(6, 10);
-      const W = B.Wp || B.W, w = Math.min(220, W * 0.55), h = 96;
-      this.ads.push({ x: U.rand(10, W - w - 10), y: U.rand(70, Math.max(80, B.groundY - h - 40)), w, h, t: 0, life: 9, text: U.pick(AD_TEXTS), hue: U.randi(0, 360) });
-      SFX.play('adPop');
+    const open = this.ads.filter(a => !a.closing);
+    if (this.adT <= 0) {
+      // je mehr schon offen ist, desto länger dauert das nächste Fenster
+      this.adT = U.rand(4.5, 7) + open.length * 0.9;
+      if (open.length < AD_MAX) this.spawnAd(B, open);
     }
-    for (const a of this.ads) a.t += dt;
-    this.ads = this.ads.filter(a => a.t < a.life && !a.closed);
+    for (const a of this.ads) {
+      a.t += dt;
+      a.wob = Math.max(0, (a.wob || 0) - dt);
+      if (a.closing) a.closing += dt;
+    }
+    this.ads = this.ads.filter(a => !(a.closing > 0.28));
   },
 
-  // Antippen: ✕ einer Werbung schließt sie (Schnurr-Meter, etwas Leben)
+  spawnAd(B, open) {
+    // k: auf niedrigen Bildschirmen (Handy quer) kleinere Fenster
+    const W = B.Wp || B.W, k = U.clamp(B.H / 620, 0.72, 1), w = Math.min(220 * k, W * 0.5), h = 96 * k;
+    const top = 70, bottom = Math.max(top + 10, B.groundY - h - 30);
+    let x, y;
+    const last = open[open.length - 1];
+    if (last && Math.random() < 0.65) {
+      // Kaskade: leicht versetzt über dem letzten Fenster
+      x = last.x + 26; y = last.y + 22;
+      if (x + w > W - 10 || y > bottom) { x = U.rand(10, W - w - 10); y = U.rand(top, bottom); }
+    } else { x = U.rand(10, W - w - 10); y = U.rand(top, bottom); }
+    this.ads.push({ x, y, w, h, k, t: 0, text: U.pick(AD_TEXTS), hue: U.randi(0, 360), id: Math.random() });
+    for (const a of open) a.wob = 0.25; // die alten Fenster zucken mit
+    SFX.play('adPop');
+  },
+
+  // Fauchen fegt alle Werbefenster auf einmal weg
+  blowAway(B) {
+    let n = 0;
+    for (const a of this.ads) if (!a.closing) { a.closing = 0.0001; a.blown = true; n++; this.adBurst(B, a); }
+    if (n) B.text(B.W / 2, B.groundY * 0.4, `${n}× WEGGEFAUCHT!`, '#2fffa0', 20 * B.cs, true);
+  },
+
+  adBurst(B, a) {
+    const cx = a.x + a.w / 2, cy = a.y + a.h / 2;
+    for (let i = 0; i < 14; i++) {
+      const p = B.particle(cx + U.rand(-a.w, a.w) * 0.4, cy + U.rand(-a.h, a.h) * 0.4, U.rand(-260, 260), U.rand(-300, 60), U.pick(['#ffffff', `hsl(${a.hue},80%,60%)`, '#2fffa0', '#ffd34d']), U.rand(0.5, 0.9), U.rand(4, 8) * B.cs, 700, false, 'chunk');
+      if (p) p.spin = U.rand(-12, 12);
+    }
+  },
+
+  // Antippen: ✕ einer Werbung schließt sie (Schnurr-Meter, etwas Leben).
+  // Das oberste Fenster zuerst; ein Tipp ins Fenster selbst wird geschluckt.
   tap(B, x, y) {
     for (let i = this.ads.length - 1; i >= 0; i--) {
-      const a = this.ads[i], cx = a.x + a.w - 14, cy = a.y + 11;
-      if (Math.hypot(x - cx, y - cy) < 22) {
-        a.closed = true;
+      const a = this.ads[i];
+      if (a.closing) continue;
+      const cx = a.x + a.w - 14 * a.k, cy = a.y + 11 * a.k;
+      if (Math.hypot(x - cx, y - cy) < AD_CLOSE_R) {
+        a.closing = 0.0001;
+        this.adBurst(B, a);
         B.purr = Math.min(100, B.purr + 10);
         Vitals.heal(B, 0.03, true);
         B.text(cx, cy, 'WEGGEKLICKT!', '#2fffa0', 16 * B.cs, true);
@@ -74,7 +118,11 @@ const Rooms = {
         SFX.play('parry');
         return true;
       }
-      if (x > a.x && x < a.x + a.w && y > a.y && y < a.y + a.h) { B.text(x, y, 'Werbung!', '#ff7ad9', 13 * B.cs); return true; } // Fenster schluckt den Tipp
+      if (x > a.x && x < a.x + a.w && y > a.y && y < a.y + a.h) { // Fenster schluckt den Tipp
+        a.wob = 0.3;
+        B.text(x, y, U.pick(['Werbung!', 'Falsches ✕!', 'Klick daneben!']), '#ff7ad9', 13 * B.cs);
+        return true;
+      }
     }
     return false;
   },
@@ -233,7 +281,7 @@ const Rooms = {
         const blink = ((B.t + o.id * 1.37) % 4) < 0.12;
         if (blink) continue;
         // Augenmitte aus der Lage beim Zeichnen des Gesichts → bewegt sich exakt mit
-        for (const ex of f.cyclops ? [0] : [-7.5, 7.5]) {
+        for (const ex of f.cyclops || f.profile ? [0] : f.eyes || [-7.5, 7.5]) {
           const p = inv.transformPoint(o.faceM.transformPoint(new DOMPoint(ex, 0)));
           FX.drawGlow(ctx, p.x, p.y, (f.cyclops ? 14 : 9) * o.scale, o.boss ? '#ff1e46' : '#c9a6ff', 0.85);
         }
@@ -253,23 +301,45 @@ const Rooms = {
         ctx.fillRect(0, 0, 4, B.H); ctx.fillRect(B.W - 4, 0, 4, B.H); ctx.globalAlpha = 1;
       }
     }
-    // Pop-up-Werbung (Web)
+    // Pop-up-Werbung (Web): springt auf (Überschwingen), zuckt, klappt beim Schließen zusammen
+    const open = this.ads.filter(a => !a.closing).length;
+    if (k === 'web' && open) {
+      ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      const txt = (B.Wp || B.W) < 720 ? `📢 ${open} / ${AD_MAX} Pop-ups · ✕ antippen` : `📢 ${open} / ${AD_MAX} Pop-ups offen · ✕ antippen · Fauchen fegt alle weg`;
+      ctx.font = '800 12px "Segoe UI", "Segoe UI Emoji", sans-serif';
+      const pw = ctx.measureText(txt).width + 22, py = B.H - 104 - (B.insetB || 0);
+      Draw.rrect(ctx, 12, py, pw, 24, 12, 'rgba(2,30,30,0.78)');
+      ctx.fillStyle = open >= AD_MAX ? '#ff7ad9' : '#2fffa0'; ctx.fillText(txt, 23, py + 12);
+      ctx.restore();
+    }
     for (const a of this.ads) {
-      const pop = Math.min(1, a.t * 6), fade = Math.min(1, (a.life - a.t) * 2);
+      const e = Math.min(1, a.t * 5), pop = e < 1 ? 1 + Math.sin(e * Math.PI) * 0.12 - (1 - e) * 0.9 : 1;
+      const c = a.closing ? Math.min(1, a.closing / 0.28) : 0;
+      const fade = 1 - c, sc = Math.max(0.01, pop * (1 - c * 0.6));
+      const wob = a.wob > 0 ? Math.sin(a.wob * 60) * a.wob * 0.2 : 0;
       ctx.save();
-      ctx.globalAlpha = 0.95 * fade;
-      ctx.translate(a.x + a.w / 2, a.y + a.h / 2); ctx.scale(pop, pop); ctx.translate(-a.w / 2, -a.h / 2);
-      Draw.rrect(ctx, 0, 0, a.w, a.h, 8, '#ffffff');
-      Draw.rrect(ctx, 0, 0, a.w, 22, 8, `hsl(${a.hue},80%,55%)`);
+      ctx.globalAlpha = 0.97 * fade;
+      ctx.translate(a.x + a.w / 2, a.y + a.h / 2 - (a.blown ? c * 60 : 0)); ctx.rotate(wob + (a.blown ? c * 0.8 : 0)); ctx.scale(sc * a.k, sc * a.k * (1 - c * 0.3));
+      const aw = a.w / a.k, ah = a.h / a.k; // Zeichnen in Grundgröße
+      ctx.translate(-aw / 2, -ah / 2);
+      Draw.rrect(ctx, 5, 7, aw, ah, 8, 'rgba(0,0,0,0.35)'); // Schatten
+      Draw.rrect(ctx, 0, 0, aw, ah, 8, '#ffffff');
+      Draw.rrect(ctx, 0, 0, aw, 22, 8, `hsl(${a.hue},80%,55%)`);
       ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
       ctx.fillText('⚠ WERBUNG', 8, 11);
-      Draw.circle(ctx, a.w - 14, 11, 9, '#ff4d6d');
-      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = 'bold 13px sans-serif'; ctx.fillText('✕', a.w - 14, 12);
-      ctx.fillStyle = `hsl(${(a.hue + 180) % 360},80%,45%)`; ctx.font = `900 ${Math.min(15, a.w / 14)}px "Segoe UI", "Segoe UI Emoji", sans-serif`;
-      ctx.fillText(a.text, a.w / 2, 48);
+      Draw.circle(ctx, aw - 14, 11, 9, '#ff4d6d');
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5; // ✕ pulsiert, damit man es findet
+      ctx.beginPath(); ctx.arc(aw - 14, 11, 9.5 + Math.sin(B.t * 6 + a.id * 9) * 1.3, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = 'bold 13px sans-serif'; ctx.fillText('✕', aw - 14, 12);
+      ctx.fillStyle = `hsl(${(a.hue + 180) % 360},80%,45%)`;
+      let fs = Math.min(15, aw / 14);
+      ctx.font = `900 ${fs}px "Segoe UI", "Segoe UI Emoji", sans-serif`;
+      const tw = ctx.measureText(a.text).width;
+      if (tw > aw - 16) { fs *= (aw - 16) / tw; ctx.font = `900 ${fs}px "Segoe UI", "Segoe UI Emoji", sans-serif`; } // Text passt immer ins Fenster
+      ctx.fillText(a.text, aw / 2, 46);
       ctx.globalAlpha = (0.6 + Math.sin(B.t * 10) * 0.4) * fade;
-      Draw.rrect(ctx, a.w / 2 - 40, 64, 80, 20, 10, '#ffd34d');
-      ctx.fillStyle = '#3a2600'; ctx.font = 'bold 11px sans-serif'; ctx.fillText('JETZT KLICKEN', a.w / 2, 74);
+      Draw.rrect(ctx, aw / 2 - 40, 64, 80, 20, 10, '#ffd34d');
+      ctx.fillStyle = '#3a2600'; ctx.font = 'bold 11px sans-serif'; ctx.fillText('JETZT KLICKEN', aw / 2, 74);
       ctx.restore();
     }
   },

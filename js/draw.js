@@ -61,7 +61,7 @@ const Draw = {
     ctx.restore();
 
     // Waffe in der Pfote
-    if (opt.weapon) Draw.weapon(ctx, 18, -20 + bob * 0.3, opt.weapon, t, 1, opt.recoil || 0);
+    if (opt.weapon) Draw.weapon(ctx, 18, -20 + bob * 0.3, opt.weapon, t, 1, opt.recoil || 0, opt.muzzleOut);
     ctx.restore();
   },
 
@@ -280,7 +280,7 @@ const Draw = {
     ctx.globalAlpha = a0;
     ctx.restore();
     // echte Waffe in den Geisterpfoten
-    Draw.weapon(ctx, x, y, opt.weapon, t, s, opt.recoil || 0);
+    Draw.weapon(ctx, x, y, opt.weapon, t, s, opt.recoil || 0, opt.muzzleOut);
     ctx.save();
     ctx.translate(x, y); ctx.scale(s, s);
     ctx.globalAlpha = a0 * alpha;
@@ -322,13 +322,15 @@ const Draw = {
     }
   },
 
-  // Waffe; (x,y) = Griff
-  weapon(ctx, x, y, w, t, s = 1, recoil = 0) {
+  // Waffe; (x,y) = Griff. out (optional) erhält die Mündung in Gerätepixeln,
+  // damit Kugeln und Mündungsfeuer genau am Lauf entstehen.
+  weapon(ctx, x, y, w, t, s = 1, recoil = 0, out = null) {
     const d = WEAPONS[w.t];
     const col = tierColor(w.r, t);
     ctx.save();
     ctx.translate(x - recoil * 4, y);
     ctx.scale(s, s);
+    if (out) { const m = MUZZLE[w.t] || [24, -1]; out.push(ctx.getTransform().transformPoint(new DOMPoint(m[0] + recoil * 4 / s, m[1]))); }
     const dark = '#2b2b3a';
     switch (w.t) {
       case 'pistol':
@@ -538,6 +540,11 @@ const Draw = {
       Draw.circle(ctx, -7, -7, 5, '#a8adb8'); Draw.circle(ctx, -7, -7, 3, '#ffb3c6');
       Draw.circle(ctx, 7, -2, 1.6, '#222'); Draw.circle(ctx, 11, 1, 1.5, '#ff7a9a');
       ctx.strokeStyle = '#a8adb8'; ctx.beginPath(); ctx.moveTo(-10, 3); ctx.quadraticCurveTo(-20, 6, -18, -2); ctx.stroke();
+      // Mini-Blaster unter dem Bauch
+      Draw.rrect(ctx, -2, 5, 6, 4, 1.5, '#6b7080');
+      Draw.rrect(ctx, 2, 5.6, 12, 2.8, 1.2, '#4a4f5c');
+      Draw.circle(ctx, 14, 7, 1.4, opt.flash > 0 ? '#ffffff' : '#c7d2fe');
+      if (opt.muzzleOut) opt.muzzleOut.push(ctx.getTransform().transformPoint(new DOMPoint(15, 7)));
     } else if (id === 'fish') {
       ctx.globalAlpha = 0.5; Draw.circle(ctx, 0, 0, 16, '#bde7ff'); ctx.globalAlpha = 1;
       ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.stroke();
@@ -575,6 +582,8 @@ const Draw = {
   },
 };
 
+// Mündung je Waffe (lokal ab Griff, siehe Draw.weapon)
+const MUZZLE = { pistol: [22, -1], shotgun: [28, -2], laser: [28, -0.5], rocket: [34, -1], yarn: [29, -1] };
 const OBST_H = { tree: 92, cactus: 80, snowman: 100, lavarock: 54, vending: 86, asteroid: 78, chest: 62, voidling: 68, eyeball: 78, shard: 92, ufo: 66, popup: 80, bug: 66, shade: 84 };
 const OBST_W = { tree: 60, cactus: 56, snowman: 46, lavarock: 66, vending: 50, asteroid: 66, chest: 60, voidling: 62, eyeball: 56, shard: 50, ufo: 70, popup: 62, bug: 56, shade: 56 };
 // Schwebe-Versatz (für Krone und Gesicht schwebender Gegner)

@@ -6,7 +6,9 @@
 // Das Aufblitzen zeichnet den Gegner additiv nach – ctx.filter kennt Safari nicht.
 // ---------------------------------------------------------------------------
 
-// Gesichtsmitte (lokale Koordinaten ab Bodenpunkt), Größe, eigener Schwebe-Versatz
+// Gesichtsmitte (lokale Koordinaten ab Bodenpunkt), Größe, eigener Schwebe-Versatz.
+// Weitere Angaben: eyes (x-Lagen der Augen), my (Mund-Höhe), noMouth, profile (ein
+// Seitenauge wie beim T-Rex, Maul bei mx/my), visor (glühende Augen im Helmschlitz)
 const FACE = {
   tree:     { x: 0,  y: -62, s: 1 },
   cactus:   { x: 0,  y: -54, s: 0.9 },
@@ -205,7 +207,9 @@ const Foes = {
     const tremble = m === 'scared' ? Math.sin(t * 40 + o.id) * 0.8 : 0;
     ctx.translate(tremble, 0);
     if (f.cyclops) this.cyclops(ctx, o, m, t);
-    else { this.eyes(ctx, o, m, t, f.glow); this.mouth(ctx, o, m, t); }
+    else if (f.profile) this.profile(ctx, o, m, t, f);
+    else if (f.visor) this.visor(ctx, o, m, t, f);
+    else { this.eyes(ctx, o, m, t, f.glow, f.eyes); if (!f.noMouth) this.mouth(ctx, o, m, t, f.my); }
     // Schweißtropfen / Tränen
     if (m === 'scared' || m === 'ouch' || m === 'crit') {
       const k = (t * 1.5 + o.id * 0.3) % 1;
@@ -222,12 +226,12 @@ const Foes = {
     ctx.restore();
   },
 
-  eyes(ctx, o, m, t, glow) {
+  eyes(ctx, o, m, t, glow, xs) {
     const blink = ((t + o.id * 1.37) % 4) < 0.12 && !['crit', 'ouch', 'ko', 'dizzy', 'rage'].includes(m);
     const lx = -1.7, ly = 0.6; // Blick zur Katze (links)
     ctx.strokeStyle = INK; ctx.fillStyle = INK; ctx.lineWidth = 2.2;
     for (const sx of [-1, 1]) {
-      const ex = sx * 7.5, ey = 0;
+      const ex = xs ? xs[sx < 0 ? 0 : 1] : sx * 7.5, ey = 0;
       if (m === 'ko') { // X-Augen
         ctx.beginPath(); ctx.moveTo(ex - 3.5, ey - 3.5); ctx.lineTo(ex + 3.5, ey + 3.5); ctx.moveTo(ex + 3.5, ey - 3.5); ctx.lineTo(ex - 3.5, ey + 3.5); ctx.stroke();
         continue;
@@ -265,9 +269,9 @@ const Foes = {
       ctx.beginPath();
       if (m === 'angry' || m === 'rage' || m === 'shout' || m === 'grumpy' || m === 'eager') {
         const k = m === 'grumpy' ? 1.6 : m === 'eager' ? 2 : 3.2;
-        ctx.moveTo(ex - 4.5 * sx, by - k); ctx.lineTo(ex + 4 * sx, by + k); // zur Mitte hin tief
+        ctx.moveTo(ex + 4.5 * sx, by - k); ctx.lineTo(ex - 4 * sx, by + k); // außen hoch, zur Mitte hin tief
       } else if (m === 'scared') {
-        ctx.moveTo(ex - 4.5 * sx, by + 2.5); ctx.lineTo(ex + 4 * sx, by - 2); // zur Mitte hin hoch
+        ctx.moveTo(ex + 4.5 * sx, by + 2.5); ctx.lineTo(ex - 4 * sx, by - 2); // außen tief, zur Mitte hin hoch
       } else if (m === 'smug' || m === 'cheeky' || m === 'sly') {
         ctx.moveTo(ex - 4, by + (sx > 0 ? -2 : 1)); ctx.quadraticCurveTo(ex, by - 3, ex + 4, by + (sx > 0 ? -1 : 1));
       } else continue;
@@ -275,9 +279,9 @@ const Foes = {
     }
   },
 
-  mouth(ctx, o, m, t) {
+  mouth(ctx, o, m, t, my = 10) {
     ctx.strokeStyle = INK; ctx.fillStyle = INK; ctx.lineWidth = 2.2;
-    const y = 10;
+    const y = my;
     ctx.beginPath();
     switch (m) {
       case 'ko': ctx.ellipse(0, y, 3, 2, 0, 0, Math.PI * 2); ctx.stroke(); break;
@@ -298,6 +302,81 @@ const Foes = {
       case 'grumpy': ctx.moveTo(-5, y + 2); ctx.quadraticCurveTo(0, y - 2.5, 5, y + 2); ctx.stroke(); break;
       case 'eager': ctx.moveTo(-6, y - 1); ctx.quadraticCurveTo(0, y + 6, 6, y - 1); ctx.closePath(); ctx.fill(); break;
       default: ctx.moveTo(-4, y + 1); ctx.lineTo(4, y + 1); ctx.stroke();
+    }
+  },
+
+  // Profil (T-Rex): ein großes Seitenauge mit Schlitzpupille, Blick nach vorn zur Katze,
+  // Knochenwulst als Braue. Ein gezeichneter Mund würde mit den Zähnen kollidieren –
+  // stattdessen klappt das Maul bei Schreck, Schmerz und Wut auf.
+  profile(ctx, o, m, t, f) {
+    const blink = ((t + o.id * 1.37) % 4) < 0.12 && !['crit', 'ouch', 'ko', 'dizzy', 'rage'].includes(m);
+    ctx.strokeStyle = INK; ctx.fillStyle = INK; ctx.lineWidth = 2.4;
+    if (m === 'ko') {
+      ctx.beginPath(); ctx.moveTo(-4.5, -4.5); ctx.lineTo(4.5, 4.5); ctx.moveTo(4.5, -4.5); ctx.lineTo(-4.5, 4.5); ctx.stroke();
+    } else if (m === 'ouch' || m === 'crit') { // zugekniffen: <
+      ctx.beginPath(); ctx.moveTo(4, -5); ctx.lineTo(-3.5, 0); ctx.lineTo(4, 5); ctx.stroke();
+    } else if (m === 'dizzy') {
+      ctx.beginPath();
+      for (let a = 0; a < 13; a += 0.4) { const r = a * 0.5; ctx.lineTo(Math.cos(a + t * 8) * r, Math.sin(a + t * 8) * r); }
+      ctx.stroke();
+    } else if (blink) {
+      ctx.beginPath(); ctx.moveTo(-6, 0.5); ctx.quadraticCurveTo(0, 3, 6, 0.5); ctx.stroke();
+    } else {
+      const ry = m === 'scared' ? 8.2 : m === 'eager' ? 7.6 : 7;
+      Draw.ellipse(ctx, 0, 0, 6.6, ry, '#fffbe8');
+      ctx.lineWidth = 1.4; ctx.beginPath(); ctx.ellipse(0, 0, 6.6, ry, 0, 0, Math.PI * 2); ctx.stroke();
+      const pr = m === 'scared' ? 2.2 : 3.6, pc = m === 'rage' ? '#ff1e46' : m === 'smug' ? '#ffb800' : '#3a2a10';
+      if (m === 'rage') { ctx.save(); ctx.globalCompositeOperation = 'lighter'; FX.drawGlow(ctx, -2.2, 0.8, 10, '#ff1e46', 0.9); ctx.restore(); }
+      Draw.ellipse(ctx, -2.2, 0.8, pr * 0.95, pr * 1.2, m === 'rage' ? '#ff6a3c' : '#e8a020'); // Reptilien-Iris
+      Draw.ellipse(ctx, -2.2, 0.8, pr * 0.32, pr * 1.05, pc === '#3a2a10' ? INK : pc);  // Schlitzpupille
+      Draw.circle(ctx, -3.6, -1.8, 1.2, '#ffffff');
+      if (m === 'sly' || m === 'smug') { // halb geschlossenes Lid
+        ctx.fillStyle = '#3f9b4a'; ctx.fillRect(-7, -ry - 1, 14, ry * 0.9);
+        ctx.strokeStyle = INK; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-7, -0.2 - ry * 0.1); ctx.lineTo(7, -0.2 - ry * 0.1); ctx.stroke();
+      }
+    }
+    // Knochenwulst über dem Auge: vorne (links) tief = wütend, vorne hoch = ängstlich
+    const by = -9.5;
+    ctx.strokeStyle = '#2f7a38'; ctx.lineWidth = 3.6; ctx.lineCap = 'round';
+    ctx.beginPath();
+    if (m === 'angry' || m === 'rage' || m === 'shout' || m === 'grumpy' || m === 'eager') {
+      const k = m === 'grumpy' ? 1.6 : m === 'eager' ? 2 : 3.4;
+      ctx.moveTo(-8, by + k); ctx.lineTo(7, by - k * 0.7);
+    } else if (m === 'scared') { ctx.moveTo(-8, by - 3); ctx.lineTo(7, by + 1.2); }
+    else { ctx.moveTo(-8, by + 0.5); ctx.quadraticCurveTo(0, by - 2.2, 7, by); }
+    ctx.stroke();
+    // Nasenloch vorne an der Schnauze
+    Draw.ellipse(ctx, f.nx, f.ny, 1.8, 1.2, 'rgba(20,40,20,0.7)');
+    // aufgeklapptes Maul unter der Zahnreihe
+    const open = m === 'shout' || m === 'rage' ? 6 + (m === 'rage' ? Math.sin(t * 20) : 0) : m === 'crit' ? 5.5 : m === 'ouch' || m === 'scared' ? 3.5 : m === 'ko' ? 2.5 : 0;
+    if (open > 0) {
+      ctx.save(); ctx.translate(f.mx, f.my);
+      Draw.ellipse(ctx, 0, open * 0.5, 12, open, '#5a1a2a');
+      Draw.ellipse(ctx, 3, open * 0.9, 6, open * 0.45, '#ff6b81');
+      for (let i = 0; i < 4; i++) Draw.tri(ctx, [-10 + i * 6, open * 1.3], [-6.5 + i * 6, open * 1.3], [-8.2 + i * 6, open * 0.7], '#ffffff');
+      ctx.restore();
+    }
+  },
+
+  // Ritter: Augen glühen im Sehschlitz des Helms, kein Mund (der Helm ist geschlossen)
+  visor(ctx, o, m, t, f) {
+    const blink = ((t + o.id * 1.37) % 4) < 0.12 && !['crit', 'ouch', 'ko', 'dizzy', 'rage'].includes(m);
+    const col = m === 'rage' || m === 'angry' && o.boss ? '#ff1e46' : f.glow;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    if (!blink && m !== 'ko') FX.drawGlow(ctx, 0, 0, 16, col, m === 'rage' ? 0.9 : 0.55);
+    ctx.restore();
+    ctx.lineCap = 'round';
+    for (const sx of [-1, 1]) {
+      const ex = sx * 7.5;
+      if (m === 'ko') { ctx.strokeStyle = '#8a8f9f'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(ex - 2.5, -2); ctx.lineTo(ex + 2.5, 2); ctx.moveTo(ex + 2.5, -2); ctx.lineTo(ex - 2.5, 2); ctx.stroke(); continue; }
+      if (blink || m === 'ouch' || m === 'crit') { ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(ex - 3, 0); ctx.lineTo(ex + 3, 0); ctx.stroke(); continue; }
+      if (m === 'dizzy') { ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.beginPath(); for (let a = 0; a < 9; a += 0.5) { const r = a * 0.33; ctx.lineTo(ex + Math.cos(a + t * 8 * sx) * r, Math.sin(a + t * 8 * sx) * r); } ctx.stroke(); continue; }
+      // wütend: schräg zur Mitte hin abfallend, ängstlich: groß und rund
+      const tilt = m === 'angry' || m === 'rage' || m === 'shout' || m === 'grumpy' ? -sx * 0.35 : m === 'scared' ? sx * 0.2 : 0;
+      ctx.save(); ctx.translate(ex - 1, 0); ctx.rotate(tilt);
+      Draw.ellipse(ctx, 0, 0, m === 'scared' ? 3.4 : 4, m === 'scared' ? 2.6 : 1.7, col);
+      Draw.ellipse(ctx, -0.8, -0.2, 1.6, 0.8, '#ffffff');
+      ctx.restore();
     }
   },
 

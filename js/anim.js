@@ -49,7 +49,7 @@ const Anim = {
     // zufällige Kunststücke der Begleiter, Ohrenwackeln bei Katze und Geistern
     for (const k of cur) {
       if (this.appear[k] !== undefined && now - this.appear[k] < APPEAR_T) continue;
-      if (k.startsWith('ghost')) continue;
+      if (k.startsWith('ghost') || Shades.isFrozen('pet:' + k)) continue;
       if (this.next[k] === undefined) this.next[k] = now + U.rand(4, 12);
       if (now >= this.next[k]) { this.doTrick(B, k); this.next[k] = now + U.rand(7, 15); }
     }
@@ -158,8 +158,9 @@ const Anim = {
 
   // Verwandlung + Kunststück-Angaben für einen Begleiter
   pet(id) {
-    const a = this.prog(this.appear, id, APPEAR_T), tr = this.prog(this.trick, id, TRICK_T[id]);
     const o = { dx: 0, dy: 0, s: 1, rot: 0, alpha: 1, spin: 0, wings: 0 };
+    if (Shades.isFrozen('pet:' + id)) return o; // im Eis erstarrt: keine Kunststücke
+    const a = this.prog(this.appear, id, APPEAR_T), tr = this.prog(this.trick, id, TRICK_T[id]);
     const e = a >= 0 ? 1 - Math.pow(1 - a, 3) : 1;
     if (a >= 0) {
       if (id === 'mouse') { o.dx = (1 - e) * 220; o.dy = -(1 - e) * 90; o.rot = (1 - e) * Math.PI * 4; o.alpha = Math.min(1, a * 3); }

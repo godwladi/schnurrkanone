@@ -15,7 +15,9 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 | `B` | Waffenkiste kaufen |
 | `M` | Auto-Merge |
 | `N` | Musik an/aus |
-| `P` / ⏸️ oben | Pause-Menü: hält das ganze Spiel an (Musik, Töne, Optionen, Streifzug beenden) |
+| `P` / ⏸️ oben | Pause-Menü: hält das ganze Spiel an (Musik, Töne, Optionen, Streifzug beenden; `Esc` = weiter) |
+| `I` / ✨-Leiste | Streifzug: Segen-Übersicht mit Gesamtwirkung |
+| `H` / `?` | Tastenkürzel-Übersicht |
 | 🔁 Auto-Boss (oben im Spielfeld) | AN: Nach 10 Zerstörungen kommt automatisch der Boss. AUS: Du bleibst auf der Stufe und farmst, bis du „Boss herausfordern“ klickst. |
 | Klick auf Glücksballon | Belohnung (Münzen, Gräten, Goldrausch oder Raserei) |
 | Drag & Drop | Gleiche Waffen verschmelzen, ausrüsten, verwerten |
@@ -26,9 +28,15 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 - Ab Stufe 3 **werfen Bosse** passend zum Gebiet (Zapfen, Stacheln, Schneebälle, Lavaregen, Dosen, Meteore). Antippen = **Parade**, das Geschoss trifft den Boss.
 - Die letzten 6 s des Boss-Countdowns lädt der Boss den **Vernichtungsschlag** (Warnung oben). Mit 🛡️ **Schnurr-Schild** (Taste 4, ab Stufe 3) gibt es einen **Konter** (Boss betäubt, +8 s). Ohne Schild schlägt er als **große Explosion** an der Katze ein (Feuerball, Druckwellen, Trümmer, Rauchsäule, Glut; beim Konter eine blaue Eis-Explosion am Boss) und kostet 65 % Leben. Im Hauptspiel gehen außerdem **die Hälfte der Münzen** verloren und es geht **eine Stufe zurück** (Farm-Modus). Im Streifzug gibt es fürs Überleben +8 s und 3 s lang +50 % Schaden. Läuft die Zeit danach erneut ab, entkommt der Boss.
 - Nach einem Treffer sind Katzen und Begleiter ein paar Sekunden **geröstet**: schwarz, mit weiß blinzelnden Augen, Rauchfähnchen, Glut und *Hust*.
-- **Schattenwesen** (ab Stufe 6, im Streifzug ab Raum 3): drängeln sich nach vorn, eine Blase zeigt, welche Fähigkeit sie einfrieren wollen (Skill, Talent oder Geisterkatze). Nicht in 7 s besiegt → die Fähigkeit ist 15 s eingefroren (Eis auf dem Knopf bzw. Eisblock um die Geisterkatze). Pfotenhiebe machen 3× Schaden an Schatten; gebannt gibt es Münzen und Schnurr-Meter (`js/shades.js`).
+- **Schattenwesen** (ab Stufe 6, im Streifzug ab Raum 3): drängeln sich nach vorn, eine Blase zeigt, welche Fähigkeit sie einfrieren wollen (Skill, Talent, Geisterkatze oder Begleiter). Nicht in 7 s besiegt → die Fähigkeit ist 15 s eingefroren (Eis auf dem Knopf bzw. Figur wird zu Eis, mit Restzeit). Eine **eingefrorene Geisterkatze** lässt sich nicht umrüsten (Waffenplatz vereist, kein Ziehen/Tauschen/Verwerten, „Beste“ lässt ihn aus). Ein **eingefrorener Begleiter** (Maus-Drohne, Goldfisch, Eule) verliert so lange seinen Bonus; der Begleiter-Reiter zeigt Eis und Restzeit. Kurz vor dem Auftauen flackert das Eis, dann zerspringt es in Splitter. Pfotenhiebe machen 3× Schaden an Schatten; gebannt gibt es Münzen und Schnurr-Meter (`js/shades.js`).
 - **Risse** liegen fest auf dem Körper der Gegner (wachsen bei 75/50/25 % Leben, Gesicht bleibt frei, Brocken platzen ab; beim Boss glüht es aus den Rissen).
 - **K.O.** (Leben auf 0, Hauptspiel): 6 s **gelähmt** – kein Schießen, keine Skills, keine Pfotenhiebe (Balken mit Restzeit über der Katze), danach 40 % Leben. Heilung: Schnurr-Raserei (25 %) und Fischregen (20 %).
+
+## Schüsse, Treffer & Komfort
+- Kugeln entstehen genau an der **Mündung** der gezeichneten Waffe (auch bei Geisterkatzen und dem Mini-Blaster der Maus-Drohne) und ziehen einen Leuchtschweif, der anfangs bis zum Lauf reicht. Mündungsfeuer als Flammenzunge mit Rauchwölkchen, Einschläge sprühen Funken-Striche gegen die Flugrichtung.
+- Wenig Leben (Streifzug oder Bosskampf): roter Rand pulsiert im Herzschlag.
+- *Optionen → Komfort:* Bildschirmwackeln & Zoom-Stöße, Schadenszahlen, helle Bildschirmblitze – jeweils abschaltbar.
+- Gegner-Gesichter: T-Rex im Profil (Seitenauge mit Schlitzpupille, Maul klappt auf), Ritter mit glühenden Augen im Visier, Maulwurf/Ratte angepasst; wütende Brauen fallen zur Mitte hin ab.
 
 ## Auftritte & Kunststücke der Helfer (`js/anim.js`)
 - **Geisterkatzen** erscheinen aus einem Geisterwirbel (eindrehen, wachsen, Funkenring), wackeln ab und zu mit den Ohren und verwirbeln beim Abgang. Auch die **Hauptkatze** wackelt zwischendurch mit den Ohren.
@@ -42,11 +50,12 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 - Das Hauptspiel (Stufe, Münzen, Rucksack, Ausrüstung, Training) wird beiseitegelegt und danach unverändert zurückgeholt; Waffen und Münzen aus dem Streifzug verfallen.
 - **Pause:** Solange die Menü-Schublade oder ein Fenster offen ist, eine Waffe gezogen wird oder (am PC) die Maus über der Seitenleiste ist, steht der Streifzug still. Im Hauptspiel werfen Bosse dann nicht, der Countdown läuft aber weiter.
 - Jeder Raum = neues Gebiet, 10 Gegner + Boss; jeder 20. Raum (20, 40, 60 …) ist ein **Wächter** (×1,6 Leben, wirft öfter, 2 Segen). Entkommt ein Boss, wird der Raum wiederholt. Gegner werfen auch, Leben heilen **nicht** von selbst.
-- Nach jedem Boss **1 von 3 Segen**: z. B. Scharfe Krallen, Koffein-Kater, Milchbart, Spiegelpfote, Neuntes Leben, Schrödingers Kiste (Glücksspiel) – oder ein **Pakt** mit Nachteil (Schwarze Katze, Gläserne Krallen).
+- Nach jedem Boss **1 von 3 Segen**: z. B. Scharfe Krallen, Koffein-Kater, Milchbart, Spiegelpfote, Neuntes Leben, Schrödingers Kiste (Glücksspiel) – oder ein **Pakt** mit Nachteil (Schwarze Katze, Gläserne Krallen). Bei schon vorhandenen Segen zeigt die Karte die Gesamtwirkung danach.
+- **Segen-Übersicht:** Die ✨-Leiste über dem Spielfeld zeigt alle gesammelten Segen; Antippen (oder `I`) öffnet die Übersicht mit Gesamtwirkung (Schaden, Feuerrate, Krit, erlittener Schaden …), den gesammelten Segen und einem Lexikon aller Segen & Pakte. Auch im Reiter 🗺️ Streifzug.
 - **Sonderräume** (ab Raum 3, 30 % Chance, nie zweimal hintereinander), je mit eigenem Hintergrund, zwei neuen Gegnern und eigenem Boss:
   - 🌑 **Die Leere** – Dunkelheit, einziges Licht ist eine leuchtende Mieze-Lampe neben der Katze; Gegner-Augen glühen hindurch (Schattenklumpen, Riesenauge · Boss „Das Große Nichts“)
   - 🌀 **Wurmloch** – die Zeit schwankt zwischen 0,7× und 1,3× (Kristall-Splitter, Ufo · Boss „Ereignishorizont“)
-  - 🌐 **World Wide Web** – Pop-up-Werbung verdeckt das Feld, Tipp aufs ✕ füllt das Schnurr-Meter (Werbefenster, Bug · Boss „Pop-up-Imperator“)
+  - 🌐 **World Wide Web** – Pop-up-Werbung verdeckt das Feld: Fenster stapeln sich (bis 6) und bleiben offen, bis man sie per ✕ schließt (füllt das Schnurr-Meter); **Fauchen** fegt alle weg (Werbefenster, Bug · Boss „Pop-up-Imperator“)
   - 📺 **Flimmerkiste** – alle 10 s wird umgeschaltet: Sport (+30 % Feuerrate), Krimi (+30 % Schaden), Kochshow (heilt), Testbild (Röhrenfernseher, Fernbedienung · Bosse „Der Quotenkönig“, „Lord Zapper“)
   - ⛏️ **Untergrund** – Tropfsteine fallen auf Gegner und manchmal auf die Katze; Schatten unter der Katze antippen zerschlägt den Stein (Maulwurf, Kanalratte · Bosse „Maulwurf-Baron“, „Rattenkönig“)
   - ⏳ **Zeitreise** – alle 15 s ein Zeitsprung: Urzeit, Mittelalter, Zukunft mit eigenen Gegnern (T-Rex, Ritter, Roboter · Bosse „Tyranno-Max“, „Sir Blechbüchse“, „Omega-Toaster“) – `js/rooms2.js`

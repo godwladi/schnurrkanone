@@ -118,7 +118,29 @@ const UI = {
     else if (e.key === 'm' || e.key === 'M') Game.autoMerge();
     else if (e.key === 'n' || e.key === 'N') this.toggleMusic();
     else if ((e.key === 'p' || e.key === 'P') && !this.modalOpen) this.pause();
-    else if (e.key === 'Escape' && this.modalOpen) this.closeModal();
+    else if ((e.key === 'i' || e.key === 'I') && Run.active && !this.modalOpen) Run.showOverview();
+    else if ((e.key === 'h' || e.key === 'H' || e.key === '?') && !this.modalOpen) this.showKeys();
+    else if (e.key === 'Escape' && this.modalOpen) {
+      // Pflicht-Fenster (Segen wählen, Glückskiste) bleiben offen; die Pause geht mit Esc weiter
+      const o = this.modalOpts || {};
+      if (o.onEscape) { this.closeModal(); o.onEscape(); }
+      else if (!o.noClose) this.closeModal();
+    }
+  },
+
+  // Übersicht aller Tastenkürzel (Taste H oder ?)
+  showKeys() {
+    SFX.play('paw');
+    const keys = [
+      ['Leertaste', 'Pfotenhieb aufs vorderste Hindernis'], ['1 2 3 4', 'Laser-Blick · Fischregen · Fauchen · Schild'],
+      ['B', 'Waffenkiste kaufen'], ['M', 'Auto-Merge'], ['N', 'Musik an/aus'], ['P', 'Pause-Menü'],
+      ['I', 'Segen-Übersicht (Streifzug)'], ['H ?', 'Diese Hilfe'], ['F8', 'Fehler melden'], ['Esc', 'Fenster schließen'],
+    ];
+    this.modal({
+      title: '⌨️ Tastenkürzel', cls: 'keysmodal',
+      html: `<div class="keylist">${keys.map(([k, d]) => `<div><span>${k.split(' ').map(x => `<kbd>${x}</kbd>`).join(' ')}</span><small>${d}</small></div>`).join('')}</div>
+        <p class="hint">Maus: Hindernis anklicken = Pfotenhieb · Geschoss anklicken = Parade · Waffe ziehen = verschmelzen/ausrüsten · Doppelklick = an-/ablegen</p>`,
+    });
   },
 
   // ---------------------------------------------------------------- Pause
@@ -142,7 +164,7 @@ const UI = {
           <button class="btn" data-p="options">⚙️ Optionen</button>
           ${Run.active ? '<button class="btn danger" data-p="quit">🏳️ Streifzug beenden</button>' : ''}
         </div>`,
-      buttons: [{ label: '▶️ Weiter', cls: 'primary', action: resume }],
+      buttons: [{ label: '▶️ Weiter', cls: 'primary', action: resume }], onEscape: resume,
       onShow: root => {
         for (const b of $$('[data-p]', root)) b.addEventListener('click', () => {
           const k = b.dataset.p;
@@ -315,7 +337,8 @@ const UI = {
     const d = WEAPONS[w.t];
     const rainbow = TIERS[w.r - 1].color === 'rainbow';
     const dps = Econ.weaponDps(w) * R.dmgMult * R.rateMult;
-    return `<div class="cell item ${rainbow ? 'rainbow' : ''} ${w.r >= 5 ? 'shiny' : ''}" draggable="true" data-k="${k}" data-i="${i}" style="--tc:${rainbow ? '#fff' : tierColor(w.r)}"
+    const fz = Game.frozenAt({ k, i });
+    return `<div class="cell item ${rainbow ? 'rainbow' : ''} ${w.r >= 5 ? 'shiny' : ''} ${fz ? 'frozen' : ''}" draggable="${!fz}" data-k="${k}" data-i="${i}" data-fz="${fz ? Math.ceil(Shades.frozen['slot:' + i]) : ''}" style="--tc:${rainbow ? '#fff' : tierColor(w.r)}"
       title="${d.name} ${U.roman(w.r)} – ${TIERS[w.r - 1].name}\n${d.desc}\nDPS: ${U.fmt(dps)}\n(Doppelklick: an-/ablegen)">
       <span class="wi">${d.icon}</span><span class="tier">${U.roman(w.r)}</span></div>`;
   },
@@ -403,6 +426,13 @@ const UI = {
     $('#buyBox5').dataset.cost = c5;
     const full = S.grid.indexOf(null) < 0;
     b.classList.toggle('full', full);
+    // eingefrorene Waffenplätze: Eis, Restzeit, nicht ziehbar
+    for (const c of $$('.slots .cell.item')) {
+      const i = +c.dataset.i, fz = Game.frozenAt({ k: 's', i });
+      c.classList.toggle('frozen', fz);
+      c.draggable = !fz;
+      c.dataset.fz = fz ? Math.ceil(Shades.frozen['slot:' + i]) : '';
+    }
     $('#wDps').textContent = U.fmt(R.dps);
   },
 
@@ -579,15 +609,31 @@ const UI = {
       <div class="list">${PETS.map(p => {
         const lvl = S.pets[p.id];
         const cost = Econ.petCost(p, lvl);
-        return `<div class="card ${lvl ? '' : 'dim'}">
+        return `<div class="card petcard ${lvl ? '' : 'dim'}" data-petcard="${p.id}">
           <div class="ci big">${p.icon}</div>
-          <div class="cb"><div class="cn">${p.name} <small>${lvl ? 'St. ' + lvl : 'gesperrt'}</small></div><div class="cd">${p.desc(lvl)}</div></div>
+          <div class="cb"><div class="cn">${p.name} <small>${lvl ? 'St. ' + lvl : 'gesperrt'}</small></div><div class="cd">${p.desc(lvl)}</div>${lvl ? '<div class="pst"><i></i><span></span></div>' : ''}</div>
           <button class="btn buy" data-pet="${p.id}" data-cost="${cost}" data-cur="bones"><span>${lvl ? 'Stufe +1' : 'Freischalten'}</span><b>🦴 ${cost}</b></button>
         </div>`;
       }).join('')}</div>
       <p class="hint">🦴 Fischgräten bekommst du von Bossen, Erfolgen, dem Tagesbonus und für Katzen auf Max-Stufe.</p></div>`;
   },
   after_pets(el) { $$('[data-pet]', el).forEach(b => b.addEventListener('click', () => Game.buyPet(b.dataset.pet))); },
+  // Live-Status der Begleiter: Fortschritt bis zur nächsten Wirkung, Eis bei Schattenfluch
+  refresh_pets() {
+    for (const card of $$('.card[data-petcard]')) {
+      const id = card.dataset.petcard, st = $('.pst', card);
+      if (!st) continue;
+      const fz = Shades.isFrozen('pet:' + id), T = Battle.petT;
+      let f = 0, txt = '';
+      if (fz) { f = Shades.frozen['pet:' + id] / FREEZE_TIME; txt = `❄️ Eingefroren – noch ${Math.ceil(Shades.frozen['pet:' + id])} s ohne Bonus`; }
+      else if (id === 'mouse') { f = T.mouse; txt = '🔫 Feuert jede Sekunde'; }
+      else if (id === 'fish') { f = T.fish / 8; txt = `💰 Nächste Münzen in ${Math.ceil(8 - T.fish)} s`; }
+      else { f = Battle.owlBuff > 0 ? 1 : T.owl / 20; txt = Battle.owlBuff > 0 ? `🦉 Ruf aktiv: noch ${Battle.owlBuff.toFixed(1)} s` : `🦉 Nächster Ruf in ${Math.ceil(20 - T.owl)} s`; }
+      card.classList.toggle('frozen', fz);
+      $('i', st).style.width = `${U.clamp(f, 0, 1) * 100}%`;
+      $('span', st).textContent = txt;
+    }
+  },
 
   // ---- Tagesaufgaben
   tab_quests() {
@@ -694,6 +740,14 @@ const UI = {
         <label class="opt slider">Effekt-Lautstärke <input type="range" id="optSfxVol" min="0" max="1" step="0.05" value="${S.sfxVol}"></label>
         <label class="opt"><input type="checkbox" id="optMusic" ${S.music ? 'checked' : ''}> Musik (Taste <kbd>N</kbd>)</label>
         <label class="opt slider">Musik-Lautstärke <input type="range" id="optMusicVol" min="0" max="1" step="0.05" value="${S.musicVol}"></label>
+      </div>
+      <div class="sec"><h3>Komfort <small>Bewegung & Anzeige</small></h3>
+        <label class="opt"><input type="checkbox" id="optShake" ${S.optShake ? 'checked' : ''}> Bildschirmwackeln & Zoom-Stöße</label>
+        <label class="opt"><input type="checkbox" id="optNums" ${S.optNums ? 'checked' : ''}> Schadenszahlen anzeigen</label>
+        <label class="opt"><input type="checkbox" id="optFlash" ${S.optFlash ? 'checked' : ''}> Helle Bildschirmblitze (aus = gedämpft)</label>
+        <button class="btn" id="optKeys">⌨️ Tastenkürzel anzeigen <b>Taste H</b></button>
+      </div>
+      <div class="sec"><h3>Spielstand</h3>
         <div class="btnrow">
           <button class="btn" id="optSave">💾 Jetzt speichern</button>
           <button class="btn" id="optExport">📤 Exportieren</button>
@@ -715,6 +769,9 @@ const UI = {
           <li>⚠️ Läuft der Countdown ab, kommt der <b>Vernichtungsschlag</b>. Mit 🛡️ Schild gibt es einen <b>Konter</b>, sonst kostet er viel Leben. Überlebt? +8 s! Bei <b>K.O.</b> geht es eine Stufe zurück.</li>
           <li>💗 Heilung: Schnurr-Raserei und Fischregen. Außerhalb von Bosskämpfen erholt sich die Katze von selbst.</li>
           <li>🗺️ <b>Streifzug</b> (ab Stufe 8): Roguelike-Abenteuer mit Segen, Pakten und Wächtern – ein K.O. beendet den Lauf.</li>
+          <li>✨ Im Streifzug zeigt die <b>Segen-Leiste</b> über dem Spielfeld alle gesammelten Segen – antippen (oder <kbd>I</kbd>) öffnet die Übersicht mit der Gesamtwirkung.</li>
+          <li>🌑 <b>Schattenwesen</b> frieren Skills, das Talent, Geisterkatzen oder Begleiter ein. Eine eingefrorene Geisterkatze lässt sich nicht umrüsten, ein eingefrorener Begleiter verliert so lange seinen Bonus.</li>
+          <li>🌐 Im <b>World Wide Web</b> stapeln sich Pop-ups, bis du sie per ✕ schließt – <b>Fauchen</b> fegt alle auf einmal weg.</li>
           <li>Ab Stufe 5 bauen Bosse <b>Schilde</b> auf – Kugeln prallen fast ab, <b>Pfotenhiebe</b> machen 4× Schaden!</li>
           <li>Schnelle Zerstörungen hintereinander ergeben eine <b>Combo</b> mit bis zu +50% Münzen.</li>
           <li>Ab und zu fliegt ein <b>Glücksballon</b> vorbei – anklicken lohnt sich!</li>
@@ -729,6 +786,8 @@ const UI = {
     $('#optSfxVol').addEventListener('change', () => SFX.play('coin'));
     $('#optMusic').addEventListener('change', e => { SFX.init(); S.music = Music.on = e.target.checked; Music.apply(); this.updateMusicBtn(); });
     $('#optMusicVol').addEventListener('input', e => { S.musicVol = Music.vol = +e.target.value; Music.apply(); });
+    for (const [id, key] of [['#optShake', 'optShake'], ['#optNums', 'optNums'], ['#optFlash', 'optFlash']]) $(id).addEventListener('change', e => { S[key] = e.target.checked; SFX.play('paw'); });
+    $('#optKeys').addEventListener('click', () => this.showKeys());
     $('#optSave').addEventListener('click', () => { Save.write(); this.toast('💾 Gespeichert', 'good'); });
     $('#optExport').addEventListener('click', () => {
       const ta = $('#optText'); ta.value = Save.exportString(); ta.select();
@@ -753,6 +812,7 @@ const UI = {
   modal(opts) {
     if (this.modalOpen) { this.modalQueue.push(opts); return; }
     this.modalOpen = true;
+    this.modalOpts = opts;
     const root = $('#modalRoot');
     root.innerHTML = `<div class="backdrop"></div><div class="modal ${opts.cls || ''}">
       <h2>${opts.title}</h2><div class="mbody">${opts.html || ''}</div><div class="mbtns"></div></div>`;
@@ -774,6 +834,7 @@ const UI = {
     const root = $('#modalRoot');
     root.classList.remove('show'); root.innerHTML = '';
     this.modalOpen = false;
+    this.modalOpts = null;
     if (this.modalQueue.length) setTimeout(() => this.modal(this.modalQueue.shift()), 150);
   },
 

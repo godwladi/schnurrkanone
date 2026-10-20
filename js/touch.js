@@ -52,6 +52,7 @@ const TouchDrag = {
   start(d) {
     const w = Game.getAt(d.pos);
     if (!w) { this.drag = null; return; }
+    if (Game.frozenAt(d.pos)) { this.drag = null; Game.frozenMsg(d.pos); return; }
     d.active = true;
     const r = d.el.getBoundingClientRect();
     d.w = r.width; d.h = r.height;

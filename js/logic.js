@@ -34,6 +34,7 @@ function defaultState() {
     buyAmount: 1,
     seenHelp: false,
     gfx: 'auto',
+    optShake: true, optNums: true, optFlash: true, // Komfort-Optionen
   };
 }
 
@@ -136,9 +137,16 @@ const Game = {
   getAt(p) { return p.k === 'g' ? S.grid[p.i] : S.slots[p.i]; },
   setAt(p, v) { if (p.k === 'g') S.grid[p.i] = v; else S.slots[p.i] = v; },
   slotUnlocked: i => S.best >= SLOT_UNLOCK[i],
+  // Von einem Schattenwesen eingefrorene Waffenplätze lassen sich nicht umrüsten
+  frozenAt: p => p.k === 's' && typeof Shades !== 'undefined' && Shades.slotFrozen(p.i),
+  frozenMsg(p) {
+    SFX.play('error');
+    Game.emit('toast', { text: `❄️ <b>Geisterkatze ${p.i + 1} ist eingefroren</b><br><small>Ihr Waffenplatz ist noch ${Math.ceil(Shades.frozen['slot:' + p.i])} s gesperrt</small>`, cls: 'warn' });
+  },
 
   move(src, dst) {
     if (src.k === dst.k && src.i === dst.i) return;
+    if (Game.frozenAt(src) || Game.frozenAt(dst)) { Game.frozenMsg(Game.frozenAt(src) ? src : dst); return; }
     if (dst.k === 's' && !Game.slotUnlocked(dst.i)) { SFX.play('error'); return; }
     const a = Game.getAt(src), b = Game.getAt(dst);
     if (!a) return;
@@ -186,10 +194,12 @@ const Game = {
   },
 
   equipBest() {
-    const all = [...S.grid, ...S.slots].filter(Boolean);
+    // eingefrorene Plätze behalten ihre Waffe
+    const keep = [0, 1, 2, 3].map(i => Game.frozenAt({ k: 's', i }));
+    const all = [...S.grid, ...S.slots.filter((_, i) => !keep[i])].filter(Boolean);
     all.sort((a, b) => Econ.weaponDps(b) - Econ.weaponDps(a));
     const n = SLOT_UNLOCK.filter((_, i) => Game.slotUnlocked(i)).length;
-    S.slots = [0, 1, 2, 3].map(i => (i < n ? all.shift() || null : null));
+    S.slots = [0, 1, 2, 3].map(i => (keep[i] ? S.slots[i] : i < n ? all.shift() || null : null));
     S.grid = Array(GRID_SIZE).fill(null);
     all.forEach((w, i) => { if (i < GRID_SIZE) S.grid[i] = w; });
     SFX.play('buy');
@@ -202,6 +212,7 @@ const Game = {
   scrap(src) {
     const w = Game.getAt(src);
     if (!w) return;
+    if (Game.frozenAt(src)) { Game.frozenMsg(src); return; }
     const v = Game.scrapValue(w);
     Game.setAt(src, null);
     Game.addCoins(v);
@@ -228,10 +239,11 @@ const Game = {
   quickEquip(src) {
     const w = Game.getAt(src);
     if (!w) return;
+    if (Game.frozenAt(src)) { Game.frozenMsg(src); return; }
     if (src.k === 'g') {
       let target = -1, weakest = Infinity;
       for (let i = 0; i < 4; i++) {
-        if (!Game.slotUnlocked(i)) continue;
+        if (!Game.slotUnlocked(i) || Game.frozenAt({ k: 's', i })) continue;
         if (!S.slots[i]) { target = i; break; }
         const d = Econ.weaponDps(S.slots[i]);
         if (d < weakest) { weakest = d; target = i; }

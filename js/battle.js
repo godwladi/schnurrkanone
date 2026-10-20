@@ -18,6 +18,7 @@ const Battle = {
   laserCharge: 0, laserEnd: null, fury: 0, eyes: null, mainEyes: null, combo: 0, comboT: 0, comboPop: 0, rush: 0,
   dayT: 0, night: 0, slowmo: 0, bossRequested: false,
   balloon: null, eventT: 45, bossTimeMax: 30, lookVec: { x: 1, y: 0 },
+  muzzles: [null, null, null, null], petMuzzle: null, droneFlash: 0,
 
   init(cv) {
     this.cv = cv;
@@ -332,16 +333,21 @@ const Battle = {
 
   updatePets(dt, target) {
     const t = this.petT, cs = this.cs;
-    if (S.pets.mouse > 0) {
+    // von einem Schattenwesen eingefroren: der Begleiter ruht, sein Bonus fällt weg
+    const fz = id => Shades.isFrozen('pet:' + id);
+    this.droneFlash = Math.max(0, this.droneFlash - dt);
+    if (S.pets.mouse > 0 && !fz('mouse')) {
       t.mouse += dt;
       if (t.mouse >= 1 && target) {
         t.mouse = 0;
-        const p = this.petPos('mouse');
+        const p = this.petPos('mouse'), m = this.petMuzzle || { x: p.x + 15 * cs, y: p.y + 7 * cs };
         const dmg = R.dps * 0.1 * S.pets.mouse * (this.frenzy > 0 ? 3 : 1);
-        this.shootBullet(p.x + 10 * cs, p.y, target, { dmg, color: '#c7d2fe', size: 4, speed: 1100, noCrit: true, src: 'pet' });
+        this.shootBullet(m.x, m.y, target, { dmg, color: '#c7d2fe', size: 4, speed: 1100, noCrit: true, src: 'pet' });
+        this.muzzleFx(m.x, m.y, '#c7d2fe', 0.6, 1, 'laser');
+        this.droneFlash = 0.08;
       }
     }
-    if (S.pets.fish > 0) {
+    if (S.pets.fish > 0 && !fz('fish')) {
       t.fish += dt;
       if (t.fish >= 8) {
         t.fish = 0;
@@ -352,20 +358,25 @@ const Battle = {
         this.spawnFlyers(p.x, p.y, 8, 'coin');
       }
     }
-    if (S.pets.owl > 0) {
+    if (S.pets.owl > 0 && !fz('owl')) {
       t.owl += dt;
       if (t.owl >= 20) {
         t.owl = 0;
         this.owlBuff = 3 + 0.5 * S.pets.owl;
         const p = this.petPos('owl');
         this.text(p.x, p.y - 30 * cs, 'Huhu! +50% Feuerrate', '#fde68a', 14);
+        FX.addRing(p.x, p.y, 60 * cs, '#fde68a', 0.35, 4);
+        for (let i = 0; i < 8; i++) { // Federn
+          const f = this.particle(p.x + U.rand(-10, 10) * cs, p.y, U.rand(-90, 90), U.rand(-140, -40), U.pick(['#a4835e', '#d9c3a5', '#fde68a']), U.rand(0.8, 1.3), U.rand(3, 5) * cs, 120, false, 'chunk');
+          if (f) f.spin = U.rand(-6, 6);
+        }
         SFX.play('buy');
       }
     }
   },
 
-  petPos(id) {
-    const cs = this.cs, t = this.t;
+  petPos(id, t = this.t) {
+    const cs = this.cs;
     if (id === 'mouse') return { x: this.catX + 70 * cs, y: this.groundY - 105 * cs + Math.sin(t * 3) * 6 };
     if (id === 'fish') return { x: this.catX - 62 * cs, y: this.groundY - 95 * cs + Math.sin(t * 1.7) * 8 };
     return { x: this.catX - 60 * cs, y: this.groundY - 32 * cs };
@@ -374,8 +385,9 @@ const Battle = {
   // ---------------------------------------------------------------- Kampf
   fire(i, w, target) {
     const d = WEAPONS[w.t];
-    const p = this.slotPos(i);
-    const mx = p.x + 30 * p.s, my = p.y - 1 * p.s;
+    const p = this.slotPos(i), mz = this.muzzles[i];
+    // Mündung aus dem letzten Bild (genau am gezeichneten Lauf), sonst Schätzung
+    const mx = mz ? mz.x : p.x + 30 * p.s, my = mz ? mz.y : p.y - 1 * p.s;
     const sb = setBonus(w.t);
     const dmg = d.dmg * Econ.tierMult(w.r) * this.dmgMul() * (1 + sb.dmg);
     const pellets = d.pellets + sb.pellets;
@@ -387,11 +399,22 @@ const Battle = {
       });
     }
     this.recoil[i] = 1;
-    this.particle(mx + 6 * this.cs, my, 0, 0, tierColor(w.r, this.t), 0.07, (w.t === 'rocket' ? 30 : 18) * this.cs, 0, false, 'flash');
+    this.muzzleFx(mx, my, tierColor(w.r, this.t), w.t === 'rocket' ? 1.6 : w.t === 'shotgun' ? 1.25 : 1, p.s / this.cs, w.t);
     if (w.t === 'pistol' || w.t === 'shotgun') {
-      this.particle(mx - 22 * p.s, my - 4, U.rand(-120, -40), U.rand(-320, -200), '#e9b949', 1.2, 3.5 * this.cs, 1400, true, 'shell');
+      const sh = this.particle(mx - 16 * p.s, my - 2 * p.s, U.rand(-120, -40), U.rand(-320, -200), '#e9b949', 1.2, 3.5 * this.cs, 1400, true, 'shell');
+      if (sh) sh.spin = U.rand(10, 20);
     }
     SFX.play(w.t === 'rocket' ? 'rocket' : 'shoot');
+  },
+
+  // Mündungsfeuer: Lichtblitz, gerichtete Flammenzunge und ein Rauchwölkchen am Lauf
+  muzzleFx(x, y, col, k = 1, sc = 1, type) {
+    const cs = this.cs * sc;
+    this.particle(x + 3 * cs, y, 0, 0, col, 0.07, 16 * cs * k, 0, false, 'flash');
+    const f = this.particle(x, y, 0, 0, col, 0.06, 13 * cs * k, 0, false, 'mflash');
+    if (f) f.rot = U.rand(-0.15, 0.15);
+    if (type === 'laser') return; // Energiewaffe: kein Rauch
+    if (Math.random() < (type === 'rocket' ? 1 : 0.45)) this.particle(x + 4 * cs, y - 1 * cs, U.rand(20, 60), U.rand(-50, -20), 'rgba(235,235,245,0.8)', U.rand(0.4, 0.7), U.rand(3, 6) * cs * k, -40, false, 'smoke');
   },
 
   shootBullet(x, y, target, o) {
@@ -400,7 +423,7 @@ const Battle = {
     ang = U.clamp(ang, -0.6, 0.6);
     this.bul.push({
       x, y, vx: Math.cos(ang) * o.speed, vy: Math.sin(ang) * o.speed,
-      dmg: o.dmg, color: o.color, size: o.size, pierce: o.pierce || 0, splash: o.splash || 0,
+      ox: x, oy: y, dmg: o.dmg, color: o.color, size: o.size, pierce: o.pierce || 0, splash: o.splash || 0,
       arc: o.arc, phase: 0, life: 3, hit: new Set(), noCrit: o.noCrit, type: o.type, src: o.src || 'bullet',
       sprite: o.sprite, needY: o.needY, fullSplash: o.fullSplash,
       trail: o.type === 'rocket' || o.type === 'laser' ? [] : null,
@@ -420,7 +443,13 @@ const Battle = {
       this.shake = Math.max(this.shake, 4);
     } else {
       this.damage(o, b.dmg, !b.noCrit, false, b.src);
-      for (let i = 0; i < 3; i++) this.particle(b.x, b.y, U.rand(-220, 40), U.rand(-160, 160), b.color, 0.25, 3 * this.cs, 0, false, 'spark');
+      // Funken prallen gegen die Flugrichtung zurück, kurzer Lichtpunkt am Einschlag
+      const sp = Math.hypot(b.vx, b.vy) || 1, back = Math.atan2(-b.vy / sp, -b.vx / sp);
+      for (let i = 0; i < 4; i++) {
+        const a = back + U.rand(-0.9, 0.9), v = U.rand(160, 380);
+        this.particle(b.x, b.y, Math.cos(a) * v, Math.sin(a) * v, i ? b.color : '#ffffff', U.rand(0.12, 0.25), U.rand(1.6, 2.6) * this.cs, 500, false, 'streak');
+      }
+      if (this.parts.length < Perf.cfg().parts * 0.7) this.particle(b.x, b.y, 0, 0, b.color, 0.06, 9 * this.cs, 0, false, 'flash');
     }
   },
 
@@ -456,8 +485,8 @@ const Battle = {
     Foes.onHit(this, o, dmg, crit, src);
     if (!quiet || this.laserTxt <= 0) {
       if (quiet) this.laserTxt = 0.15;
-      const showAll = this.txt.length < 40;
-      if (crit) { this.text(o.x + U.rand(-20, 20), o.y - OBST_H[o.kind] * o.scale - 10, U.fmt(dmg) + '!', '#ffe14d', 22 * this.cs, true); SFX.play('crit'); }
+      const showAll = S.optNums && this.txt.length < 40; // Optionen: Schadenszahlen aus
+      if (crit) { if (S.optNums) this.text(o.x + U.rand(-20, 20), o.y - OBST_H[o.kind] * o.scale - 10, U.fmt(dmg) + '!', '#ffe14d', 22 * this.cs, true); SFX.play('crit'); }
       else if (showAll && (o.boss || Math.random() < 0.35 || quiet)) this.text(o.x + U.rand(-25, 25), o.y - OBST_H[o.kind] * o.scale - 5, U.fmt(dmg), '#ffffff', 13 * this.cs);
     }
     SFX.play('hit');
@@ -632,6 +661,7 @@ const Battle = {
       const mx = this.catX + 22 * this.cs, my = this.groundY - 36 * this.cs;
       FX.addRing(mx, my, 300, '#ff5d73', 0.5, 12); FX.addRing(mx, my, 520, '#ffb3c1', 0.75, 6); FX.addRing(mx, my, 140, '#ffffff', 0.3, 8);
       for (const o of this.obs) if (!o.dead && !o.fleeing && !o.boss) { o.x += 70 * this.cs; o.squash = 0.2; }
+      Rooms.blowAway(this);
       SFX.play('roar'); this.showBanner('FAUCH!', '2× Feuerrate · +50% Krit', '#ff5d73'); }
     Game.emit('skill');
   },
@@ -839,7 +869,7 @@ const Battle = {
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.save();
     // Kamera: Zoom-Impuls + Wackeln
-    if (this.zoom.a > 0.002) {
+    if (this.zoom.a > 0.002 && S.optShake) {
       const z = 1 + this.zoom.a;
       ctx.translate(this.zoom.x, this.zoom.y); ctx.scale(z, z); ctx.translate(-this.zoom.x, -this.zoom.y);
     }
@@ -847,7 +877,7 @@ const Battle = {
       const z = 1 + Math.sin(Math.min(1, (1.8 - this.bossIntro) / 0.5) * Math.PI / 2) * 0.04 * Math.min(1, this.bossIntro * 2);
       ctx.translate(this.bossObj.x, this.groundY); ctx.scale(z, z); ctx.translate(-this.bossObj.x, -this.groundY);
     }
-    if (this.shake > 0.3) ctx.translate(U.rand(-this.shake, this.shake), U.rand(-this.shake, this.shake));
+    if (this.shake > 0.3 && S.optShake) ctx.translate(U.rand(-this.shake, this.shake), U.rand(-this.shake, this.shake));
     this.drawBackground(ctx, biome);
     FX.lightRays(ctx, this, biome, (1 - this.night) * (Events.active('storm') ? 0 : 1));
     FX.drawAmbient(ctx, false);
@@ -893,7 +923,16 @@ const Battle = {
     // geröstet (Vernichtungsschlag): Katzen und Begleiter auf eigene Ebene, die danach geschwärzt wird
     const cc = Vitals.charStart(ctx, this);
     if (S.pets.owl > 0) Draw.rrect(cc, this.catX - 66 * cs, this.groundY - 20 * cs, 12 * cs, 20 * cs, 2 * cs, '#7a4a2a');
-    for (const id of ['owl', 'fish', 'mouse']) if (S.pets[id] > 0) { const p = this.petPos(id); Draw.pet(cc, id, p.x, p.y, t, cs); }
+    const petMz = [];
+    for (const id of ['owl', 'fish', 'mouse']) {
+      if (!(S.pets[id] > 0)) continue;
+      // eingefroren: erstarrt mitten in der Bewegung und wird zu blauem Eis (wie die Geisterkatzen)
+      const fz = Shades.isFrozen('pet:' + id), ft = fz ? Shades.since('pet:' + id) : t;
+      const p = this.petPos(id, ft), pc = fz ? Shades.iceStart(cc, this) : cc;
+      Draw.pet(pc, id, p.x, p.y, ft, cs, { muzzleOut: id === 'mouse' ? petMz : null, flash: id === 'mouse' ? this.droneFlash : 0 });
+      if (fz) Shades.iceEnd(cc, pc, Shades.iceAmt('pet:' + id));
+    }
+    this.petMuzzle = petMz.length ? toWorld(petMz)[0] : null;
 
     // Katze + Geisterkatzen mit den schwebenden Waffen
     const cat = CAT_BY_ID[S.activeCat] || CATS[0];
@@ -909,18 +948,19 @@ const Battle = {
     const laserEyes = this.laser > 0 ? 1 : this.laserCharge > 0 ? 1 - this.laserCharge / 0.42 : 0;
     const steady = laserEyes > 0; // beim Lasern keine Rückstoß-Stauchung, sonst zittert der Strahl-Ursprung
     const fury = this.fury, roar = this.roar > 7;
-    const mainEyes = [], lampOut = [];
+    const mainEyes = [], lampOut = [], mz0 = [];
     // Mieze-Lampe an der Hüfte: leuchtet nachts und in der Leere
     const lampLit = Rooms.kind() === 'void' ? 1 : U.clamp((this.night - 0.25) / 0.4, 0, 1);
-    Draw.cat(cc, this.catX, this.groundY, cs, cat, t, { ear: Anim.ear('main'), weapon: S.slots[0], recoil: this.recoil[0], squash: steady ? 0 : this.recoil[0] * 0.07, look, laserEyes, roar, fury, eyesOut: mainEyes, lamp: lampLit, lampOut });
+    Draw.cat(cc, this.catX, this.groundY, cs, cat, t, { ear: Anim.ear('main'), weapon: S.slots[0], recoil: this.recoil[0], squash: steady ? 0 : this.recoil[0] * 0.07, look, laserEyes, roar, fury, eyesOut: mainEyes, lamp: lampLit, lampOut, muzzleOut: mz0 });
     this.mainEyes = toWorld(mainEyes, true);
+    this.muzzles[0] = mz0.length ? toWorld(mz0)[0] : null;
     this.lampPt = lampOut.length ? toWorld(lampOut)[0] : null;
     this.lampLit = lampLit;
     const ghostEyes = [];
     for (let i = 1; i < 4; i++) {
       const w = S.slots[i];
-      if (!w) continue;
-      const p = this.slotPos(i), col = tierColor(w.r, t);
+      if (!w) { this.muzzles[i] = null; continue; }
+      const p = this.slotPos(i), col = tierColor(w.r, t), gm = [];
       if (setBonus(w.t).level) {
         // Set-Verbindung: gestrichelte Energielinie von der Katze zur Geisterkatze
         ctx.strokeStyle = col; ctx.globalAlpha = 0.45 + Math.sin(t * 6 + i) * 0.3;
@@ -940,9 +980,11 @@ const Battle = {
       Draw.ghostCat(gc, p.x, p.y, p.s, fz ? i * 0.7 : t, {
         ear: fz ? null : Anim.ear('ghost' + i), weapon: w, recoil: fz ? 0 : this.recoil[i], bodyRecoil: fz || steady ? 0 : this.recoil[i], phase: i * 2.1, dpr: this.dpr, eye: fz ? '#e6fbff' : col === '#ffffff' ? '#7ef9ff' : col,
         look: fz ? { x: 0, y: 0 } : lookAt(p.x - 12 * p.s, p.y - 18 * p.s), laserEyes: fz ? 0 : laserEyes, fury: fz ? 0 : fury, roar: fz ? false : roar, eyesOut: fz ? [] : ghostEyes,
+        muzzleOut: gm,
       });
       if (an) gc.restore();
-      if (fz) Shades.iceEnd(cc, gc);
+      if (fz) Shades.iceEnd(cc, gc, Shades.iceAmt('slot:' + i));
+      this.muzzles[i] = gm.length ? toWorld(gm)[0] : null;
     }
     Anim.drawLeaving(cc, this);
     Vitals.charEnd(ctx, cc);
@@ -1019,6 +1061,19 @@ const Battle = {
         ctx.stroke();
       }
       FX.drawGlow(ctx, b.x, b.y + yOff, b.size * (b.type === 'rocket' ? 4.5 : 2.6), b.type === 'rocket' ? '#ff8a2b' : b.color, 0.55 * glowA);
+      // Geschwindigkeits-Schweif: reicht anfangs genau bis zur Mündung zurück,
+      // dadurch kommt jede Kugel sichtbar aus dem Lauf statt davor aufzutauchen
+      if (!b.arc && !b.sprite && b.ox !== undefined && b.type !== 'rocket') {
+        const sp = Math.hypot(b.vx, b.vy) || 1, len = Math.min(Math.hypot(b.x - b.ox, b.y - b.oy), sp * 0.04 + b.size * 2);
+        if (len > 1) {
+          const tx = b.x - b.vx / sp * len, ty = b.y - b.vy / sp * len;
+          const g = ctx.createLinearGradient(tx, ty, b.x, b.y);
+          g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, b.color);
+          ctx.globalAlpha = 0.85; ctx.strokeStyle = g; ctx.lineCap = 'round'; ctx.lineWidth = b.size * 1.5;
+          ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(b.x, b.y); ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
     }
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
     for (const b of this.bul) {
@@ -1073,7 +1128,7 @@ const Battle = {
         case 'smoke':
           ctx.globalAlpha = a * 0.35;
           Draw.circle(ctx, p.x, p.y, p.size * (1.6 - a * 0.6), p.color); break;
-        case 'flash': case 'spark': case 'star': break; // additiv, siehe unten
+        case 'flash': case 'spark': case 'star': case 'mflash': case 'streak': break; // additiv, siehe unten
         default:
           if (p.emoji) {
             ctx.font = `${p.size}px "Segoe UI Emoji", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -1087,6 +1142,19 @@ const Battle = {
       if (p.shape === 'flash') {
         FX.drawGlow(ctx, p.x, p.y, p.size * (1.4 - a * 0.4), p.color, a * glowA);
         FX.drawGlow(ctx, p.x, p.y, p.size * 0.5, '#ffffff', a);
+      } else if (p.shape === 'mflash') {
+        // Flammenzunge nach vorn mit seitlichen Zacken und weißem Kern
+        const L = p.size * (1.6 + (1 - a) * 0.8), Wd = p.size * 0.55 * a;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot || 0);
+        ctx.globalAlpha = a; ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.moveTo(-p.size * 0.2, -Wd); ctx.lineTo(L, 0); ctx.lineTo(-p.size * 0.2, Wd); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(p.size * 0.2, -Wd * 1.6); ctx.lineTo(L * 0.55, -Wd * 2.2); ctx.lineTo(p.size * 0.5, 0); ctx.lineTo(L * 0.55, Wd * 2.2); ctx.lineTo(p.size * 0.2, Wd * 1.6); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(0, -Wd * 0.45); ctx.lineTo(L * 0.6, 0); ctx.lineTo(0, Wd * 0.45); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      } else if (p.shape === 'streak') {
+        // Funke als kurzer Strich entlang der Flugrichtung
+        ctx.globalAlpha = a; ctx.strokeStyle = p.color; ctx.lineWidth = p.size; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 0.035, p.y - p.vy * 0.035); ctx.stroke();
       } else if (p.shape === 'spark') {
         FX.drawGlow(ctx, p.x, p.y, p.size * (dark ? 2.2 : 1.4), p.color, a);
       } else if (p.shape === 'star') {
@@ -1141,6 +1209,15 @@ const Battle = {
     // Bildschirm-Effekte
     if (this.frenzy > 0 || this.roar > 0) FX.speedLines(ctx, W, H, t, this.frenzy > 0 ? '#ffe3f6' : '#ffd0d6');
     FX.vignette(ctx, W, H, dark ? 0.55 : 0.32);
+    // wenig Leben (Streifzug oder Bosskampf): roter Rand pulsiert im immer schnelleren Herzschlag
+    const hpF = Vitals.frac();
+    if (hpF < 0.3 && (Run.active || this.bossState === 'active') && !(Vitals.koPending && Vitals.dazed > 0)) {
+      const beat = Math.pow(Math.max(0, Math.sin(t * (5 + (0.3 - hpF) * 18))), 6);
+      const a = (0.22 + (0.3 - hpF) * 1.3) * (0.55 + beat * 0.45);
+      const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.max(W, H) * 0.72);
+      g.addColorStop(0, 'rgba(255,20,60,0)'); g.addColorStop(1, `rgba(255,20,60,${a.toFixed(3)})`);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
     Rooms.drawScreen(ctx, this);
     Events.drawScreen(ctx, this);
     if (this.frenzy > 0) {
@@ -1164,7 +1241,7 @@ const Battle = {
       const bh = H * 0.09 * e;
       ctx.fillStyle = '#05030c'; ctx.fillRect(0, 0, W, bh); ctx.fillRect(0, H - bh, W, bh);
     }
-    if (this.whiteFlash > 0) { ctx.globalAlpha = Math.min(1, this.whiteFlash); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+    if (this.whiteFlash > 0) { ctx.globalAlpha = Math.min(S.optFlash ? 1 : 0.22, this.whiteFlash); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
     this.drawOverlay(ctx, biome);
   },
 

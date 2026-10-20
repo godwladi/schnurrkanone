@@ -79,7 +79,13 @@ const Talents = {
     const ty = tgt.y - OBST_H[tgt.kind] * tgt.scale * 0.5;
     B.text(B.catX + 10 * cs, B.groundY - 100 * cs, `${this.def().icon} ${this.def().name}!`, '#ffe14d', 15 * cs, true);
     FX.addRing(B.catX + 5 * cs, B.groundY - 35 * cs, 70 * cs, '#ffe680', 0.3, 5);
-    const shot = (o) => B.shootBullet(mx, my, tgt, Object.assign({ type: 'talent', noCrit: false }, o));
+    // Haarballen kommt aus dem Maul, alles andere aus dem Lauf der Hauptwaffe
+    const mz = B.muzzles[0] || { x: mx, y: my };
+    const shot = (o) => {
+      const fromGun = o.sprite !== 'hairball';
+      if (fromGun) B.muzzleFx(mz.x, mz.y, o.color, 0.9);
+      B.shootBullet(fromGun ? mz.x : mx, fromGun ? mz.y : my, tgt, Object.assign({ type: 'talent', noCrit: false }, o));
+    };
     switch (id) {
       case 'hairball':
         shot({ dmg: R.dps * 3 * p, color: '#c9a27e', size: 10 * cs, speed: 650, sprite: 'hairball', arc: true });
@@ -89,8 +95,8 @@ const Talents = {
         SFX.play('meteor'); break;
       case 'cannon':
         shot({ dmg: R.dps * 6 * p, color: '#ffb347', size: 11 * cs, speed: 620, sprite: 'cannon', splash: 140 * cs });
-        B.particle(mx, my, 0, 0, '#ffb347', 0.15, 45 * cs, 0, false, 'flash');
-        for (let i = 0; i < 10; i++) B.particle(mx, my, U.rand(-60, 60), U.rand(-120, -20), 'rgba(255,255,255,0.6)', 0.8, U.rand(8, 14) * cs, -20, false, 'smoke');
+        B.particle(mz.x, mz.y, 0, 0, '#ffb347', 0.15, 45 * cs, 0, false, 'flash');
+        for (let i = 0; i < 10; i++) B.particle(mz.x, mz.y, U.rand(-60, 60), U.rand(-120, -20), 'rgba(255,255,255,0.6)', 0.8, U.rand(8, 14) * cs, -20, false, 'smoke');
         B.shake = Math.max(B.shake, 6);
         SFX.play('boom'); break;
       case 'stars': {
