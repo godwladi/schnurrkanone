@@ -1499,14 +1499,18 @@ const Battle = {
       // unter dem Auto-Boss-Knopf; schmal zusätzlich unter der Combo-Anzeige
       ctx.textAlign = 'center';
       // Schrift so wählen, dass Titel und Untertitel sicher in die Breite passen
-      let bf = Math.min(52, W / 14);
+      let bf = Math.min(44, W / 15);
       ctx.font = `700 ${17 * k}px "Segoe UI", "Segoe UI Emoji", sans-serif`;
       const subW = b.sub ? ctx.measureText(b.sub).width : 0;
       ctx.font = `900 ${bf}px "Segoe UI", system-ui, sans-serif`;
       const bt = ctx.measureText(b.text).width;
       // mittig im ganzen Spielfeld (nicht nur im Bereich links der Symbolleiste)
       const half = Math.min(W - 28, Math.max(bt, subW)) / 2;
-      ctx.translate(Math.max(half + 14, Math.min(this.W / 2, W - half - 14)), narrow ? Math.max(H * 0.46, uiTop + 84) : Math.max(H * 0.36, 132)); ctx.scale(sc, sc);
+      // oberes Drittel, aber nie über dem Lebensbalken/Namen des Bosses
+      let by = narrow ? Math.max(H * 0.4, uiTop + 84) : Math.max(H * 0.25, uiTop + 70);
+      const bo = this.bossObj;
+      if (bo && !bo.fleeing) by = Math.max(uiTop + 40, Math.min(by, bo.y - OBST_H[bo.kind] * bo.scale - 70 * this.cs - bf * 0.9));
+      ctx.translate(Math.max(half + 14, Math.min(this.W / 2, W - half - 14)), by); ctx.scale(sc, sc);
       if (bt > W - 28) { bf *= (W - 28) / bt; ctx.font = `900 ${bf}px "Segoe UI", system-ui, sans-serif`; }
       ctx.lineWidth = Math.max(5, bf * 0.16); ctx.strokeStyle = 'rgba(20,10,30,0.85)';
       ctx.strokeText(b.text, 0, 0);

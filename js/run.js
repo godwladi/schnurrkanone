@@ -15,7 +15,7 @@ const GUARDIAN_EVERY = 20; // Wächter-Raum (stärker, 2 Segen als Beute)
 // fx(n): Gesamtwirkung bei n Stapeln (für die Übersicht und die Vorschau beim Wählen)
 const pct = x => Math.round(x * 100);
 const BOONS = [
-  { id: 'claws',   icon: '🔥', name: 'Scharfe Krallen',     desc: '+30 % Schaden', fx: n => `+${30 * n} % Schaden` },
+  { id: 'claws',   icon: '🗡️', name: 'Scharfe Krallen',     desc: '+30 % Schaden', fx: n => `+${30 * n} % Schaden` },
   { id: 'coffee',  icon: '☕', name: 'Koffein-Kater',       desc: '+20 % Feuerrate', fx: n => `+${20 * n} % Feuerrate` },
   { id: 'nine',    icon: '💗', name: 'Dickes Herz',         desc: '+25 max. Leben und volle Heilung', fx: n => `+${25 * n} max. Leben` },
   { id: 'milk',    icon: '🥛', name: 'Milchbart',           desc: 'Jede Zerstörung heilt 2 % Leben', fx: n => `${2 * n} % Heilung je Zerstörung` },
@@ -59,7 +59,7 @@ const Run = {
   rateMul() { return this.active ? 1 + 0.2 * this.n('coffee') : 1; },
   critAdd() { return this.active ? 0.12 * this.n('yarn') : 0; },
   takenMul() { return this.active ? Math.pow(0.8, this.n('fur')) * (1 + 0.02 * S.run.depth) : 1; },
-  atkMul() { return this.active ? Math.pow(0.6, this.n('black')) * (this.guardian() ? 0.8 : 1) : 1; },
+  atkMul() { return this.active ? Math.pow(0.6, this.n('black')) * (this.guardian() ? 0.8 : 1) * (S.run.elite ? 0.8 : 1) : 1; },
   ultPct() { return this.active ? Math.min(0.9, 0.7 + 0.01 * S.run.depth) : 0.65; },
   shieldAdd() { return this.n('nap'); },
   // gedeckelt: die Abklingzeit beginnt erst nach dem Schild und bleibt spürbar
@@ -70,7 +70,7 @@ const Run = {
     S.run.boons.life = 0; S.run.boons.lifeUsed = 1;
     return true;
   },
-  reward() { return Math.round(S.run.depth * 3 * (1 + 0.5 * this.n('magnet'))); },
+  reward() { return Math.round((S.run.depth * 3 + (S.run.bonusBones || 0)) * (1 + 0.5 * this.n('magnet'))); },
 
   // ---------------------------------------------------------------- Segen-Übersicht
   // gesammelte Segen (ohne Hilfszähler wie boxWin) in Reihenfolge der Liste
@@ -118,7 +118,7 @@ const Run = {
     const r = S.run.boons || {};
     return `<div class="boonlex">${BOONS.map(b => {
       const n = r[b.id] || 0, full = b.max && n + (b.id === 'life' ? r.lifeUsed || 0 : 0) >= b.max;
-      return `<div class="${n ? 'own' : ''} ${b.pact ? 'pact' : ''} ${b.rare ? 'rare' : ''} ${b.heal ? 'heal' : ''}" title="${b.desc}"><i>${b.icon}</i><b>${b.name}</b><small>${b.desc}</small>${full ? '<em>max</em>' : n ? `<em>×${n}</em>` : b.pact ? '<em>Pakt</em>' : b.rare ? '<em>selten</em>' : ''}</div>`;
+      return `<div class="${n ? 'own' : ''} ${b.pact ? 'pact' : ''} ${b.rare ? 'rare' : ''} ${b.heal ? 'heal' : ''}" title="${b.desc}"><i>${b.icon}</i><b>${b.name}${b.tag ? ` · ${b.tag}` : ''}</b><small>${b.desc}</small>${full ? '<em>max</em>' : n ? `<em>×${n}</em>` : b.pact ? '<em>Pakt</em>' : b.rare ? '<em>selten</em>' : ''}</div>`;
     }).join('')}</div>`;
   },
   // kleine Leiste über dem Spielfeld: gesammelte Segen auf einen Blick, Tipp = Übersicht
@@ -148,6 +148,7 @@ const Run = {
       html: `<p class="muted runinfo">Streifzug · Raum ${this.room()}${this.guardian() ? ' · Wächter' : ''} · ${r.depth} geschafft · Rekord ${r.best}</p>
         <h4 class="mh">Gesamtwirkung</h4>${this.summaryHtml()}
         <h4 class="mh">Gesammelt</h4>${this.ownedHtml()}
+        <h4 class="mh">Kombis</h4>${Build.synHtml()}
         <details class="lexd"><summary>📖 Alle Segen & Pakte (${BOONS.length})</summary>${this.lexiconHtml()}</details>`,
       buttons: [{ label: '▶️ Weiter', cls: 'primary' }],
     });
@@ -176,7 +177,8 @@ const Run = {
       kills: S.kills, farm: S.farm, farmKills: S.farmKills, autoBoss: S.autoBoss, stage: S.stage,
       coins: S.coins, grid: S.grid, slots: S.slots, up: S.up, boxesBought: S.boxesBought, coinMult: R.coinMult,
     };
-    Object.assign(S.run, { active: true, depth: 0, hp: 100, maxHp: 100, boons: {}, choosing: false, offer: null, picks: 0, biome: U.randi(0, BIOMES.length - 1) });
+    Object.assign(S.run, { active: true, depth: 0, hp: 100, maxHp: 100, boons: {}, choosing: false, offer: null, picks: 0, biome: U.randi(0, BIOMES.length - 1),
+      phase: null, path: null, elite: false, bonusBones: 0, shop: null, event: null, catnip: false, lastStop: null });
     S.run.runs++;
     S.kills = 0; S.farm = false; S.farmKills = 0; S.autoBoss = true; S.stage = 1;
     S.coins = 0; S.grid = Array(GRID_SIZE).fill(null); S.slots = [{ t: 'pistol', r: 1 }, null, null, null];
@@ -212,6 +214,8 @@ const Run = {
 
   adjustObstacle(o) {
     if (this.active && o.boss && this.guardian()) o.hp = o.maxHp = o.maxHp * 1.6;
+    // Elite-Raum: zähere Gegner (gewählt auf der Wegkarte, dafür bessere Beute)
+    if (this.active && S.run.elite) { o.hp = o.maxHp = o.maxHp * (o.boss ? 1.5 : 1.4); o.elite = true; o.scale *= 1.06; }
     return o;
   },
 
@@ -234,7 +238,9 @@ const Run = {
     for (let i = 0; i < 60; i++) B.particle(B.W / 2 + U.rand(-200, 200), -10, U.rand(-120, 120), U.rand(50, 300), `hsl(${U.randi(0, 360)},90%,65%)`, U.rand(1.5, 2.5), U.rand(4, 8), 200, false, 'confetti');
     SFX.play('victory');
     B.showBanner(`RAUM ${S.run.depth} GESCHAFFT!`, 'Wähle einen Segen', '#6ee7a0');
-    S.run.picks = g ? 2 : 1;
+    S.run.picks = g || S.run.elite ? 2 : 1;
+    if (S.run.elite) S.run.bonusBones = (S.run.bonusBones || 0) + 3;
+    S.run.phase = 'boon';
     S.run.choosing = true;
     S.run.offer = null;
     this.chooseAt = Date.now();
@@ -252,21 +258,61 @@ const Run = {
     Game.emit('stage');
   },
 
-  // ab Raum 3 mit 30 % ein Sonderraum (Leere, Wurmloch, Web), nie zwei hintereinander
-  nextBiome() {
+  // Gebiet für den nächsten Raum auswürfeln: ab Raum 3 mit 30 % ein Sonderraum,
+  // nie zwei hintereinander; „not“ = schon vergebene Gebiete (Türen der Wegkarte)
+  rollBiome(not = []) {
     const wasSpecial = S.run.biome >= BIOMES.length;
-    let n;
-    if (this.room() >= 3 && !wasSpecial && Math.random() < 0.3) n = BIOMES.length + U.randi(0, SPECIAL_ROOMS.length - 1);
-    else do n = U.randi(0, BIOMES.length - 1); while (n === S.run.biome);
-    S.run.biome = n;
+    for (let tries = 0; tries < 30; tries++) {
+      const n = this.room() >= 3 && !wasSpecial && Math.random() < 0.3 ? BIOMES.length + U.randi(0, SPECIAL_ROOMS.length - 1) : U.randi(0, BIOMES.length - 1);
+      if (n !== S.run.biome && !not.includes(n)) return n;
+    }
+    return (S.run.biome + 1) % BIOMES.length;
+  },
+  // Raum betreten (nach der Wegwahl): Gebiet setzen, Kampf läuft wieder
+  enterRoom(biome, kind = 'fight') {
+    const r = S.run, B = Battle;
+    Object.assign(r, { choosing: false, phase: null, path: null, shop: null, event: null, elite: kind === 'elite', biome });
     FX.ambient = [];
     Rooms.reset();
+    if (r.catnip) { r.catnip = false; B.purr = 100; } // Katzenminze-Feld: Raserei zum Start
+    B.whiteFlash = 0.6;
+    const nb = biomeFor(S.stage);
+    const where = `Raum ${this.room()} · ${nb.special ? nb.desc : nb.name}`;
+    if (r.elite) B.showBanner('ELITE-RAUM!', `${where} · zähe Gegner, 2 Segen`, '#ff5d73');
+    else B.showBanner(nb.special ? nb.name.toUpperCase() + '!' : `RAUM ${this.room()}`, `${nb.special ? where : nb.name}${this.guardian() ? ' · Wächter-Raum!' : ''}`, nb.special ? nb.accent : '#c7b3ff');
+    SFX.play('eventStart');
+    this.renderBar();
+    if (UI.tab === 'run') UI.renderTab();
+    Save.write();
+  },
+  // Segen gutschreiben (Auswahl, Händler, Ereignisse)
+  grant(id) {
+    const r = S.run, B = Battle;
+    if (id === 'bowl') { Vitals.heal(B, 0.6); return; }
+    if (id === 'box') {
+      const win = Math.random() < 0.5;
+      r.boons[win ? 'boxWin' : 'boxLose'] = (r.boons[win ? 'boxWin' : 'boxLose'] || 0) + 1;
+      r.boons.box = (r.boons.box || 0) + 1;
+      UI.toast(win ? '📦 <b>Die Katze lebt!</b><br><small>+60 % Schaden</small>' : '📦 <b>Leere Kiste …</b><br><small>−15 % Schaden</small>', win ? 'good' : 'warn');
+      SFX.play(win ? 'reveal' : 'error', 3);
+      return;
+    }
+    r.boons[id] = (r.boons[id] || 0) + 1;
+    if (id === 'nine') { r.maxHp += 25; Vitals.heal(B, 1); }
+    if (id === 'glass') { r.maxHp = Math.max(20, r.maxHp - 40); r.hp = Math.min(r.hp, r.maxHp); }
+  },
+  // darf dieser Segen (noch) angeboten werden?
+  available(b) {
+    const have = S.run.boons[b.id] || 0;
+    if (b.max && have + (b.id === 'life' ? S.run.boons.lifeUsed || 0 : 0) >= b.max) return false;
+    return !(b.req && !S.run.boons[b.req]);
   },
 
   // drei verschiedene Karten; Heilung wird wahrscheinlicher, je weniger Leben übrig ist
   rollOffer() {
-    const pool = BOONS.filter(b => !(b.max && (S.run.boons[b.id] || 0) + (b.id === 'life' ? S.run.boons.lifeUsed || 0 : 0) >= b.max));
-    const weight = b => b.heal ? 0.6 + (1 - Vitals.frac()) * 3 : b.pact ? 0.5 : b.rare ? 0.45 : 1;
+    const pool = BOONS.filter(b => this.available(b));
+    // Build-Segen: Folgekarten (req) werden wahrscheinlicher, sobald der Grundstein liegt
+    const weight = b => b.heal ? 0.6 + (1 - Vitals.frac()) * 3 : b.pact ? 0.5 : b.rare ? 0.45 : b.req ? 1.3 : 1;
     const out = [];
     while (out.length < 3 && pool.length) {
       const pick = U.weightedPick(pool.map(b => ({ b, w: weight(b) }))).b;
@@ -279,7 +325,9 @@ const Run = {
   offerChoice() {
     if (!this.active || !S.run.choosing) return;
     // nie zwei Auswahlfenster gleichzeitig (offen oder in der Warteschlange)
-    if ((UI.modalOpts && UI.modalOpts.cls === 'boonmodal') || UI.modalQueue.some(o => o.cls === 'boonmodal')) return;
+    const busy = o => o && /boonmodal|pathmodal/.test(o.cls || '');
+    if (busy(UI.modalOpts) || UI.modalQueue.some(busy)) return;
+    if (S.run.phase && S.run.phase !== 'boon') { Path.resume(); return; } // Wegkarte, Händler, Rast, Ereignis
     if (!S.run.offer) S.run.offer = this.rollOffer();
     const r = S.run;
     const cards = r.offer.map(id => {
@@ -287,7 +335,7 @@ const Run = {
       // schon vorhanden: zeigen, was der neue Stapel insgesamt bewirkt
       const next = have && b.fx ? `<span class="bnext">Gesamt danach: <b>${b.fx(have + 1)}</b></span>` : '';
       return `<button class="boon ${b.pact ? 'pact' : ''} ${b.heal ? 'heal' : ''} ${b.rare ? 'rare' : ''}" data-boon="${id}">
-        <span class="bi">${b.icon}</span><b>${b.name}</b><small>${b.desc}</small>${next}${have ? `<em>Stufe ${have + 1}</em>` : b.pact ? '<em>Pakt</em>' : b.rare ? '<em>Selten</em>' : ''}</button>`;
+        <span class="bi">${b.icon}</span>${Build.tagHtml(b)}<b>${b.name}</b><small>${b.desc}</small>${next}${Build.synHint(b)}${have ? `<em>Stufe ${have + 1}</em>` : b.pact ? '<em>Pakt</em>' : b.rare ? '<em>Selten</em>' : ''}</button>`;
     }).join('');
     const own = this.owned();
     const have = own.length ? `<div class="boonhave"><span>Bisher:</span>${own.map(({ b, n }) => `<i title="${b.name}: ${this.fxText(b, n)}">${b.icon}${n > 1 ? `<sup>${n}</sup>` : ''}</i>`).join('')}</div>` : '';
@@ -302,29 +350,13 @@ const Run = {
   pick(id) {
     const r = S.run, b = BOON_BY_ID[id], B = Battle;
     if (!r.choosing || !b) return;
-    if (id === 'bowl') Vitals.heal(B, 0.6);
-    else if (id === 'box') {
-      const win = Math.random() < 0.5;
-      r.boons[win ? 'boxWin' : 'boxLose'] = (r.boons[win ? 'boxWin' : 'boxLose'] || 0) + 1;
-      r.boons.box = (r.boons.box || 0) + 1;
-      UI.toast(win ? '📦 <b>Die Katze lebt!</b><br><small>+60 % Schaden</small>' : '📦 <b>Leere Kiste …</b><br><small>−15 % Schaden</small>', win ? 'good' : 'warn');
-      SFX.play(win ? 'reveal' : 'error', 3);
-    } else {
-      r.boons[id] = (r.boons[id] || 0) + 1;
-      if (id === 'nine') { r.maxHp += 25; Vitals.heal(B, 1); }
-      if (id === 'glass') { r.maxHp = Math.max(20, r.maxHp - 40); r.hp = Math.min(r.hp, r.maxHp); }
-    }
+    this.grant(id);
     SFX.play('merge', 3);
     r.picks--;
     r.offer = null;
     if (r.picks > 0) { setTimeout(() => this.offerChoice(), 250); return; }
-    r.choosing = false;
     this.renderBar();
-    this.nextBiome();
-    B.whiteFlash = 0.6;
-    const nb = biomeFor(S.stage);
-    B.showBanner(nb.special ? nb.name.toUpperCase() + '!' : `RAUM ${this.room()}`, `${nb.special ? `Raum ${this.room()} · ${nb.desc}` : nb.name}${this.guardian() ? ' · Wächter-Raum!' : ''}`, nb.special ? nb.accent : '#c7b3ff');
-    if (UI.tab === 'run') UI.renderTab();
+    Path.offer(); // danach: Weg zum nächsten Raum wählen
     Save.write();
   },
 
@@ -360,7 +392,7 @@ const Run = {
       S.stage = st.stage; S.coins = st.coins; S.grid = st.grid; S.slots = st.slots; S.up = st.up; S.boxesBought = st.boxesBought;
       UI.disp.coins = S.coins;
     }
-    Object.assign(S.run, { active: false, choosing: false, offer: null, stash: null });
+    Object.assign(S.run, { active: false, choosing: false, offer: null, stash: null, phase: null, path: null, elite: false, shop: null, event: null, catnip: false });
     recalc(); Game.emit('weapons');
     this.clearField(B);
     Vitals.idle.hp = Vitals.idle.maxHp;
@@ -372,7 +404,7 @@ const Run = {
     Save.write();
   },
 
-  label(biome) { return `Streifzug · Raum ${this.room()} · ${biome.name}`; },
+  label(biome) { return `Streifzug · Raum ${this.room()} · ${biome.name}${S.run.elite ? ' · Elite' : ''}`; },
 
   // ---------------------------------------------------------------- Pause beim Verwalten
   htmlDrag: false, panelHover: false,
@@ -453,6 +485,7 @@ UI.tab_run = function () {
     <div class="sec"><h3>Deine Segen <small>${own.length ? `${own.length} gesammelt` : 'noch keine'}</small></h3>${Run.ownedHtml()}
       <details class="lexd"><summary>📖 Alle Segen & Pakte (${BOONS.length})</summary>${Run.lexiconHtml()}</details>
     </div>
+    <div class="sec"><h3>Kombis <small>zwei passende Segen = Bonus</small></h3>${Build.synHtml()}</div>
     <button class="btn wide" id="runQuit">🏳️ Streifzug beenden & Beute mitnehmen</button>`;
 };
 UI.refresh_run = function () {

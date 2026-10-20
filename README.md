@@ -32,6 +32,10 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 - **Risse** liegen fest auf dem Körper der Gegner (wachsen bei 75/50/25 % Leben, Gesicht bleibt frei, Brocken platzen ab; beim Boss glüht es aus den Rissen).
 - **K.O.** (Leben auf 0, Hauptspiel): 6 s **gelähmt** – kein Schießen, keine Skills, keine Pfotenhiebe (Balken mit Restzeit über der Katze), danach 40 % Leben. Heilung: Schnurr-Raserei (25 %) und Fischregen (20 %).
 
+## Symbole & Oberfläche
+- **Eigener Symbolsatz** (`js/icons.js`, ~120 SVG-Symbole im Stil der Katzen) statt System-Emojis – sieht auf iPhone, Windows und Android gleich aus. Emojis in Texten werden automatisch ersetzt (HTML per MutationObserver, Leinwand über `fillText`/`measureText`). Neue Symbole: in `ICONS` zeichnen und in `EMOJI_ICON` zuordnen.
+- Modernisierte Oberfläche: Glasflächen, runde Systemschrift, Ressourcen-Chips, Reiter mit Akzentlinie, einheitliche Karten/Knöpfe, schwebende Symbolleiste am Handy, Meldungen am Handy oben links. Banner weichen dem Boss-Lebensbalken aus.
+
 ## Schüsse, Treffer & Komfort
 - Kugeln entstehen genau an der **Mündung** der gezeichneten Waffe (auch bei Geisterkatzen und dem Mini-Blaster der Maus-Drohne) und ziehen einen Leuchtschweif, der anfangs bis zum Lauf reicht. Mündungsfeuer als Flammenzunge mit Rauchwölkchen, Einschläge sprühen Funken-Striche gegen die Flugrichtung.
 - Wenig Leben (Streifzug oder Bosskampf): roter Rand pulsiert im Herzschlag.
@@ -51,6 +55,8 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 - **Pause:** Solange die Menü-Schublade oder ein Fenster offen ist, eine Waffe gezogen wird oder (am PC) die Maus über der Seitenleiste ist, steht der Streifzug still. Im Hauptspiel werfen Bosse dann nicht, der Countdown läuft aber weiter.
 - Jeder Raum = neues Gebiet, 10 Gegner + Boss; jeder 20. Raum (20, 40, 60 …) ist ein **Wächter** (×1,6 Leben, wirft öfter, 2 Segen). Entkommt ein Boss, wird der Raum wiederholt. Gegner werfen auch, Leben heilen **nicht** von selbst.
 - Nach jedem Boss **1 von 3 Segen**: z. B. Scharfe Krallen, Koffein-Kater, Milchbart, Spiegelpfote, Neuntes Leben, Schrödingers Kiste (Glücksspiel) – oder ein **Pakt** mit Nachteil (Schwarze Katze, Gläserne Krallen). Bei schon vorhandenen Segen zeigt die Karte die Gesamtwirkung danach.
+- **Wegkarte:** Nach jedem Boss (und dem Segen) wählt man den nächsten Weg: ⚔️ **Kampf**, 👑 **Elite** (+40 % Leben, Boss +50 %, werfen öfter – dafür 2 Segen und +3 🦴), 🎒 **Händler-Maus** (Fischsuppe, Wundertüte, gute Waffenkiste, Krallen schärfen – gegen Streifzug-Münzen), 💤 **Katzenkorb** (Schläfchen +45 % Leben oder einen Segen +1 Stufe) oder 🔮 **Ereignis** (Kiste, Hexenkatze, Fischbrunnen, Katzenminze-Feld, Kartentrick der Elster – jeweils Risiko oder sicher). Jede Tür zeigt das Gebiet; nach einem Zwischenhalt folgen nur Kampf-Türen, Wächter-Räume sind Pflicht (`js/path.js`).
+- **Build-Segen** (`js/build.js`): Feuer (Glutkrallen → Flammenmeer), Eis (Frostkrallen → Splitterfrost), Pfote (Pfotensturm), Parade (Konterkunst), Blitz (Kettenblitz). **Kombis:** Thermoschock (Feuer + Eis), Kampfkatze (Pfote + Parade), Gewitterglück (Blitz + Glückssträhne). Karten zeigen den Build und passende Kombi-Partner; Übersicht und Reiter listen aktive Kombis.
 - **Segen-Übersicht:** Die ✨-Leiste über dem Spielfeld zeigt alle gesammelten Segen; Antippen (oder `I`) öffnet die Übersicht mit Gesamtwirkung (Schaden, Feuerrate, Krit, erlittener Schaden …), den gesammelten Segen und einem Lexikon aller Segen & Pakte. Auch im Reiter 🗺️ Streifzug.
 - **Sonderräume** (ab Raum 3, 30 % Chance, nie zweimal hintereinander), je mit eigenem Hintergrund, zwei neuen Gegnern und eigenem Boss:
   - 🌑 **Die Leere** – Dunkelheit, einziges Licht ist eine leuchtende Mieze-Lampe neben der Katze; Gegner-Augen glühen hindurch (Schattenklumpen, Riesenauge · Boss „Das Große Nichts“)
@@ -105,6 +111,9 @@ Der Bericht (`schnurrkanone-<art>-<datum>.json`) enthält Beschreibung, Gerät/B
 - `js/dock.js` – Symbolleiste und Menü-Schublade für Handy/Tablet
 - `js/vitals.js` – Katzen-Leben, Boss-Geschosse und Parade, Vernichtungsschlag, Schild, Heilung
 - `js/run.js` – Streifzug (Roguelike) mit Segen, Pakten, Wächter-Räumen und Pause beim Verwalten
+- `js/path.js` – Wegkarte des Streifzugs: Kampf, Elite, Händler-Maus, Katzenkorb, Ereignisse
+- `js/build.js` – Build-Segen (Feuer, Eis, Pfote, Parade, Blitz) und Kombis
+- `js/icons.js` – eigener SVG-Symbolsatz, ersetzt Emojis in Oberfläche und Leinwand
 - `js/foes.js` – lebendige Gegner: Atmen, Wiegen, Hüpfen, Ausholen vor dem Wurf, Gesichter mit Stimmungen, Treffer-Reaktionen (Rückstoß, Kippen, Aufblitzen, Splitter)
 - `js/shades.js` – Schattenwesen mit Frost-Fluch (friert Skills, Talent oder Geisterkatzen ein)
 - `js/rooms.js` – Sonderräume im Streifzug: Die Leere, Wurmloch, World Wide Web
