@@ -20,8 +20,8 @@ BOONS.splice(BOONS.findIndex(b => b.id === 'life'), 0,
     fx: n => `${8 * n} % Frostchance · +25 % Schaden an Vereisten` },
   { id: 'shatter', icon: '💠', name: 'Splitterfrost', tag: 'Eis',    req: 'frost', max: 3, desc: 'Vereiste Gegner nehmen +50 % Schaden und zersplittern beim Tod',
     fx: n => `+${25 + 50 * n} % Schaden an Vereisten · Splitter` },
-  { id: 'storm',   icon: '💫', name: 'Pfotensturm',   tag: 'Pfote',  desc: 'Jeder 5. Pfotenhieb schickt eine Pfoten-Welle übers Feld: 2 s Schaden an allen, stößt zurück, 4× am Boss-Schild',
-    fx: n => `alle ${Build.stormNeed(n)} Hiebe · Welle ${Build.stormSecs(n)} s Schaden` },
+  { id: 'storm',   icon: '💫', name: 'Pfotensturm',   tag: 'Pfote',  desc: '5 Pfotenhiebe laden eine Pfoten-Welle, die du per Knopf losschickst: 2 s Schaden an allen, stößt zurück, 4× am Boss-Schild',
+    fx: n => `lädt in ${Build.stormNeed(n)} Hieben · Welle ${Build.stormSecs(n)} s Schaden` },
   { id: 'counter', icon: '🛡️', name: 'Konterkunst',   tag: 'Parade', desc: 'Paraden heilen 4 % und laden das Schild 3 s schneller',
     fx: n => `Paraden heilen ${4 * n} % · Schild −${3 * n} s` },
   { id: 'chain',   icon: '⚡', name: 'Kettenblitz',   tag: 'Blitz',  desc: '12 % der Treffer springen als Blitz auf einen weiteren Gegner (60 % Schaden)',
@@ -109,14 +109,26 @@ const Build = {
   stormNeed: n => (n >= 3 ? 3 : n >= 2 ? 4 : 5),
   stormSecs: n => 2 * n,
   waves: [],
+  // Pfotenhiebe laden den Sturm nur auf – ausgelöst wird er per Knopf (Skill-Leiste, Taste 5),
+  // damit er nicht bei jedem fünften Tippen ungefragt losgeht. Aufgeladen bleibt er liegen.
+  stormReady: false,
   onPaw(B, weight = 1) {
-    if (!Run.n('storm')) return;
-    const n = Run.n('storm');
+    if (!Run.n('storm') || this.stormReady) return;
+    const need = this.stormNeed(Run.n('storm'));
     this.pawCount += weight;
     this.pawPop = 0.25;
-    if (this.pawCount < this.stormNeed(n)) return;
+    if (this.pawCount < need) return;
+    this.pawCount = need;
+    this.stormReady = true;
+    FX.addRing(B.catX + 10 * B.cs, B.groundY - 108 * B.cs, 60 * B.cs, '#ff8fb0', 0.35, 5);
+    SFX.play('reveal', 2);
+    Hints.once('stormReady', 'Pfotensturm bereit', 'Tippe den rosa Pfoten-Knopf in der Skill-Leiste (Taste 5), wenn du die Welle brauchst – z. B. gegen ein Boss-Schild oder eine Bombe.', 'sparkle');
+  },
+  releaseStorm(B) {
+    if (!this.stormReady || !Run.n('storm') || (Vitals.koPending && Vitals.dazed > 0)) { SFX.play('error'); return; }
+    this.stormReady = false;
     this.pawCount = 0;
-    const cx = B.catX + 30 * B.cs, cy = B.groundY - 30 * B.cs;
+    const n = Run.n('storm'), cx = B.catX + 30 * B.cs, cy = B.groundY - 30 * B.cs;
     this.waves.push({ x0: cx, r: 0, hit: new Set(), dmg: R.dps * this.stormSecs(n) });
     FX.addRing(cx, cy, 120 * B.cs, '#ffffff', 0.3, 8);
     B.text(cx + 40 * B.cs, cy - 60 * B.cs, 'PFOTENSTURM!', '#ff8fb0', 20 * B.cs, true);
@@ -159,7 +171,7 @@ const Build = {
     const y = B.groundY - 108 * cs, gap = 15 * cs, x0 = B.catX + 6 * cs - (need - 1) * gap / 2;
     ctx.save();
     for (let i = 0; i < need; i++) {
-      const on = i < have, s = (on && i === have - 1 ? 1 + (this.pawPop || 0) * 2 : 1) * 5.5 * cs, x = x0 + i * gap;
+      const on = i < have, s = (on && i === have - 1 ? 1 + (this.pawPop || 0) * 2 : 1) * 5.5 * cs * (this.stormReady ? 1 + Math.sin(B.t * 8) * 0.12 : 1), x = x0 + i * gap;
       ctx.globalAlpha = on ? 1 : 0.35;
       Draw.circle(ctx, x, y, s * 1.3, 'rgba(20,10,30,0.6)');
       Draw.circle(ctx, x, y + s * 0.25, s * 0.55, on ? '#ff8fb0' : '#ffffff');
@@ -273,3 +285,30 @@ const _bUpdate = Battle.update;
 Battle.update = function (dt) { _bUpdate.call(this, dt); Build.update(this.frameDt || dt, this); };
 const _bTalDraw = Talents.draw;
 Talents.draw = function (ctx, B) { _bTalDraw.call(this, ctx, B); Build.draw(ctx, B); };
+
+// ---------------------------------------------------------------- Pfotensturm-Knopf in der Skill-Leiste
+const _bRenderSk = UI.renderSkills;
+UI.renderSkills = function () {
+  _bRenderSk.call(this);
+  const b = document.createElement('button');
+  b.className = 'skill storm'; b.hidden = true; b.title = 'Pfotensturm (Taste 5)';
+  b.innerHTML = '<span class="si">🐾</span><span class="sk">5</span><i class="cd"></i>';
+  b.addEventListener('click', () => { SFX.init(); Build.releaseStorm(Battle); });
+  $('#skills').appendChild(b);
+};
+const _bRefreshSk = UI.refreshSkills;
+UI.refreshSkills = function () {
+  _bRefreshSk.call(this);
+  const b = $('#skills .skill.storm'); if (!b) return;
+  const n = Run.n('storm');
+  b.hidden = !n;
+  if (!n) return;
+  const need = Build.stormNeed(n), f = Build.stormReady ? 1 : Math.min(1, Build.pawCount / need);
+  b.classList.toggle('ready', Build.stormReady);
+  b.classList.toggle('charging', !Build.stormReady);
+  b.style.setProperty('--p', `${(1 - f) * 360}deg`);
+  b.querySelector('.cd').textContent = Build.stormReady ? '' : `${Math.floor(Build.pawCount)}/${need}`;
+};
+document.addEventListener('keydown', e => {
+  if (e.key === '5' && !e.target.matches('input, textarea') && !UI.modalOpen && Run.active) Build.releaseStorm(Battle);
+});

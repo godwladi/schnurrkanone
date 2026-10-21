@@ -1419,3 +1419,10 @@ body.more-open #dockMore { display: flex; animation: modalIn 0.18s ease-out; }
   #toasts .toast:has(> .ic:first-child), .toast:has(> .ic:first-child) { padding-left: 44px; min-height: 40px; }
   .toast > .ic:first-child { width: 28px; height: 28px; margin-top: -14px; left: 8px; padding: 4px; }
 }
+
+/* ---- Pfotensturm-Knopf: schwebt über der Skill-Leiste, lädt mit Pfotenhieben auf */
+#skills .skill.storm { position: absolute; left: 0; bottom: calc(100% + 10px); background: radial-gradient(circle at 50% 35%, #ff9ac8, #b8336d); border-color: rgba(255, 214, 243, 0.8); }
+#skills .skill.storm[hidden] { display: none; }
+#skills .skill.storm.charging .cd { font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000; background: conic-gradient(rgba(20, 8, 24, 0.72) var(--p, 0deg), transparent 0); }
+#skills .skill.storm.ready { border-color: #fff; box-shadow: 0 0 0 3px rgba(255, 143, 176, 0.6), 0 0 18px rgba(255, 143, 176, 0.9); animation: stormReady 0.9s ease-in-out infinite; }
+@keyframes stormReady { 50% { transform: scale(1.08); } }

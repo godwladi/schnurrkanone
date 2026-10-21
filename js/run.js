@@ -225,7 +225,7 @@ const Run = {
 
   clearField(B) {
     for (const o of B.obs) o.fleeing = true;
-    if (typeof Build !== 'undefined') { Build.waves = []; Build.pawCount = 0; }
+    if (typeof Build !== 'undefined') { Build.waves = []; Build.pawCount = 0; Build.stormReady = false; }
     B.bossState = 'none'; B.bossObj = null; B.bossRequested = false;
     Vitals.reset();
   },
