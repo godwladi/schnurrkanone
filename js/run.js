@@ -30,6 +30,8 @@ function runHpFactor(room) { // Faktor auf Econ.hp(min(Raum, 30)) · 1,11^(min(R
 const MOB_CAP_S = 2.4, BOSS_CAP_S = 15, MOB_FLOOR_S = 0.45, BOSS_FLOOR_S = 7;
 // Segen gibt es nur noch nach jedem 3. Raum (Wächter und Elite: einer extra)
 const BOON_EVERY = 3;
+// Waffenkisten im Streifzug: Kontingent je Raum statt unbegrenzt (Elite/Wächter +1, ansparen bis 6)
+const RUN_BOXES = 3, RUN_BOXES_MAX = 6;
 
 // rar: seltener angeboten · max: höchstens so oft · pact: Pakt mit Nachteil (rote Karte)
 // fx(n): Gesamtwirkung bei n Stapeln (für die Übersicht und die Vorschau beim Wählen)
@@ -201,7 +203,7 @@ const Run = {
       bones: S.bones, pets: { ...S.pets },
     };
     Object.assign(S.run, { active: true, depth: 0, hp: 100, maxHp: 100, boons: {}, choosing: false, offer: null, picks: 0, biome: U.randi(0, BIOMES.length - 1),
-      phase: null, path: null, elite: false, bonusBones: 0, shop: null, event: null, catnip: false, lastStop: null });
+      phase: null, path: null, elite: false, bonusBones: 0, shop: null, event: null, catnip: false, lastStop: null, boxes: RUN_BOXES, boxRoom: 1 });
     S.run.runs++;
     S.kills = 0; S.farm = false; S.farmKills = 0; S.autoBoss = true; S.stage = 1;
     S.coins = 0; S.grid = Array(GRID_SIZE).fill(null); S.slots = [{ t: 'pistol', r: 1 }, null, null, null];
@@ -223,6 +225,7 @@ const Run = {
 
   clearField(B) {
     for (const o of B.obs) o.fleeing = true;
+    if (typeof Build !== 'undefined') { Build.waves = []; Build.pawCount = 0; }
     B.bossState = 'none'; B.bossObj = null; B.bossRequested = false;
     Vitals.reset();
   },
@@ -294,6 +297,7 @@ const Run = {
     if (typeof Milestones !== 'undefined') Milestones.onRoom(S.run.depth);
     setTimeout(() => this.offerChoice(), 1100);
   },
+  boxStock() { if (S.run.boxes === undefined) S.run.boxes = RUN_BOXES; return S.run.boxes; },
   bossBones: (depth, tough) => 2 + Math.floor(depth / 15) + (tough ? 2 : 0),
   boonsFor(depth, guardian, elite) { return (depth % BOON_EVERY === 0 ? 1 : 0) + (guardian || elite ? 1 : 0); },
 
@@ -321,6 +325,11 @@ const Run = {
   enterRoom(biome, kind = 'fight') {
     const r = S.run, B = Battle;
     Object.assign(r, { choosing: false, phase: null, path: null, shop: null, event: null, elite: kind === 'elite', biome });
+    // neues Kisten-Kontingent (nur einmal je Raum, nicht beim Wiederholen)
+    if (this.room() > (r.boxRoom || 0)) {
+      r.boxRoom = this.room();
+      r.boxes = Math.min(RUN_BOXES_MAX, this.boxStock() + RUN_BOXES + (r.elite || this.guardian() ? 1 : 0));
+    }
     FX.ambient = [];
     Rooms.reset();
     if (r.catnip) { r.catnip = false; B.purr = 100; } // Katzenminze-Feld: Raserei zum Start
@@ -509,6 +518,7 @@ UI.tab_run = function () {
         <h3>🗺️ Streifzug <small>Roguelike-Abenteuer</small></h3>
         <ul class="runrules">
           <li>🐣 Du startest <b>ganz von vorn</b>: Stufe 1, nur die Miau-Pistole I, keine Münzen, kein Training, keine Katzen-Boni, <b>keine Begleiter und 0 🦴</b>. Unterwegs verdienst du eigene Münzen und Gräten (jeder Boss) für Kisten, Training und Begleiter. Nicht ausgegebene Gräten nimmst du mit nach Hause.</li>
+          <li>📦 Waffenkisten sind begrenzt: <b>3 pro Raum</b> (Elite/Wächter 4), unverbrauchte bis 6 ansparen. Die Händler-Maus verkauft zusätzliche.</li>
           <li>🗺️ Nach jedem Boss wählst du den Weg: Kampf, <b>Elite</b>, Händler, Katzenkorb oder Ereignis. Gegner werden mit jedem Raum zäher.</li>
           <li>🚪 Jeder Raum: neues Gebiet, 10 Gegner und ein <b>Boss</b>. Jeder 20. Raum ist ein <b>Wächter</b> (stärker, dafür ein Segen garantiert). Entkommt ein Boss, musst du den Raum wiederholen.</li>
           <li>⏸️ Solange ein Menü offen ist, ist der Streifzug <b>pausiert</b> – in Ruhe verschmelzen und kaufen.</li>
@@ -533,6 +543,7 @@ UI.tab_run = function () {
         <div><span>Geschafft</span><b>${r.depth} Räume</b></div>
         <div><span>Beute bisher</span><b>${Run.reward()} 🦴 · ${U.fmt(Run.homeCoins())} 💰</b></div>
       </div>
+      <p class="hint">📦 Waffenkisten übrig: <b>${Run.boxStock()}</b> / ${RUN_BOXES_MAX} · jeder neue Raum +${RUN_BOXES}</p>
     </div>
     <div class="sec"><h3>Gesamtwirkung <small>alle Segen zusammengerechnet</small></h3>${Run.summaryHtml()}</div>
     <div class="sec"><h3>Deine Segen <small>${own.length ? `${own.length} gesammelt` : 'noch keine'}</small></h3>${Run.ownedHtml()}
@@ -553,3 +564,29 @@ UI.after_run = function () {
 window.addEventListener('load', () => Run.init());
 // Absicherung: steht eine Segen-Wahl aus, aber kein Fenster ist da (z. B. weggeklickt), erneut anbieten
 setInterval(() => { if (Run.active && S.run.choosing && !UI.modalOpen && !UI.modalQueue.length && Date.now() - (Run.chooseAt || 0) > 1500) Run.offerChoice(); }, 2000);
+
+// ---------------------------------------------------------------- Kisten-Kontingent
+const _rBuy = Game.buyBox;
+Game.buyBox = function (count = 1) {
+  if (!Run.active) return _rBuy.call(this, count);
+  const stock = Run.boxStock();
+  if (stock <= 0) {
+    SFX.play('error');
+    Game.emit('toast', { text: `📦 <b>Kisten-Kontingent leer</b><br><small>Der nächste Raum bringt +${RUN_BOXES} – die Händler-Maus verkauft zusätzliche.</small>`, cls: 'warn' });
+    return 0;
+  }
+  const n = _rBuy.call(this, Math.min(count, stock));
+  S.run.boxes = stock - n;
+  if (n) UI.refreshTab();
+  return n;
+};
+const _rRefW = UI.refresh_weapons;
+UI.refresh_weapons = function () {
+  _rRefW.call(this);
+  const b = $('#buyBox'), b5 = $('#buyBox5');
+  if (!b || !Run.active) return;
+  const n = Run.boxStock();
+  b.querySelector('span').textContent = `📦 Kiste · ${n}`;
+  b5.querySelector('span').textContent = `📦×${Math.max(1, Math.min(5, n))}`;
+  if (n <= 0) { b.classList.add('cant'); b5.classList.add('cant'); }
+};

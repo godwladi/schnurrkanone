@@ -20,8 +20,8 @@ BOONS.splice(BOONS.findIndex(b => b.id === 'life'), 0,
     fx: n => `${8 * n} % Frostchance · +25 % Schaden an Vereisten` },
   { id: 'shatter', icon: '💠', name: 'Splitterfrost', tag: 'Eis',    req: 'frost', max: 3, desc: 'Vereiste Gegner nehmen +50 % Schaden und zersplittern beim Tod',
     fx: n => `+${25 + 50 * n} % Schaden an Vereisten · Splitter` },
-  { id: 'storm',   icon: '💫', name: 'Pfotensturm',   tag: 'Pfote',  desc: 'Jeder 5. Pfotenhieb löst eine Schockwelle aus (3× Klickschaden an allen)',
-    fx: n => `Schockwelle ${3 * n}× Klickschaden` },
+  { id: 'storm',   icon: '💫', name: 'Pfotensturm',   tag: 'Pfote',  desc: 'Jeder 5. Pfotenhieb schickt eine Pfoten-Welle übers Feld: 2 s Schaden an allen, stößt zurück, 4× am Boss-Schild',
+    fx: n => `alle ${Build.stormNeed(n)} Hiebe · Welle ${Build.stormSecs(n)} s Schaden` },
   { id: 'counter', icon: '🛡️', name: 'Konterkunst',   tag: 'Parade', desc: 'Paraden heilen 4 % und laden das Schild 3 s schneller',
     fx: n => `Paraden heilen ${4 * n} % · Schild −${3 * n} s` },
   { id: 'chain',   icon: '⚡', name: 'Kettenblitz',   tag: 'Blitz',  desc: '12 % der Treffer springen als Blitz auf einen weiteren Gegner (60 % Schaden)',
@@ -102,19 +102,70 @@ const Build = {
       for (const x of this.live(B)) if (x !== o && Math.abs(x.x - o.x) < 110 * B.cs) this.chill(B, x);
     }
   },
+  // Pfotensturm: früher 3× Klickschaden (≈ ein Bruchteil einer Sekunde DPS) – kaum spürbar.
+  // Jetzt eine Welle, die von der Katze übers Feld rollt: jeder Gegner, den sie erreicht,
+  // nimmt n·2 s Dauerfeuer-Schaden (zählt als Pfote: Pfotenwirbel wirkt, Boss-Schild 4×) und
+  // wird zurückgestoßen. Ab Stufe 2 genügen 4 Hiebe, ab Stufe 3 drei.
+  stormNeed: n => (n >= 3 ? 3 : n >= 2 ? 4 : 5),
+  stormSecs: n => 2 * n,
+  waves: [],
   onPaw(B, weight = 1) {
     if (!Run.n('storm')) return;
+    const n = Run.n('storm');
     this.pawCount += weight;
-    if (this.pawCount < 5) return;
+    this.pawPop = 0.25;
+    if (this.pawCount < this.stormNeed(n)) return;
     this.pawCount = 0;
-    const n = Run.n('storm'), cx = B.catX + 30 * B.cs, cy = B.groundY - 30 * B.cs;
-    FX.addRing(cx, cy, 500 * B.cs, '#ff8fb0', 0.5, 10);
-    FX.addRing(cx, cy, 260 * B.cs, '#ffffff', 0.3, 6);
-    for (const o of this.live(B)) { B.damage(o, R.clickDmg * 3 * n, false, true, 'build'); o.kx = (o.kx || 0) + 10 * B.cs; }
-    B.text(cx + 40 * B.cs, cy - 60 * B.cs, 'PFOTENSTURM!', '#ff8fb0', 18 * B.cs, true);
+    const cx = B.catX + 30 * B.cs, cy = B.groundY - 30 * B.cs;
+    this.waves.push({ x0: cx, r: 0, hit: new Set(), dmg: R.dps * this.stormSecs(n) });
+    FX.addRing(cx, cy, 120 * B.cs, '#ffffff', 0.3, 8);
+    B.text(cx + 40 * B.cs, cy - 60 * B.cs, 'PFOTENSTURM!', '#ff8fb0', 20 * B.cs, true);
     B.shake = Math.max(B.shake, 8);
     SFX.play('roar');
     if (this.syn('brawl')) Vitals.heal(B, 0.03, true);
+  },
+  updateWaves(dt, B) {
+    for (const w of this.waves) {
+      w.r += 950 * B.cs * dt;
+      for (const o of this.live(B)) {
+        if (w.hit.has(o.id) || o.x - w.x0 > w.r) continue;
+        w.hit.add(o.id);
+        B.damage(o, w.dmg, true, false, 'paw');
+        if (!o.boss) o.x += 26 * B.cs; // zurückgestoßen (Bomben besonders willkommen)
+        o.kx = (o.kx || 0) + 14 * B.cs; o.tilt = (o.tilt || 0) + 0.2;
+        const cy = this.cy(o);
+        for (let i = 0; i < 6; i++) B.particle(o.x, cy, U.rand(40, 260), U.rand(-220, 20), U.pick(['#ff8fb0', '#ffd6f3', '#ffffff']), 0.4, 3 * B.cs, 300, false, 'streak');
+      }
+      if (Math.random() < dt * 40) B.particle(w.x0 + w.r, B.groundY - U.rand(0, 20) * B.cs, U.rand(-30, 30), U.rand(-160, -60), U.pick(['#ff8fb0', '#ffd6f3']), 0.5, 3.5 * B.cs, 400, false, 'spark');
+    }
+    this.waves = this.waves.filter(w => w.x0 + w.r < B.W + 80);
+    this.pawPop = Math.max(0, (this.pawPop || 0) - dt);
+  },
+  // Welle (rosa Bogen am Boden) und Ladeanzeige über der Katze (Pfotenabdrücke)
+  drawStorm(ctx, B) {
+    const cs = B.cs;
+    for (const w of this.waves) {
+      const x = w.x0 + w.r, a = U.clamp(1 - w.r / (B.W * 1.1), 0.25, 1);
+      ctx.save();
+      ctx.globalAlpha = a; ctx.lineCap = 'round';
+      ctx.strokeStyle = '#ff8fb0'; ctx.lineWidth = 9 * cs;
+      ctx.beginPath(); ctx.ellipse(x, B.groundY, 26 * cs, 120 * cs, 0, -Math.PI / 2, Math.PI / 2 * 0.05); ctx.stroke();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3 * cs;
+      ctx.beginPath(); ctx.ellipse(x, B.groundY, 26 * cs, 120 * cs, 0, -Math.PI / 2, Math.PI / 2 * 0.05); ctx.stroke();
+      ctx.restore();
+    }
+    if (!Run.n('storm')) return;
+    const need = this.stormNeed(Run.n('storm')), have = Math.min(this.pawCount, need);
+    const y = B.groundY - 108 * cs, gap = 15 * cs, x0 = B.catX + 6 * cs - (need - 1) * gap / 2;
+    ctx.save();
+    for (let i = 0; i < need; i++) {
+      const on = i < have, s = (on && i === have - 1 ? 1 + (this.pawPop || 0) * 2 : 1) * 5.5 * cs, x = x0 + i * gap;
+      ctx.globalAlpha = on ? 1 : 0.35;
+      Draw.circle(ctx, x, y, s * 1.3, 'rgba(20,10,30,0.6)');
+      Draw.circle(ctx, x, y + s * 0.25, s * 0.55, on ? '#ff8fb0' : '#ffffff');
+      for (const [dx, dy] of [[-0.55, -0.45], [0, -0.7], [0.55, -0.45]]) Draw.circle(ctx, x + dx * s, y + dy * s, s * 0.22, on ? '#ff8fb0' : '#ffffff');
+    }
+    ctx.restore();
   },
   onParry(B) {
     if (Run.n('counter')) {
@@ -125,6 +176,7 @@ const Build = {
   },
 
   update(dt, B) {
+    this.updateWaves(dt, B);
     for (const o of B.obs) {
       if (o.dead || o.fleeing || o.dying > 0) continue;
       if (o.burn && o.burn.t > 0) {
@@ -144,6 +196,7 @@ const Build = {
   // Zustände sichtbar machen (in der Welt, nach den Gegnern)
   draw(ctx, B) {
     const t = B.t, cs = B.cs;
+    this.drawStorm(ctx, B);
     ctx.save();
     for (const o of B.obs) {
       if (o.dead || o.fleeing) continue;

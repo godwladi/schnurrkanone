@@ -4,7 +4,7 @@
 // Jede Tür zeigt Art und Gebiet des nächsten Raums:
 //   Kampf      – normaler Raum
 //   Elite      – zähere Gegner (+40 %, Boss +50 %), werfen öfter; Segen garantiert, +3 Gräten
-//   Händler    – Heilung, Segen, Waffenkiste, Segen schärfen gegen Streifzug-Münzen
+//   Händler    – Heilung, Segen, Waffenkiste, Kisten-Paket, Segen schärfen gegen Streifzug-Münzen
 //   Katzenkorb – ausruhen (Leben) oder einen Segen verstärken
 //   Ereignis   – kleine Geschichte mit zwei Entscheidungen (Risiko oder sicher)
 // Nach einem Zwischenhalt kommen nur noch Kampf-Türen. Wächter-Räume sind Pflicht.
@@ -26,6 +26,7 @@ const SHOP_ITEMS = {
   boon:    { icon: '🎁', name: 'Wundertüte',      desc: 'Ein zufälliger Segen (kein Pakt)',     price: 35 },
   box:     { icon: '📦', name: 'Gute Waffenkiste', desc: 'Waffe eine Stufe über der Kistenqualität', price: 22 },
   sharpen: { icon: '🗡️', name: 'Krallen schärfen', desc: 'Ein zufälliger eigener Segen +1 Stufe', price: 45 },
+  crates:  { icon: '📦', name: 'Kisten-Paket',    desc: '+2 Waffenkisten fürs Kontingent (auch über 6)', price: 14 },
 };
 
 const PATH_EVENTS = [
@@ -122,7 +123,7 @@ const Path = {
 
   // ---------------------------------------------------------------- Händler-Maus
   rollShop() {
-    const ids = ['soup', 'boon', 'box'];
+    const ids = ['soup', 'boon', 'box', 'crates'];
     if (Run.owned().some(o => this.sharpenable(o.b))) ids.push('sharpen');
     return ids;
   },
@@ -149,6 +150,7 @@ const Path = {
     if (!sh || sh.bought[id] || S.coins < p) { SFX.play('error'); return; }
     S.coins -= p; sh.bought[id] = true;
     if (id === 'soup') Vitals.heal(B, 0.4);
+    if (id === 'crates') { S.run.boxes = Run.boxStock() + 2; UI.toast(`📦 <b>+2 Waffenkisten</b><br><small>Jetzt ${S.run.boxes} im Kontingent</small>`, 'good'); }
     if (id === 'boon') this.giftBoon(b => !b.pact && !b.heal);
     if (id === 'box') {
       const free = S.grid.indexOf(null);
