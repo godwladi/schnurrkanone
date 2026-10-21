@@ -152,4 +152,21 @@ const Title = {
   },
 };
 
+// iOS-Home-Bildschirm-App: Mit durchsichtiger Statusleiste (black-translucent) und
+// viewport-fit=cover rechnet iOS die Seitenhöhe bei height: 100 % um die Statusleiste zu
+// klein – unten blieb ein Streifen, die Leiste unten wurde abgeschnitten. Dort deshalb die
+// volle Bildschirmhöhe (100lvh bzw. gemessen) für html, body und alle Vollbild-Ebenen.
+const Viewport = {
+  fix() {
+    const pwa = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+    document.documentElement.classList.toggle('pwa', !!pwa);
+    if (!pwa || !screen.height) return;
+    const long = Math.max(screen.width, screen.height), short = Math.min(screen.width, screen.height);
+    const full = innerWidth < innerHeight ? long : short;
+    document.documentElement.style.setProperty('--appH', Math.max(innerHeight, full) + 'px');
+  },
+};
+Viewport.fix();
+for (const ev of ['resize', 'orientationchange']) window.addEventListener(ev, () => setTimeout(() => Viewport.fix(), 250));
+
 Title.init();

@@ -1116,11 +1116,11 @@ b, strong { font-weight: 800; }
 .dmgbars b { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* =============================================================== UPDATE 2026-10 (HUD, Titel, Grenzbruch, Meilensteine)
-   ---- iOS-PWA: weißer Streifen unten. Die Layout-Höhe ist dort teils um die Statusleiste zu klein;
-   hud.js misst die Lücke (--vgap) und #app wird entsprechend nach unten verlängert. */
+   ---- iOS-Home-Bildschirm-App (html.pwa, gesetzt in splash.js): height: 100 % war dort um die
+   Statusleiste zu kurz (weißer bzw. dunkler Streifen unten, Leiste abgeschnitten) → volle Höhe. */
 html { background: #140f29; }
-#app { bottom: calc(-1 * var(--vgap, 0px)); }
-#splash, #msScene { bottom: calc(-1 * var(--vgap, 0px)); }
+html.pwa, html.pwa body { height: 100vh; height: var(--appH, 100lvh); overflow: hidden; }
+html.pwa #app, html.pwa #splash, html.pwa #msScene { top: 0; bottom: auto; height: var(--appH, 100lvh); }
 
 :root { --hudH: 0px; }
 #pauseBtn, #musicBtn { display: none; } /* liegen jetzt in der Seitenleiste rechts */
@@ -1134,35 +1134,35 @@ html { background: #140f29; }
 #menuBtn:active { transform: translateY(2px); box-shadow: 0 2px 0 #3a2596; }
 #menuBtn .mb { display: flex; flex-direction: column; gap: 4px; }
 #menuBtn .mb i { display: block; width: 19px; height: 3px; border-radius: 2px; background: #fff; }
-#menuBtn .dot, .rb .dot {
+#menuBtn .dot, .railb .dot {
   position: absolute; top: -5px; right: -5px; width: 17px; height: 17px; border-radius: 50%; display: none;
   background: #ff3b5c; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
-#menuBtn .dot::after, .rb .dot::after { content: '!'; position: absolute; inset: 0; display: grid; place-items: center; font: 900 11px/1 var(--font); color: #fff; font-style: normal; }
-#menuBtn .dot.on, .rb .dot.on { display: block; animation: pulse 1.2s infinite; }
+#menuBtn .dot::after, .railb .dot::after { content: '!'; position: absolute; inset: 0; display: grid; place-items: center; font: 900 11px/1 var(--font); color: #fff; font-style: normal; }
+#menuBtn .dot.on, .railb .dot.on { display: block; animation: pulse 1.2s infinite; }
 
 /* ---- Seitenleisten (Schnellknöpfe) über dem Spielfeld */
 #railL, #railR { position: absolute; z-index: 4; top: calc(var(--hudH) + 70px); display: flex; flex-direction: column; gap: 10px; align-items: center; }
 #railL { left: calc(8px + env(safe-area-inset-left)); }
 #railR { right: calc(8px + var(--dockR, 0) * 1px); }
-.rb {
+.railb {
   position: relative; width: 48px; height: 48px; border-radius: 15px; padding: 0; cursor: pointer; display: grid; place-items: center;
   background: linear-gradient(180deg, rgba(58, 44, 112, 0.92), rgba(30, 22, 62, 0.92)); border: 2px solid rgba(255, 255, 255, 0.22);
   box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35), 0 6px 14px rgba(0, 0, 0, 0.3); transition: transform 0.1s;
 }
-.rb:active { transform: scale(0.92); }
-.rb.sm { width: 38px; height: 38px; border-radius: 12px; }
-.rb .ri { font-family: var(--emoji); font-size: 24px; line-height: 1; }
-.rb .ri .ic { width: 28px; height: 28px; display: block; }
-.rb.sm .ri .ic { width: 21px; height: 21px; }
-.rb.off { opacity: 0.6; }
-.rb em {
+.railb:active { transform: scale(0.92); }
+.railb.sm { width: 38px; height: 38px; border-radius: 12px; }
+.railb .ri { font-family: var(--emoji); font-size: 24px; line-height: 1; }
+.railb .ri .ic { width: 28px; height: 28px; display: block; }
+.railb.sm .ri .ic { width: 21px; height: 21px; }
+.railb.off { opacity: 0.6; }
+.railb em {
   position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); white-space: nowrap;
   font: 900 9.5px/1 var(--font); font-style: normal; color: #fff; padding: 3px 6px; border-radius: 99px;
   background: linear-gradient(180deg, #2fbf71, #1f8f52); border: 1.5px solid rgba(255, 255, 255, 0.8);
 }
-.rb em:empty { display: none; }
-.rb[hidden] { display: none; }
+.railb em:empty { display: none; }
+.railb[hidden] { display: none; }
 
 /* ---- Menü (≡): alle übrigen Reiter + Pause/Musik – überall (auch am PC) */
 #dockMore {
@@ -1233,9 +1233,9 @@ body.more-open #dockMore { display: flex; animation: modalIn 0.18s ease-out; }
   #dock .dk { width: 48px; height: 48px; }
   #railL, #railR { top: calc(var(--hudH) + 48px); gap: 7px; }
   #toasts { top: calc(var(--hudH) + 84px); left: calc(58px + env(safe-area-inset-left)); width: min(260px, 40vw); }
-  .rb { width: 40px; height: 40px; border-radius: 12px; }
-  .rb.sm { width: 32px; height: 32px; }
-  .rb .ri .ic { width: 23px; height: 23px; }
+  .railb { width: 40px; height: 40px; border-radius: 12px; }
+  .railb.sm { width: 32px; height: 32px; }
+  .railb .ri .ic { width: 23px; height: 23px; }
 }
 
 /* ---- Spielfeld-Knöpfe auf Touch: keine teuren Dauer-Animationen (box-shadow/filter jedes Bild) */

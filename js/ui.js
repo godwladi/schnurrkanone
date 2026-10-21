@@ -590,7 +590,7 @@ const UI = {
           <div class="rr">${rar.name}</div>
           <div class="rn">${c.name}</div>
           <div class="rm">${msg}</div>
-          <div class="rb">+${Math.round(c.val * 1000) / 10}% ${BONUS_LABEL[c.bonus]} pro Stufe</div>
+          <div class="rb">+${String(Math.round(c.val * 1000) / 10).replace(".", ",")} % ${BONUS_LABEL[c.bonus]} pro Stufe</div>
         </div>`;
       const btns = $('.modal .mbtns');
       btns.innerHTML = '';
