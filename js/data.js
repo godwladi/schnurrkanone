@@ -11,7 +11,8 @@ const WEAPONS = {
   yarn:    { name: 'Wollknäuel',    icon: '🧶', dmg: 6.5, rate: 1.4, pellets: 1, spread: 0,    speed: 600,  pierce: 2, splash: 0,   arc: true,  size: 7, desc: 'Hüpft durch 3 Ziele.' },
 };
 const WEAPON_IDS = Object.keys(WEAPONS);
-const MAX_TIER = 15;
+const MAX_TIER = 20;      // XVI–XX = Grenzbruch ★1–★5 (js/limit.js), nur durch Verschmelzen
+const BOX_MAX_TIER = 15;  // Kisten, Truhen und Händler liefern höchstens Stufe XV
 
 const TIERS = [
   { name: 'Gewöhnlich',   color: '#b8c0cc' },
@@ -29,6 +30,11 @@ const TIERS = [
   { name: 'Ewig',         color: '#ffffff' },
   { name: 'Unendlich',    color: '#ffd700' },
   { name: 'Omega',        color: 'rainbow' },
+  { name: 'Grenzbruch ★1', color: '#ffe9a8' },
+  { name: 'Grenzbruch ★2', color: '#ffd36b' },
+  { name: 'Grenzbruch ★3', color: '#ffbf3d' },
+  { name: 'Grenzbruch ★4', color: '#ff9f2e' },
+  { name: 'Grenzbruch ★5', color: '#fff6dc' },
 ];
 function tierColor(r, t) {
   const c = TIERS[Math.min(r, MAX_TIER) - 1].color;
@@ -125,7 +131,7 @@ const ACHIEVEMENTS = [];
     ['merges',    'Verschmelzungen',    [10, 100, 1000, 5000],               ['Bastelpfote', 'Schmiedekatze', 'Alchemist', 'Fusionsreaktor']],
     ['chests',    'Kisten geöffnet',    [1, 10, 50, 200],                    ['Neugier', 'Sammelwut', 'Katzenhorter', 'Tierheim-Chefin']],
     ['rebirths',  'Wiedergeburten',     [1, 5, 20, 50],                      ['Das zweite Leben', 'Neun Leben?', 'Ewiger Kreislauf', 'Samsara']],
-    ['maxTier',   'Höchste Waffenstufe',[3, 6, 9, 12, 15],                   ['Aufrüstung', 'Waffennarr', 'Arsenal', 'Superwaffe', 'Omega-Pfote']],
+    ['maxTier',   'Höchste Waffenstufe',[3, 6, 9, 12, 15, 16, 20],           ['Aufrüstung', 'Waffennarr', 'Arsenal', 'Superwaffe', 'Omega-Pfote', 'Grenzbrecher', 'Grenzenlos']],
     ['clicks',    'Pfotenhiebe',        [100, 1000, 10000],                  ['Stupser', 'Trommelpfote', 'Klick-Gewitter']],
     ['bossKills', 'Bosse besiegt',      [5, 25, 100, 500],                   ['Bossjäger', 'Riesenfäller', 'Titanenschreck', 'Endgegner-Endgegner']],
     ['frenzies',  'Schnurr-Rasereien',  [1, 10, 100],                        ['Erstes Schnurren', 'Dauerschnurrer', 'Schnurr-Vulkan']],
@@ -134,7 +140,7 @@ const ACHIEVEMENTS = [];
     ['level',     'Katzen-Level',       [10, 25, 50],                        ['Erfahrene Pfote', 'Veteranin', 'Großmeister-Katze']],
     ['maxCombo',  'Höchste Combo',      [10, 25, 50],                        ['Kettenreaktion', 'Combo-Katze', 'Unaufhaltsam']],
     ['parries',   'Paraden',            [10, 100, 500],                      ['Pfoten-Parade', 'Tennis-Tiger', 'Unberührbar']],
-    ['runBest',   'Streifzug-Raum',     [5, 10, 20, 35],                     ['Streuner', 'Abenteurerin', 'Dungeon-Katze', 'Herrin der Gassen']],
+    ['runBest',   'Streifzug-Raum',     [5, 10, 20, 35, 100, 250, 500, 1000], ['Streuner', 'Abenteurerin', 'Dungeon-Katze', 'Herrin der Gassen', 'Hundert Türen', 'Unermüdlich', 'Halbzeit-Held', 'Legende der Tausend']],
   ];
   for (const [stat, label, steps, names] of defs) {
     steps.forEach((n, i) => {

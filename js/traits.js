@@ -150,13 +150,7 @@ const Traits = {
     for (const o of B.obs) {
       if (o.dead || o.fleeing || !o.trait && !o.phase2) continue;
       const h = OBST_H[o.kind] * o.scale, w = OBST_W[o.kind] * o.scale, cy = o.y - h * 0.5;
-      if (o.trait === 'flyer') { // Flügel und abgehobener Schatten
-        for (const sx of [-1, 1]) {
-          ctx.save(); ctx.translate(o.x + sx * w * 0.42, cy - h * 0.1); ctx.rotate(sx * (0.25 + Math.sin(t * 14 + o.id) * 0.35)); ctx.scale(sx, 1);
-          Icons.draw(ctx, 'wing', 12 * cs, -6 * cs, 30 * cs * o.scale / cs);
-          ctx.restore();
-        }
-      }
+      // Flieger-Flügel zeichnet Foes.wings direkt am Körper (js/foes.js)
       if (o.trait === 'armor') { // Panzerplatten-Glanz
         ctx.globalAlpha = 0.5; ctx.strokeStyle = '#e6ecf8'; ctx.lineWidth = 3 * cs;
         ctx.beginPath(); ctx.arc(o.x, cy, h * 0.55, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke(); ctx.globalAlpha = 1;

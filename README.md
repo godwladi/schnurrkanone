@@ -49,6 +49,31 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 - Im Reiter 🗺️ Streifzug: jeden Tag eine andere Sonderregel (Glaskanone, Pfotentag, Eiltag, Elitetag, Feuertag, Frosttag, Sonderbar), Beute ×1,5 (Eiltag ×2), Bestenliste der letzten 14 Tage (auf diesem Gerät).
 - Am Ende jedes Streifzugs: gewählter Weg, Zerstörungen, Dauer und **Schaden nach Quelle** als Balken.
 
+## Titelbildschirm & Jazz (`js/splash.js`, `js/jazz.js`)
+- Beim Start: Logo, die eigene Katze spielt Saxophon im Scheinwerferlicht, Noten steigen auf. Erster Tipp startet den Ton (iOS) und zeigt das Menü: **Spielen/Weiterspielen**, Streifzug, Glücksrad, Optionen, Musik an/aus (`Enter` = Spielen).
+- Titelmusik: Old-School-Jazz im Swing, komplett per WebAudio – Walking Bass, Ride-Becken, Charleston-Klavier und ein Altsaxophon (Formantfilter, Vibrato, Atem, Gleiten); 16 Takte in F mit Erkennungsmotiv. Solange der Titel offen ist, ruhen Spiel und Spielmusik.
+
+## HUD (`js/hud.js`)
+- **≡ Menü** oben links (alle weiteren Reiter, Pause, Musik), daneben Level und Ressourcen-Pillen. Am Handy liegt das HUD durchsichtig über dem Spielfeld.
+- **Schnellknöpfe rechts:** Pause, Musik, 🎡 Glücksrad, 📜 Aufgaben, 🎁 Gratis-Katzenkiste (mit Timer); links 🗺️ Streifzug (zeigt den Raum). Rote „!“-Punkte zeigen, wo etwas bereitliegt.
+- Unten runde Farbknöpfe für Waffen, Training, Katzen, Begleiter.
+- iOS-Home-Bildschirm-App: die fehlende Höhe (weißer Streifen unten) wird gemessen und aufgefüllt.
+
+## Grenzbruch & Raritäten (`js/limit.js`)
+- Zwei **Omega-Waffen (XV)** gleicher Art verschmelzen zu **Grenzbruch ★1** (bis ★5). Kisten liefern weiterhin höchstens XV.
+- Jede Waffe bekommt beim Grenzbruch eine Fähigkeit: Miau-Pistole **Querschläger**, Fellflinte **Drachenschrot** (Brand), Laserpointer **Prismastrahl** (Kettenblitz), Fischrakete **Streubombe** (Mini-Fische), Wollknäuel **Wollnetz** (Vereisen + Rückstoß). Mehr Sterne = stärker.
+- **Raritäts-Plakette** oben rechts im Waffenfeld: C (I–III), R (IV–VI), SR (VII–IX), UR (X–XII), LR (XIII–XV), MR (Grenzbruch).
+
+## Waffen-Infokarte (`js/winfo.js`)
+- Waffe **antippen** (Touch) bzw. mit der Maus darüberfahren: Karte mit Symbol, Rarität, Stufe und Stufen-Leiste, DPS, Schaden pro Schuss, Schüsse/s, Besonderheit, Eigenschaft, Grenzbruch-Fähigkeit, Set-Fortschritt und Verschmelz-Hinweis. Doppeltippen legt weiterhin an/ab.
+- Meldungen und 💡-Hinweise: runde Karten mit farbiger Leiste und Symbol-Plakette.
+
+## Gesicht der Katze bei Treffern
+- Getroffen: Augen zugekniffen (> <), aufgerissenes Maul, Tränen, die Katze zuckt zurück; bei harten Treffern (Bombe, Vernichtungsschlag, Großangriff) weiter offenes Maul und kreisende Sterne. Bei wenig Leben (Streifzug/Bosskampf) schaut sie besorgt mit Schweißtropfen.
+
+## Glücksrad (`js/wheel.js`)
+- Einmal am Tag gratis, danach 15 🦴: Münzregen, Gräten, Goldrausch, Raserei, Gratis-Katzenkiste, Waffenkiste, selten Katzenminze.
+
 ## Symbole & Oberfläche
 - **Eigener Symbolsatz** (`js/icons.js`, ~120 SVG-Symbole im Stil der Katzen) statt System-Emojis – sieht auf iPhone, Windows und Android gleich aus. Emojis in Texten werden automatisch ersetzt (HTML per MutationObserver, Leinwand über `fillText`/`measureText`). Neue Symbole: in `ICONS` zeichnen und in `EMOJI_ICON` zuordnen.
 - Modernisierte Oberfläche: Glasflächen, runde Systemschrift, Ressourcen-Chips, Reiter mit Akzentlinie, einheitliche Karten/Knöpfe, schwebende Symbolleiste am Handy, Meldungen am Handy oben links. Banner weichen dem Boss-Lebensbalken aus.
@@ -68,11 +93,12 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 
 ## Streifzug – Roguelike-Modus (`js/run.js`)
 - Reiter **🗺️ Streifzug** (ab Stufe 8). Start **ganz von vorn**: Stufe 1, nur Miau-Pistole I, 0 Münzen, kein Training, keine Katzen-/Perk-/Minze-/Level-Boni. Unterwegs eigene Münzen für Kisten und Training. Skills und Waffenplätze bleiben freigeschaltet.
-- Das Hauptspiel (Stufe, Münzen, Rucksack, Ausrüstung, Training) wird beiseitegelegt und danach unverändert zurückgeholt; Waffen und Münzen aus dem Streifzug verfallen.
+- Das Hauptspiel (Stufe, Münzen, Rucksack, Ausrüstung, Training, **Begleiter, Fischgräten**) wird beiseitegelegt und danach unverändert zurückgeholt; Waffen und Münzen aus dem Streifzug verfallen.
+- **Begleiter starten im Streifzug bei null** und werden mit Streifzug-Gräten gekauft (Start mit 0 🦴, jeder Boss bringt 2 + 1 je 15 Räume, Elite/Wächter +2). Nicht ausgegebene Gräten nimmt man am Ende mit nach Hause.
 - **Pause:** Solange die Menü-Schublade oder ein Fenster offen ist, eine Waffe gezogen wird oder (am PC) die Maus über der Seitenleiste ist, steht der Streifzug still. Im Hauptspiel werfen Bosse dann nicht, der Countdown läuft aber weiter.
-- Jeder Raum = neues Gebiet, 10 Gegner + Boss; jeder 20. Raum (20, 40, 60 …) ist ein **Wächter** (×1,6 Leben, wirft öfter, 2 Segen). Entkommt ein Boss, wird der Raum wiederholt. Gegner werfen auch, Leben heilen **nicht** von selbst.
-- Nach jedem Boss **1 von 3 Segen**: z. B. Scharfe Krallen, Koffein-Kater, Milchbart, Spiegelpfote, Neuntes Leben, Schrödingers Kiste (Glücksspiel) – oder ein **Pakt** mit Nachteil (Schwarze Katze, Gläserne Krallen). Bei schon vorhandenen Segen zeigt die Karte die Gesamtwirkung danach.
-- **Wegkarte:** Nach jedem Boss (und dem Segen) wählt man den nächsten Weg: ⚔️ **Kampf**, 👑 **Elite** (+40 % Leben, Boss +50 %, werfen öfter – dafür 2 Segen und +3 🦴), 🎒 **Händler-Maus** (Fischsuppe, Wundertüte, gute Waffenkiste, Krallen schärfen – gegen Streifzug-Münzen), 💤 **Katzenkorb** (Schläfchen +45 % Leben oder einen Segen +1 Stufe) oder 🔮 **Ereignis** (Kiste, Hexenkatze, Fischbrunnen, Katzenminze-Feld, Kartentrick der Elster – jeweils Risiko oder sicher). Jede Tür zeigt das Gebiet; nach einem Zwischenhalt folgen nur Kampf-Türen, Wächter-Räume sind Pflicht (`js/path.js`).
+- Jeder Raum = neues Gebiet, 10 Gegner + Boss; jeder 20. Raum (20, 40, 60 …) ist ein **Wächter** (×1,6 Leben, wirft öfter, Segen garantiert). Entkommt ein Boss, wird der Raum wiederholt. Gegner werfen auch, Leben heilen **nicht** von selbst.
+- Nach jedem **3. Raum** **1 von 3 Segen** (Elite und Wächter bringen immer einen): z. B. Scharfe Krallen, Koffein-Kater, Milchbart, Spiegelpfote, Neuntes Leben, Schrödingers Kiste (Glücksspiel) – oder ein **Pakt** mit Nachteil (Schwarze Katze, Gläserne Krallen). Bei schon vorhandenen Segen zeigt die Karte die Gesamtwirkung danach.
+- **Wegkarte:** Nach jedem Boss (und dem Segen) wählt man den nächsten Weg: ⚔️ **Kampf**, 👑 **Elite** (+40 % Leben, Boss +50 %, werfen öfter – dafür sicher ein Segen und +3 🦴), 🎒 **Händler-Maus** (Fischsuppe, Wundertüte, gute Waffenkiste, Krallen schärfen – gegen Streifzug-Münzen), 💤 **Katzenkorb** (Schläfchen +45 % Leben oder einen Segen +1 Stufe) oder 🔮 **Ereignis** (Kiste, Hexenkatze, Fischbrunnen, Katzenminze-Feld, Kartentrick der Elster – jeweils Risiko oder sicher). Jede Tür zeigt das Gebiet; nach einem Zwischenhalt folgen nur Kampf-Türen, Wächter-Räume sind Pflicht (`js/path.js`).
 - **Build-Segen** (`js/build.js`): Feuer (Glutkrallen → Flammenmeer), Eis (Frostkrallen → Splitterfrost), Pfote (Pfotensturm), Parade (Konterkunst), Blitz (Kettenblitz). **Kombis:** Thermoschock (Feuer + Eis), Kampfkatze (Pfote + Parade), Gewitterglück (Blitz + Glückssträhne). Karten zeigen den Build und passende Kombi-Partner; Übersicht und Reiter listen aktive Kombis.
 - **Segen-Übersicht:** Die ✨-Leiste über dem Spielfeld zeigt alle gesammelten Segen; Antippen (oder `I`) öffnet die Übersicht mit Gesamtwirkung (Schaden, Feuerrate, Krit, erlittener Schaden …), den gesammelten Segen und einem Lexikon aller Segen & Pakte. Auch im Reiter 🗺️ Streifzug.
 - **Sonderräume** (ab Raum 3, 30 % Chance, nie zweimal hintereinander), je mit eigenem Hintergrund, zwei neuen Gegnern und eigenem Boss:
@@ -84,6 +110,8 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
   - ⏳ **Zeitreise** – alle 15 s ein Zeitsprung: Urzeit, Mittelalter, Zukunft mit eigenen Gegnern (T-Rex, Ritter, Roboter · Bosse „Tyranno-Max“, „Sir Blechbüchse“, „Omega-Toaster“) – `js/rooms2.js`
 - Im **Hauptspiel** sind die Sonderräume reguläre Gebiete (je 10 Stufen): Flüsterwald → Sonnenwüste → Wurmloch → Frostgipfel → Untergrund → Lavagrund → Flimmerkiste → Neon-City → World Wide Web → Sternenmeer → Die Leere → Zeitreise. Zusätzlich: ab Stufe 5 ist etwa jede 7. Stufe ein Sonderraum (fest je Stufe, nie zwei hintereinander, nie auf Zehner-Stufen).
 - Raum n = Stufe n des normalen Spiels. **K.O. = Lauf vorbei.** Beute: 3 🦴 je Raum plus ein Münzschatz fürs Hauptspiel.
+- **Gegnerleben im Streifzug:** bis Raum 30 wie Stufe n (+11 % je Raum). Danach eine weiche Kurve (bis Raum 150 ≈ +7,5 % plus Potenz-Anteil je Raum, später nur noch ≈ Raum^3,4) und ein **Deckel**: ein Gegner braucht höchstens 2,4 s Dauerfeuer der aktuellen Ausrüstung (Boss 15 s), mindestens 0,45 s (Boss 7 s). Früher wuchs das Leben ×1,53 je Raum – ab etwa Raum 70 richteten Treffer nichts mehr aus. Erlittener Schaden: +2 % je Raum bis Raum 50, danach +0,4 %.
+- **Meilensteine** (`js/milestones.js`): alle 100 Räume eine kleine Feier, bei **Raum 500** die Halbzeit-Sequenz (Dank, bitte nicht aufgeben, Medaille +15 % Schaden), bei **Raum 1000** das Finale mit Feuerwerk und Abspann (+30 %). Gilt auch für Stufen im Hauptspiel.
 
 ## Auf dem iPhone spielen
 Das Spiel ist eine installierbare Web-App (PWA) – kein Mac, kein Xcode nötig.
@@ -104,7 +132,7 @@ Schnelltest ohne Upload: am PC `python -m http.server 8000` im Ordner starten un
 
 Der Spielstand auf dem iPhone ist unabhängig vom PC-Spielstand; zum Umziehen *Optionen → Export/Import* nutzen.
 
-**Handy wird warm?** *Optionen → Grafik → Akku sparen* (30 Bilder/s, 1,5× statt 3× Pixeldichte, weniger Teilchen, ruhende Knopf-Animationen). „Auto“ wählt auf Handy/Tablet „Ausgeglichen“ (2× Pixeldichte).
+**Handy wird warm?** *Optionen → Grafik → Akku sparen* (30 Bilder/s, 1,5× statt 3× Pixeldichte, weniger Teilchen, ruhende Knopf-Animationen). „Auto“ wählt auf Handy/Tablet „Ausgeglichen“ (1,75× Pixeldichte) und senkt die Auflösung zusätzlich, sobald ein Bild zu lange rechnet. Schadenszahlen werden je Gegner zusammengezählt (weniger Text zu zeichnen), Dauer-Animationen der Knöpfe sind auf Touch aus.
 
 ## Fehler melden / Feedback 🐞
 Rechts oben schwebt der **🐞-Knopf** (am PC auch Taste **F8**), auch über offenen Fenstern wie der Glückskiste.
@@ -139,7 +167,13 @@ Der Bericht (`schnurrkanone-<art>-<datum>.json`) enthält Beschreibung, Gerät/B
 - `js/rooms.js` – Sonderräume im Streifzug: Die Leere, Wurmloch, World Wide Web
 - `js/perf.js` – Grafik-Stufen (Hoch / Ausgeglichen / Akku sparen): Leinwand-Auflösung (iPhone sonst 3×), Bildrate, Teilchenzahl; hinter Menüs automatisch 30 Bilder/s
 - `js/combo.js` – Combo-Anzeige: Abzeichen mit Zeit-Ring, Stufen (Nett!, Super!, Wahnsinn!, Schnurrtastisch!, Legendär!), Funken, Flammen, „Kette gerissen“
-- `js/splash.js` – Startbildschirm mit Logo-Animation, Querformat-Hinweis
+- `js/splash.js` – Titelbildschirm (Katze mit Saxophon, Menü), Querformat-Hinweis
+- `js/jazz.js` – Jazz-Titelmusik (WebAudio)
+- `js/hud.js` – ≡-Menü, Schnellknöpfe, HUD über dem Spielfeld, iOS-Höhen-Fix
+- `js/limit.js` – Grenzbruch-Waffen und Raritäten
+- `js/milestones.js` – Meilensteine, Raum 500/1000
+- `js/wheel.js` – Glücksrad
+- `js/winfo.js` – Waffen-Infokarte
 - `js/touch.js` – Touch-Drag & Doppeltipp im Rucksack, Zoom-Sperre, Audio-Fortsetzung, Service-Worker-Registrierung
 - `manifest.webmanifest`, `sw.js`, `icons/` – PWA (Home-Bildschirm, Offline)
 

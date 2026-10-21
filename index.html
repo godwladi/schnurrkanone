@@ -44,16 +44,20 @@
       </aside>
     </main>
   </div>
-  <div id="splash" role="button" aria-label="Spiel starten">
+  <div id="splash" role="button" aria-label="Titelbildschirm">
     <div class="sp-glow"></div>
-    <div class="sp-logo">
-      <img src="icons/icon-512.png" alt="">
-      <i class="sp-eye l"></i><i class="sp-eye r"></i>
-      <i class="sp-beam l"></i><i class="sp-beam r"></i>
+    <canvas id="titleCv"></canvas>
+    <div class="tt-head">
+      <div class="sp-logo">
+        <img src="icons/icon-512.png" alt="">
+        <i class="sp-eye l"></i><i class="sp-eye r"></i>
+        <i class="sp-beam l"></i><i class="sp-beam r"></i>
+      </div>
+      <h1 class="sp-title"><span>S</span><span>c</span><span>h</span><span>n</span><span>u</span><span>r</span><span>r</span><b><span>k</span><span>a</span><span>n</span><span>o</span><span>n</span><span>e</span></b></h1>
+      <p class="sp-sub">Idle-Katzen-Shooter</p>
     </div>
-    <h1 class="sp-title"><span>S</span><span>c</span><span>h</span><span>n</span><span>u</span><span>r</span><span>r</span><b><span>k</span><span>a</span><span>n</span><span>o</span><span>n</span><span>e</span></b></h1>
-    <p class="sp-sub">Idle-Katzen-Shooter</p>
     <p class="sp-tap">Tippen zum Starten</p>
+    <nav class="tt-menu" hidden></nav>
   </div>
   <div id="rotate"><div class="rt-phone">📱</div><p>Bitte quer halten</p><small>Schnurrkanone spielt sich am besten im Querformat.</small><button class="btn" id="rotateSkip">Trotzdem hochkant spielen</button></div>
   <div id="modalRoot"></div>
@@ -69,6 +73,7 @@
   <script src="js/draw.js"></script>
   <script src="js/fx.js"></script>
   <script src="js/audio2.js"></script>
+  <script src="js/jazz.js"></script>
   <script src="js/events.js"></script>
   <script src="js/talents.js"></script>
   <script src="js/battle.js"></script>
@@ -88,7 +93,12 @@
   <script src="js/traits.js"></script>
   <script src="js/variants.js"></script>
   <script src="js/daily.js"></script>
+  <script src="js/limit.js"></script>
+  <script src="js/winfo.js"></script>
+  <script src="js/milestones.js"></script>
+  <script src="js/wheel.js"></script>
   <script src="js/anim.js"></script>
   <script src="js/dock.js"></script>
+  <script src="js/hud.js"></script>
 </body>
 </html>

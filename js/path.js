@@ -3,7 +3,7 @@
 // Streifzug-Wegkarte: Nach jedem Boss (und dem Segen) wählt man den nächsten Weg.
 // Jede Tür zeigt Art und Gebiet des nächsten Raums:
 //   Kampf      – normaler Raum
-//   Elite      – zähere Gegner (+40 %, Boss +50 %), werfen öfter; 2 Segen, +3 Gräten
+//   Elite      – zähere Gegner (+40 %, Boss +50 %), werfen öfter; Segen garantiert, +3 Gräten
 //   Händler    – Heilung, Segen, Waffenkiste, Segen schärfen gegen Streifzug-Münzen
 //   Katzenkorb – ausruhen (Leben) oder einen Segen verstärken
 //   Ereignis   – kleine Geschichte mit zwei Entscheidungen (Risiko oder sicher)
@@ -13,8 +13,8 @@
 // ---------------------------------------------------------------------------
 
 const DOORS = {
-  fight: { icon: '⚔️', name: 'Kampf',        col: '#c7b3ff', desc: '10 Gegner und ein Boss · 1 Segen' },
-  elite: { icon: '👑', name: 'Elite',        col: '#ff5d73', desc: 'Zähe Gegner, werfen öfter · 2 Segen, +3 🦴' },
+  fight: { icon: '⚔️', name: 'Kampf',        col: '#c7b3ff', desc: '10 Gegner und ein Boss' },
+  elite: { icon: '👑', name: 'Elite',        col: '#ff5d73', desc: 'Zähe Gegner, werfen öfter · Segen garantiert, +3 🦴' },
   shop:  { icon: '🎒', name: 'Händler-Maus', col: '#ffd34d', desc: 'Heilung, Segen und Waffen gegen Münzen' },
   rest:  { icon: '💤', name: 'Katzenkorb',   col: '#6ee7a0', desc: 'Ausruhen oder einen Segen verstärken' },
   event: { icon: '🔮', name: 'Ereignis',     col: '#7ef9ff', desc: 'Eine Begegnung – Glück oder Risiko?' },
@@ -79,7 +79,7 @@ const Path = {
       const where = b ? `<span class="dbiome" style="--bc:${b.accent || '#c7b3ff'}">${b.special ? '✨ ' : ''}${b.name}</span>` : '<span class="dbiome stop">Zwischenhalt</span>';
       return `<button class="door door-${d.type}" data-door="${i}" style="--dc:${t.col}">
         <span class="dicon">${t.icon}</span><b>${d.guard ? 'Wächter' : t.name}</b>${where}
-        <small>${d.guard ? 'Pflichtkampf · stärkerer Boss · 2 Segen' : b && b.special ? b.desc : t.desc}</small></button>`;
+        <small>${d.guard ? 'Pflichtkampf · stärkerer Boss · Segen garantiert' : b && b.special ? b.desc : t.desc}</small>${d.type === 'fight' && !d.guard && Run.room() % BOON_EVERY === 0 ? '<em class="dboon">✨ Segen</em>' : ''}</button>`;
     }).join('');
     this.modal({
       title: '🗺️ Wohin geht die Reise?',
@@ -152,7 +152,7 @@ const Path = {
     if (id === 'boon') this.giftBoon(b => !b.pact && !b.heal);
     if (id === 'box') {
       const free = S.grid.indexOf(null);
-      if (free >= 0) { const w = { t: U.pick(WEAPON_IDS), r: Math.min(MAX_TIER, 2 + S.up.box), v: Variants.roll(0.25) }; S.grid[free] = w; Game.discover(w); recalc(); Game.emit('weapons'); UI.toast(`📦 <b>${WEAPONS[w.t].name} ${U.roman(w.r)}</b><br><small>im Rucksack</small>`, 'good'); }
+      if (free >= 0) { const w = { t: U.pick(WEAPON_IDS), r: Math.min(BOX_MAX_TIER, 2 + S.up.box), v: Variants.roll(0.25) }; S.grid[free] = w; Game.discover(w); recalc(); Game.emit('weapons'); UI.toast(`📦 <b>${WEAPONS[w.t].name} ${U.roman(w.r)}</b><br><small>im Rucksack</small>`, 'good'); }
     }
     if (id === 'sharpen') {
       const own = Run.owned().filter(o => this.sharpenable(o.b));

@@ -136,13 +136,31 @@ const Draw = {
     const L = '#2a1e2e';
     const f = U.clamp(opt.fury || 0, 0, 1);
     const lx = opt.look ? opt.look.x * 1.6 : 0, ly = opt.look ? opt.look.y * 1.8 : 0;
-    const blink = !opt.still && !opt.laserEyes && f < 0.5 && (t % 4) < 0.12;
+    // Treffer: zugekniffene Augen und aufgerissenes Maul (opt.ouch 0..1, opt.ouchBig = harter Treffer),
+    // wenig Leben: besorgt (opt.worry) – beides übertönt Wut und Blinzeln
+    const ouch = opt.laserEyes > 0 ? 0 : opt.ouch || 0, worry = !ouch && opt.worry;
+    const blink = !ouch && !opt.still && !opt.laserEyes && f < 0.5 && (t % 4) < 0.12;
     const EYES = [-6, 7];
     if (opt.eyesOut) {
       const m = ctx.getTransform();
       for (const ex of EYES) opt.eyesOut.push(m.transformPoint(new DOMPoint(ex + lx, -1 + ly)));
     }
-    if (blink) {
+    if (ouch > 0) {
+      ctx.strokeStyle = L; ctx.lineWidth = 2.3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath(); // > <
+      ctx.moveTo(-9.5, -4.5); ctx.lineTo(-3.5, -1); ctx.lineTo(-9.5, 2.5);
+      ctx.moveTo(10.5, -4.5); ctx.lineTo(4.5, -1); ctx.lineTo(10.5, 2.5);
+      ctx.stroke();
+      ctx.lineWidth = 1.6; ctx.beginPath(); // schmerzverzogene Brauen: innen hoch
+      ctx.moveTo(-10, -8); ctx.lineTo(-3, -10.5); ctx.moveTo(11, -8); ctx.lineTo(4, -10.5);
+      ctx.stroke();
+      // Tränen spritzen zur Seite
+      const k = (1 - ouch) * 1.4;
+      ctx.globalAlpha *= Math.min(1, ouch * 2);
+      Draw.ellipse(ctx, -12 - k * 8, -1 + k * 6, 1.8, 2.6, '#7ec8ff');
+      Draw.ellipse(ctx, 13 + k * 8, -1 + k * 6, 1.8, 2.6, '#7ec8ff');
+      ctx.globalAlpha /= Math.min(1, ouch * 2) || 1;
+    } else if (blink) {
       ctx.strokeStyle = L; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(-9, -1); ctx.lineTo(-3, -1); ctx.moveTo(4, -1); ctx.lineTo(10, -1); ctx.stroke();
     } else {
@@ -154,13 +172,16 @@ const Draw = {
         ctx.globalAlpha = a0;
       } else {
         // Pupillen werden mit steigender Feuerrate zu schmalen Jagd-Schlitzen
-        const rx = 2.6 * (1 - f * 0.55), ry = 2.6 * (1 + f * 0.25);
+        const rx = 2.6 * (1 - f * 0.55) * (worry ? 0.75 : 1), ry = 2.6 * (1 + f * 0.25) * (worry ? 0.8 : 1);
         for (const ex of EYES) {
           Draw.ellipse(ctx, ex + lx, ly, rx, ry, eye);
           Draw.circle(ctx, ex + 1.2 + lx * 0.6, -2.4 + ly * 0.4, 1.4 - f * 0.4, '#fff');
         }
       }
-      if (f > 0.04) {
+      if (worry) { // besorgte Brauen: innen hochgezogen
+        ctx.strokeStyle = L; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(-10, -7.5); ctx.lineTo(-3, -9.5); ctx.moveTo(11, -7.5); ctx.lineTo(4, -9.5); ctx.stroke();
+      } else if (f > 0.04) {
         // Oberlider (Fellfarbe) kneifen die Augen zusammen, innen tiefer = grimmig
         const inner = 0.5 + f * 5, outer = f * 2.2;
         for (const [ex, dir] of [[-6, 1], [7, -1]]) {
@@ -178,7 +199,14 @@ const Draw = {
     // Nase, Mund, Schnurrhaare
     Draw.tri(ctx, [-2, 5], [3, 5], [0.5, 8], '#ff7a9a');
     ctx.strokeStyle = L; ctx.lineWidth = 1.4;
-    if (opt.roar || f > 0.78) { // weit aufgerissenes Fauch-Maul mit Zähnchen
+    if (ouch > 0) { // aufgerissenes „Au!“-Maul, beim harten Treffer weiter offen und zitternd
+      const big = opt.ouchBig ? 1.35 : 1, wob = Math.sin(t * 40) * 0.5 * big;
+      Draw.ellipse(ctx, 0.5, 10.2, (3.6 + wob) * big, 3.4 * big, '#5a1a2a');
+      Draw.ellipse(ctx, 0.5, 11.6 * (big > 1 ? 1.04 : 1), 2.2 * big, 1.3 * big, '#ff7a9a');
+      ctx.fillStyle = '#fff'; ctx.fillRect(-2.2 * big + 0.5, 7.4 + (big - 1) * -2, 4.4 * big, 1.2);
+    } else if (worry) { // wackelige Sorgen-Linie
+      ctx.beginPath(); ctx.moveTo(-3.5, 10); ctx.quadraticCurveTo(-1.5, 8.6 + Math.sin(t * 6) * 0.6, 0.5, 10); ctx.quadraticCurveTo(2.5, 11.2, 4.5, 9.6); ctx.stroke();
+    } else if (opt.roar || f > 0.78) { // weit aufgerissenes Fauch-Maul mit Zähnchen
       const k = opt.roar ? 1 : 0.75 + Math.sin(t * 18) * 0.08;
       Draw.ellipse(ctx, 0.5, 8 + 3 * k, 5.5 * k, 4.5 * k, '#5a1a2a');
       Draw.tri(ctx, [-3.5, 7.5], [-2, 7.5], [-2.8, 10], '#fff'); Draw.tri(ctx, [3, 7.5], [4.5, 7.5], [3.8, 10], '#fff');
@@ -202,8 +230,24 @@ const Draw = {
     const ch = `rgba(255,${120 - f * 60},${150 - f * 90},${0.35 + f * 0.35})`;
     Draw.circle(ctx, -11, 6, 3 + f, ch);
     Draw.circle(ctx, 13, 6, 3 + f, ch);
+    // Schweißtropfen bei Sorge, Sterne nach einem harten Treffer
+    if (worry || ouch > 0) {
+      const k = (t * 1.2) % 1;
+      ctx.globalAlpha *= 1 - k * 0.6;
+      Draw.ellipse(ctx, 15, -10 + k * 7, 2, 2.8, '#9fd8ff');
+      ctx.globalAlpha /= 1 - k * 0.6;
+    }
+    if (ouch > 0 && opt.ouchBig) {
+      ctx.fillStyle = '#ffd34d';
+      for (let i = 0; i < 3; i++) {
+        const a = t * 6 + i * 2.1, sx = Math.cos(a) * 23, sy = -14 + Math.sin(a) * 6; // seitlich am Kopf, nicht unter dem Hut
+        ctx.beginPath();
+        for (let j = 0; j < 8; j++) { const r = j % 2 ? 1.1 : 2.8, b = j * Math.PI / 4; ctx.lineTo(sx + Math.cos(b) * r, sy + Math.sin(b) * r); }
+        ctx.closePath(); ctx.fill();
+      }
+    }
     // Zornesader
-    if (f > 0.55) {
+    if (f > 0.55 && !ouch) {
       const p = 1 + Math.sin(t * 14) * 0.15, a0 = ctx.globalAlpha;
       ctx.globalAlpha = a0 * U.clamp((f - 0.55) / 0.2, 0, 1);
       ctx.strokeStyle = '#ff2d55'; ctx.lineWidth = 1.6;

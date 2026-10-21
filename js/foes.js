@@ -400,6 +400,24 @@ const Foes = {
     }
   },
 
+  // Flieger: zwei Flügel sitzen seitlich am Körper (auf Gesichtshöhe, schweben mit) und schlagen
+  wings(ctx, o, t) {
+    // Ansatz am Rand der Körperfläche (Rissfläche = sichtbarer Körper), schwebt mit dem Gegner
+    const f = FACE[o.kind], z = CRACK_ZONE[o.kind], s = o.scale, bob = f && f.bob ? f.bob(t, o) : 0;
+    const ly = (z ? (z.length === 3 ? z[1] : z[1] + z[3] / 2) : -OBST_H[o.kind] * 0.55) + bob;
+    const half = z ? (z.length === 3 ? z[2] * 0.82 : z[2] * 0.45) : OBST_W[o.kind] * 0.36;
+    const size = 34 * s, flap = Math.sin(t * 14 + o.id);
+    for (const sx of [-1, 1]) {
+      ctx.save();
+      ctx.translate(o.x + sx * half * s, o.y + ly * s);
+      ctx.scale(sx, 1);
+      ctx.rotate(-0.15 - flap * 0.45);
+      // Flügelwurzel (unten links im Symbol) liegt genau am Ansatzpunkt
+      Icons.draw(ctx, 'wing', size * 11 / 32, -size * 4 / 32, size);
+      ctx.restore();
+    }
+  },
+
   star(ctx, x, y, r) {
     ctx.beginPath();
     for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
@@ -420,6 +438,7 @@ Draw.obstacle = function (ctx, o, biome, t) {
   ctx.rotate(sway + o.tilt + lean);
   ctx.scale(2 - breathe, breathe);
   ctx.translate(-o.x, -o.y);
+  if (o.trait === 'flyer' && !o.dead) Foes.wings(ctx, o, t); // hinter dem Körper, bewegt sich mit
   _drawObstacle(ctx, o, biome, t);
   if (o.fl > 0) { // weißes Aufblitzen: additiv nachzeichnen (vor dem Gesicht, damit es klar bleibt)
     ctx.globalCompositeOperation = 'lighter';

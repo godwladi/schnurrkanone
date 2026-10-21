@@ -12,7 +12,7 @@ const DAILY_MODS = [
   { id: 'glass', icon: '🔮', name: 'Glaskanone',  desc: 'Doppelter Schaden, aber nur halbes Leben' },
   { id: 'paws',  icon: '🐾', name: 'Pfotentag',   desc: 'Waffen −40 % Schaden, Pfotenhiebe ×4, Start mit Pfotensturm' },
   { id: 'rush',  icon: '⏱️', name: 'Eiltag',      desc: 'Boss-Countdown −30 %, dafür doppelte Beute' },
-  { id: 'elite', icon: '👑', name: 'Elitetag',    desc: 'Jeder Kampfraum ist ein Elite-Raum (2 Segen)' },
+  { id: 'elite', icon: '👑', name: 'Elitetag',    desc: 'Jeder Kampfraum ist ein Elite-Raum (Segen garantiert)' },
   { id: 'fire',  icon: '🔥', name: 'Feuertag',    desc: 'Start mit Glutkrallen ×2 und Flammenmeer' },
   { id: 'frost', icon: '❄️', name: 'Frosttag',    desc: 'Start mit Frostkrallen ×2, Gegner werfen 25 % seltener' },
   { id: 'weird', icon: '🌀', name: 'Sonderbar',   desc: 'Jeder Raum ist ein Sonderraum' },
@@ -166,7 +166,7 @@ UI.after_run = function (el) { _dAfter.call(this, el); const b = $('#dailyStart'
 // ---------------------------------------------------------------- Hinweise beim ersten Mal
 const _hDoors = Path.showDoors;
 Path.showDoors = function () {
-  Hints.once('path', 'Die Wegkarte', 'Wähle den nächsten Raum: Elite ist härter, bringt aber 2 Segen. Händler, Katzenkorb und Ereignisse sind Zwischenhalte ohne Kampf.', 'map');
+  Hints.once('path', 'Die Wegkarte', 'Wähle den nächsten Raum: Elite ist härter, bringt aber sicher einen Segen (normal gibt es nur jeden 3. Raum einen). Händler, Katzenkorb und Ereignisse sind Zwischenhalte ohne Kampf.', 'map');
   _hDoors.call(this);
 };
 const _hGrant = Run.grant;

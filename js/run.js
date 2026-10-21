@@ -9,10 +9,27 @@
 // ---------------------------------------------------------------------------
 
 const RUN_UNLOCK = 8;
-const GUARDIAN_EVERY = 20; // Wächter-Raum (stärker, 2 Segen als Beute)
+const GUARDIAN_EVERY = 20; // Wächter-Raum (stärker, Segen garantiert)
 // Gegner werden je geschafftem Raum zäher (Bot-Läufe: ohne das fielen Bosse in Raum 1–30
 // nach 1–3 s, mit 11 % je Raum enden gute Läufe etwa zwischen Raum 25 und 45)
 const RUN_HP_GROWTH = 1.11;
+// Ab Raum 31 wuchs das Leben sonst um ×1,53 je Raum (Stufen-Formel × Streifzug-Zuschlag), der
+// eigene Schaden aber nur noch linear (Training) – ab etwa Raum 70 richteten Treffer praktisch
+// nichts mehr aus. Danach daher: bis Raum 150 ≈ +7,5 % plus Potenz-Anteil je Raum, später nur
+// noch der Potenz-Anteil (≈ Raum^3,4, so schnell wächst Training + Segen + Grenzbruch).
+const RUN_SOFT_FROM = 30;
+const runGrowth = r => 1 + 3.4 / r + 0.075 * (r <= 150 ? 1 : Math.exp(-(r - 150) / 50));
+const RUN_HP_TABLE = [1];
+function runHpFactor(room) { // Faktor auf Econ.hp(min(Raum, 30)) · 1,11^(min(Raum, 30) − 1)
+  for (let r = RUN_HP_TABLE.length; r <= room; r++) RUN_HP_TABLE[r] = RUN_HP_TABLE[r - 1] * (r > RUN_SOFT_FROM ? runGrowth(r) : 1);
+  return RUN_HP_TABLE[room];
+}
+// Sicherung gegen jede Mauer: ein normaler Gegner braucht höchstens so viele Sekunden
+// Dauerfeuer (Boss: höchstens BOSS_CAP_S), egal wie die Ausrüstung gerade steht.
+// Zu leicht wird es nie: mindestens MOB_FLOOR_S bzw. BOSS_FLOOR_S.
+const MOB_CAP_S = 2.4, BOSS_CAP_S = 15, MOB_FLOOR_S = 0.45, BOSS_FLOOR_S = 7;
+// Segen gibt es nur noch nach jedem 3. Raum (Wächter und Elite: einer extra)
+const BOON_EVERY = 3;
 
 // rar: seltener angeboten · max: höchstens so oft · pact: Pakt mit Nachteil (rote Karte)
 // fx(n): Gesamtwirkung bei n Stapeln (für die Übersicht und die Vorschau beim Wählen)
@@ -61,7 +78,9 @@ const Run = {
   },
   rateMul() { return this.active ? 1 + 0.2 * this.n('coffee') : 1; },
   critAdd() { return this.active ? 0.12 * this.n('yarn') : 0; },
-  takenMul() { return this.active ? Math.pow(0.8, this.n('fur')) * (1 + 0.02 * S.run.depth) : 1; },
+  // erlittener Schaden: +2 % je Raum bis Raum 50, danach nur noch +0,4 % (sonst ×11 in Raum 500)
+  depthHurt() { const d = S.run.depth; return 1 + 0.02 * Math.min(d, 50) + 0.004 * Math.max(0, d - 50); },
+  takenMul() { return this.active ? Math.pow(0.8, this.n('fur')) * this.depthHurt() : 1; },
   atkMul() { return this.active ? Math.pow(0.6, this.n('black')) * (this.guardian() ? 0.8 : 1) * (S.run.elite ? 0.8 : 1) : 1; },
   ultPct() { return this.active ? Math.min(0.9, 0.7 + 0.01 * S.run.depth) : 0.65; },
   shieldAdd() { return this.n('nap'); },
@@ -95,7 +114,7 @@ const Run = {
     add('🔫', 'Feuerrate', `×${this.rateMul().toFixed(2)}`, this.rateMul() > 1 ? 'up' : '');
     add('🎯', 'Krit-Chance', `+${pct(this.critAdd())} %`, this.critAdd() ? 'up' : '');
     add('❤️', 'Leben', `${Math.ceil(r.hp)} / ${r.maxHp}`, r.hp / r.maxHp < 0.35 ? 'down' : '');
-    const taken = Math.pow(0.8, this.n('fur')) * (1 + 0.02 * r.depth);
+    const taken = Math.pow(0.8, this.n('fur')) * this.depthHurt();
     add('🛡️', 'Erlittener Schaden', `×${taken.toFixed(2)}`, taken > 1 ? 'down' : taken < 1 ? 'up' : '');
     if (this.n('paw')) add('🐾', 'Pfotenhiebe', `×${1 + this.n('paw')}`, 'up');
     if (this.n('night')) add('🌙', 'Unter 40 % Leben', `+${60 * this.n('night')} %`, Vitals.frac() < 0.4 ? 'up live' : 'up');
@@ -179,6 +198,7 @@ const Run = {
     S.run.stash = {
       kills: S.kills, farm: S.farm, farmKills: S.farmKills, autoBoss: S.autoBoss, stage: S.stage,
       coins: S.coins, grid: S.grid, slots: S.slots, up: S.up, boxesBought: S.boxesBought, coinMult: R.coinMult,
+      bones: S.bones, pets: { ...S.pets },
     };
     Object.assign(S.run, { active: true, depth: 0, hp: 100, maxHp: 100, boons: {}, choosing: false, offer: null, picks: 0, biome: U.randi(0, BIOMES.length - 1),
       phase: null, path: null, elite: false, bonusBones: 0, shop: null, event: null, catnip: false, lastStop: null });
@@ -186,7 +206,9 @@ const Run = {
     S.kills = 0; S.farm = false; S.farmKills = 0; S.autoBoss = true; S.stage = 1;
     S.coins = 0; S.grid = Array(GRID_SIZE).fill(null); S.slots = [{ t: 'pistol', r: 1 }, null, null, null];
     S.up = Object.fromEntries(Object.keys(S.up).map(k => [k, 0])); S.boxesBought = 0;
-    UI.disp.coins = 0;
+    // Begleiter starten bei null und werden mit Streifzug-Gräten gekauft (eigene Börse ab 0)
+    S.pets = Object.fromEntries(Object.keys(S.pets).map(k => [k, 0])); S.bones = 0;
+    UI.disp.coins = 0; UI.disp.bones = 0;
     recalc(); Game.emit('weapons');
     this.clearField(B);
     document.body.classList.add('in-run');
@@ -212,11 +234,24 @@ const Run = {
     if (g) o.scale *= 1.15;
     B.bossTimeMax = 25 + 5 * this.n('time') + o.shieldAt.length * 4;
     B.bossTimer = B.bossTimeMax;
-    B.showBanner(g ? 'WÄCHTER!' : 'BOSS!', `${BOSS_NAMES[o.kind]} · ${B.bossTimeMax} s${g ? ' · 2 Segen als Beute' : ''}`, g ? '#ffd34d' : '#ff4d6d');
+    B.showBanner(g ? 'WÄCHTER!' : 'BOSS!', `${BOSS_NAMES[o.kind]} · ${B.bossTimeMax} s${g ? ' · Segen garantiert' : ''}`, g ? '#ffd34d' : '#ff4d6d');
   },
 
+  // gleichmäßiger Schaden pro Sekunde ohne kurzfristige Schübe (Raserei, Skills) – für den Deckel
+  steadyDps() {
+    return Math.max(1, R.dps * this.dmgMul({}, 'bullet') * this.rateMul() * (1 + this.critAdd() * (R.critDmg - 1)) * (typeof Limit !== 'undefined' ? Limit.dpsMul() : 1));
+  },
   adjustObstacle(o) {
-    if (this.active) o.hp = o.maxHp = o.maxHp * Math.pow(RUN_HP_GROWTH, S.run.depth);
+    if (this.active) {
+      const room = this.room(), base = Math.min(room, RUN_SOFT_FROM);
+      // ab Raum 31: Leben aus der weichen Kurve statt aus der Stufen-Formel
+      if (room > RUN_SOFT_FROM) o.hp = o.maxHp = o.maxHp / Econ.hp(room) * Econ.hp(base) * runHpFactor(room);
+      o.hp = o.maxHp = o.maxHp * Math.pow(RUN_HP_GROWTH, base - 1);
+      if (room > RUN_SOFT_FROM && !o.treasure) {
+        const d = this.steadyDps(), lo = d * (o.boss ? BOSS_FLOOR_S : MOB_FLOOR_S), hi = d * (o.boss ? BOSS_CAP_S : MOB_CAP_S);
+        o.hp = o.maxHp = U.clamp(o.maxHp, lo, Math.max(lo, hi));
+      }
+    }
     if (this.active && o.boss && this.guardian()) o.hp = o.maxHp = o.maxHp * 1.6;
     // Elite-Raum: zähere Gegner (gewählt auf der Wegkarte, dafür bessere Beute)
     if (this.active && S.run.elite) { o.hp = o.maxHp = o.maxHp * (o.boss ? 1.5 : 1.4); o.elite = true; o.scale *= 1.06; }
@@ -238,19 +273,29 @@ const Run = {
     S.stage = this.room();
     if (S.run.depth > S.run.best) S.run.best = S.run.depth;
     S.stats.runBest = Math.max(S.stats.runBest || 0, S.run.depth);
+    // Streifzug-Gräten für Begleiter (und Glückskisten) unterwegs
+    const bones = this.bossBones(S.run.depth, g || S.run.elite);
+    S.bones += bones;
+    if (o && o.x !== undefined) B.spawnFlyers(o.x, o.y - 80, Math.min(12, bones + 2), 'bone');
     Vitals.heal(B, 0.15);
     for (let i = 0; i < 60; i++) B.particle(B.W / 2 + U.rand(-200, 200), -10, U.rand(-120, 120), U.rand(50, 300), `hsl(${U.randi(0, 360)},90%,65%)`, U.rand(1.5, 2.5), U.rand(4, 8), 200, false, 'confetti');
     SFX.play('victory');
-    B.showBanner(`RAUM ${S.run.depth} GESCHAFFT!`, 'Wähle einen Segen', '#6ee7a0');
-    S.run.picks = g || S.run.elite ? 2 : 1;
+    // Segen nur nach jedem 3. Raum; Wächter und Elite bringen immer einen (am 3. Raum zwei)
+    S.run.picks = this.boonsFor(S.run.depth, g, S.run.elite);
+    const left = BOON_EVERY - S.run.depth % BOON_EVERY;
+    B.showBanner(`RAUM ${S.run.depth} GESCHAFFT! +${bones} 🦴`, S.run.picks ? (S.run.picks > 1 ? `Wähle ${S.run.picks} Segen` : 'Wähle einen Segen') : `Nächster Segen in ${left} ${left === 1 ? 'Raum' : 'Räumen'} · Weg wählen`, '#6ee7a0');
     if (S.run.elite) S.run.bonusBones = (S.run.bonusBones || 0) + 3;
-    S.run.phase = 'boon';
+    S.run.phase = S.run.picks ? 'boon' : 'path';
+    S.run.path = null;
     S.run.choosing = true;
     S.run.offer = null;
     this.chooseAt = Date.now();
     Game.emit('stage');
+    if (typeof Milestones !== 'undefined') Milestones.onRoom(S.run.depth);
     setTimeout(() => this.offerChoice(), 1100);
   },
+  bossBones: (depth, tough) => 2 + Math.floor(depth / 15) + (tough ? 2 : 0),
+  boonsFor(depth, guardian, elite) { return (depth % BOON_EVERY === 0 ? 1 : 0) + (guardian || elite ? 1 : 0); },
 
   bossEscaped(B) {
     const b = B.bossObj;
@@ -282,7 +327,7 @@ const Run = {
     B.whiteFlash = 0.6;
     const nb = biomeFor(S.stage);
     const where = `Raum ${this.room()} · ${nb.special ? nb.desc : nb.name}`;
-    if (r.elite) B.showBanner('ELITE-RAUM!', `${where} · zähe Gegner, 2 Segen`, '#ff5d73');
+    if (r.elite) B.showBanner('ELITE-RAUM!', `${where} · zähe Gegner, Segen garantiert`, '#ff5d73');
     else B.showBanner(nb.special ? nb.name.toUpperCase() + '!' : `RAUM ${this.room()}`, `${nb.special ? where : nb.name}${this.guardian() ? ' · Wächter-Raum!' : ''}`, nb.special ? nb.accent : '#c7b3ff');
     SFX.play('eventStart');
     this.renderBar();
@@ -367,7 +412,7 @@ const Run = {
 
   die(B) {
     const r = S.run, depth = r.depth, record = depth > 0 && depth >= r.best;
-    const bones = this.reward();
+    const bones = this.reward(), spare = S.run.stash && S.run.stash.pets ? Math.floor(S.bones) : 0; // unverbrauchte Streifzug-Gräten
     S.bones += bones;
     this.end(B);
     const coins = this.coinReward(S.stage, R.coinMult);
@@ -375,7 +420,7 @@ const Run = {
     UI.modal({
       title: record ? '🏆 Streifzug beendet – Rekord!' : '💫 Streifzug beendet',
       html: `<p>Deine Katze ist in <b>Raum ${depth + 1}</b> k.o. gegangen.</p>
-        <p class="big">+${bones} 🦴${coins ? ` · +${U.fmt(coins)} 💰` : ''}</p>
+        <p class="big">+${bones + spare} 🦴${coins ? ` · +${U.fmt(coins)} 💰` : ''}</p>${spare ? `<p class="muted">davon ${spare} 🦴 nicht ausgegebene Streifzug-Gräten</p>` : ''}
         <p class="muted">Geschaffte Räume: ${depth} · Rekord: ${r.best}</p>${typeof RunLog !== 'undefined' ? RunLog.html() : ''}`, cls: 'runend',
       buttons: [{ label: 'Zurück nach Hause', cls: 'primary', action: () => { if (bones) Battle.spawnFlyers(Battle.W / 2, Battle.H / 2, Math.min(12, bones), 'bone'); } }],
     });
@@ -385,7 +430,7 @@ const Run = {
     if (!this.active) return;
     UI.modal({
       title: '🏳️ Streifzug beenden?',
-      html: `<p>Du nimmst <b>${this.reward()} 🦴</b> und <b>${U.fmt(this.homeCoins())} 💰</b> für ${S.run.depth} geschaffte Räume mit. Waffen und Münzen aus dem Streifzug verfallen.</p>`,
+      html: `<p>Du nimmst <b>${this.reward() + (S.run.stash && S.run.stash.pets ? Math.floor(S.bones) : 0)} 🦴</b> und <b>${U.fmt(this.homeCoins())} 💰</b> für ${S.run.depth} geschaffte Räume mit. Waffen und Münzen aus dem Streifzug verfallen.</p>`,
       buttons: [{ label: 'Weiterkämpfen' }, { label: 'Beenden', cls: 'danger', action: () => this.die(Battle) }],
     });
   },
@@ -397,6 +442,8 @@ const Run = {
       S.stage = st.stage; S.coins = st.coins; S.grid = st.grid; S.slots = st.slots; S.up = st.up; S.boxesBought = st.boxesBought;
       UI.disp.coins = S.coins;
     }
+    // Begleiter wie vor dem Lauf; nicht ausgegebene Streifzug-Gräten wandern zu den Gräten daheim
+    if (st.pets) { S.pets = st.pets; S.bones = (st.bones || 0) + S.bones; UI.disp.bones = S.bones; Game.emit('pets'); }
     Object.assign(S.run, { active: false, choosing: false, offer: null, stash: null, phase: null, path: null, elite: false, shop: null, event: null, catnip: false });
     recalc(); Game.emit('weapons');
     this.clearField(B);
@@ -461,13 +508,13 @@ UI.tab_run = function () {
     return `<div class="sec runbox">
         <h3>🗺️ Streifzug <small>Roguelike-Abenteuer</small></h3>
         <ul class="runrules">
-          <li>🐣 Du startest <b>ganz von vorn</b>: Stufe 1, nur die Miau-Pistole I, keine Münzen, kein Training, keine Katzen-Boni. Unterwegs verdienst du eigene Münzen für Kisten und Training.</li>
+          <li>🐣 Du startest <b>ganz von vorn</b>: Stufe 1, nur die Miau-Pistole I, keine Münzen, kein Training, keine Katzen-Boni, <b>keine Begleiter und 0 🦴</b>. Unterwegs verdienst du eigene Münzen und Gräten (jeder Boss) für Kisten, Training und Begleiter. Nicht ausgegebene Gräten nimmst du mit nach Hause.</li>
           <li>🗺️ Nach jedem Boss wählst du den Weg: Kampf, <b>Elite</b>, Händler, Katzenkorb oder Ereignis. Gegner werden mit jedem Raum zäher.</li>
-          <li>🚪 Jeder Raum: neues Gebiet, 10 Gegner und ein <b>Boss</b>. Jeder 20. Raum ist ein <b>Wächter</b> (stärker, dafür 2 Segen). Entkommt ein Boss, musst du den Raum wiederholen.</li>
+          <li>🚪 Jeder Raum: neues Gebiet, 10 Gegner und ein <b>Boss</b>. Jeder 20. Raum ist ein <b>Wächter</b> (stärker, dafür ein Segen garantiert). Entkommt ein Boss, musst du den Raum wiederholen.</li>
           <li>⏸️ Solange ein Menü offen ist, ist der Streifzug <b>pausiert</b> – in Ruhe verschmelzen und kaufen.</li>
           <li>❤️ Leben heilen sich <b>nicht</b> von selbst – nur Segen, Raserei, Fischregen und Schatztruhen helfen.</li>
           <li>🎯 Tippe auf heranfliegende Geschosse, um sie <b>zurückzuschleudern</b>. 🛡️ Schild blockt alles.</li>
-          <li>✨ Nach jedem Boss: <b>1 von 3 Segen</b> – oder ein riskanter <b>Pakt</b>.</li>
+          <li>✨ Nach jedem <b>3. Raum</b>: 1 von 3 Segen – oder ein riskanter <b>Pakt</b>. Elite und Wächter bringen immer einen.</li>
           <li>💫 K.O. = Streifzug vorbei. Beute je geschafftem Raum: <b>3 🦴</b> und ein Münzschatz fürs Hauptspiel, das so lange unverändert wartet.</li>
         </ul>
         <div class="rbstats">

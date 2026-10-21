@@ -298,7 +298,7 @@ const Battle = {
       if (p.floor && p.y > this.groundY + 6) { p.y = this.groundY + 6; p.vy *= -0.35; p.vx *= 0.7; }
     }
     this.parts = this.parts.filter(p => p.life > 0);
-    for (const tx of this.txt) { tx.x += (tx.vx || 0) * dt; tx.vx *= Math.pow(0.05, dt); tx.y += tx.vy * dt; tx.vy *= Math.pow(0.05, dt); tx.life -= dt; }
+    for (const tx of this.txt) { if (tx.bump > 0) tx.bump -= realDt; tx.x += (tx.vx || 0) * dt; tx.vx *= Math.pow(0.05, dt); tx.y += tx.vy * dt; tx.vy *= Math.pow(0.05, dt); tx.life -= dt; }
     this.txt = this.txt.filter(t => t.life > 0);
 
     // Münzen/Gräten fliegen zur Anzeige
@@ -486,9 +486,8 @@ const Battle = {
     Foes.onHit(this, o, dmg, crit, src);
     if (!quiet || this.laserTxt <= 0) {
       if (quiet) this.laserTxt = 0.15;
-      const showAll = S.optNums && this.txt.length < 40; // Optionen: Schadenszahlen aus
-      if (crit) { if (S.optNums) this.text(o.x + U.rand(-20, 20), o.y - OBST_H[o.kind] * o.scale - 10, U.fmt(dmg) + '!', '#ffe14d', 22 * this.cs, true); SFX.play('crit'); }
-      else if (showAll && (o.boss || Math.random() < 0.35 || quiet)) this.text(o.x + U.rand(-25, 25), o.y - OBST_H[o.kind] * o.scale - 5, U.fmt(dmg), '#ffffff', 13 * this.cs);
+      if (S.optNums) this.dmgText(o, dmg, crit); // Optionen: Schadenszahlen aus
+      if (crit) SFX.play('crit');
     }
     SFX.play('hit');
     if (o.hp <= 0) {
@@ -689,7 +688,7 @@ const Battle = {
     for (let i = 0; i < 30; i++) this.particle(o.x + U.rand(-30, 30), cy + U.rand(-20, 20), U.rand(-200, 200), U.rand(-400, -100), '#ffe680', U.rand(0.8, 1.4), U.rand(6, 11) * this.cs, 500, false, 'star');
     const free = S.grid.indexOf(null);
     if (free >= 0) {
-      const w = { t: U.pick(WEAPON_IDS), r: Math.min(MAX_TIER, 2 + S.up.box) };
+      const w = { t: U.pick(WEAPON_IDS), r: Math.min(BOX_MAX_TIER, 2 + S.up.box) };
       S.grid[free] = w;
       Game.discover(w);
       recalc();
@@ -848,6 +847,29 @@ const Battle = {
   },
 
   punchZoom(a, x, y) { if (a >= this.zoom.a) this.zoom = { a, x, y }; },
+  // Schadenszahl je Gegner sammeln: statt vieler übereinanderliegender Zahlen („385M!M!M!“)
+  // zählt eine Zahl hoch und hüpft kurz – deutlich lesbarer und viel billiger zu zeichnen
+  dmgText(o, dmg, crit) {
+    const key = crit ? 'cTxt' : 'nTxt';
+    let tx = o[key];
+    if (tx && tx.life > tx.max * 0.4) {
+      tx.sum += dmg; tx.text = U.fmt(tx.sum) + (crit ? '!' : '');
+      tx.life = Math.min(tx.max, tx.life + 0.12); tx.bump = 0.12;
+      return;
+    }
+    if (this.txt.length > 36) return;
+    const cs = this.cs, top = o.y - OBST_H[o.kind] * o.scale;
+    tx = { x: o.x + (crit ? 14 : -16) * cs, y: top - (crit ? 30 : 8) * cs, vx: 0, vy: crit ? -34 : -26, text: U.fmt(dmg) + (crit ? '!' : ''), color: crit ? '#ffe14d' : '#ffffff',
+      size: (crit ? 20 : 13) * cs, life: crit ? 0.9 : 0.7, max: crit ? 0.9 : 0.7, big: crit, sum: dmg, bump: 0.15 };
+    // Nachbarn (eng stehende Gegner am Handy) nicht überdecken: notfalls eine Zeile höher
+    for (let k = 0; k < 3; k++) {
+      const hit = this.txt.find(q => q.life > 0.15 && Math.abs(q.x - tx.x) < (q.text.length + tx.text.length) * tx.size * 0.27 && Math.abs(q.y - tx.y) < Math.max(q.size, tx.size) * 0.95);
+      if (!hit) break;
+      tx.y = hit.y - Math.max(hit.size, tx.size) * 1.05;
+    }
+    this.txt.push(tx);
+    o[key] = tx;
+  },
   text(x, y, text, color, size, big) {
     if (this.txt.length > 60) this.txt.shift();
     this.txt.push({ x, y, vx: U.rand(-45, 45), vy: big ? -110 : -80, text, color, size, life: big ? 1.1 : 0.8, max: big ? 1.1 : 0.8, big });
@@ -952,7 +974,11 @@ const Battle = {
     const mainEyes = [], lampOut = [], mz0 = [];
     // Mieze-Lampe an der Hüfte: leuchtet nachts und in der Leere
     const lampLit = Rooms.kind() === 'void' ? 1 : U.clamp((this.night - 0.25) / 0.4, 0, 1);
-    Draw.cat(cc, this.catX, this.groundY, cs, cat, t, { ear: Anim.ear('main'), weapon: S.slots[0], recoil: this.recoil[0], squash: steady ? 0 : this.recoil[0] * 0.07, look, laserEyes, roar, fury, eyesOut: mainEyes, lamp: lampLit, lampOut, muzzleOut: mz0 });
+    // getroffen: zusammenzucken (Stauchung, Rückstoß nach links, Zittern), Schmerz-Gesicht; wenig Leben: besorgt
+    const ouchMax = Vitals.ouchBig ? 1.3 : 0.75, ouch = U.clamp((Vitals.ouchT || 0) / ouchMax, 0, 1);
+    const flinch = Math.pow(ouch, 2), worry = Vitals.frac() < 0.3 && (Run.active || this.bossState === 'active');
+    const ox = flinch ? -flinch * 7 * cs + Math.sin(t * 60) * flinch * 2.5 * cs : 0;
+    Draw.cat(cc, this.catX + ox, this.groundY, cs, cat, t, { ear: Anim.ear('main'), weapon: S.slots[0], recoil: this.recoil[0], squash: steady ? 0 : this.recoil[0] * 0.07 + flinch * 0.14, look, laserEyes, roar: roar && !ouch, fury: ouch ? 0 : fury, ouch, ouchBig: Vitals.ouchBig, worry, eyesOut: mainEyes, lamp: lampLit, lampOut, muzzleOut: mz0 });
     this.mainEyes = toWorld(mainEyes, true);
     this.muzzles[0] = mz0.length ? toWorld(mz0)[0] : null;
     this.lampPt = lampOut.length ? toWorld(lampOut)[0] : null;
@@ -1197,7 +1223,7 @@ const Battle = {
     // Schadenszahlen
     for (const tx of this.txt) {
       const a = U.clamp(tx.life / tx.max * 1.6, 0, 1);
-      const pop = 1 + Math.max(0, (tx.life - tx.max + 0.15)) * (tx.big ? 4 : 2.5);
+      const pop = 1 + Math.max(0, (tx.life - tx.max + 0.15)) * (tx.big ? 4 : 2.5) + (tx.bump > 0 ? tx.bump * 2.2 : 0);
       ctx.globalAlpha = a;
       ctx.font = `900 ${tx.size * pop}px "Segoe UI", system-ui, sans-serif`;
       ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(30,20,40,0.85)';
@@ -1447,14 +1473,13 @@ const Battle = {
     // unter die Boss-Knöpfe, damit sich nichts mit den HTML-Knöpfen überlagert
     const k = U.clamp(W / 620, 0.78, 1), narrow = W < 720;
     // Unterkante der HTML-Boss-Knöpfe (Höhe hängt von Bildschirm und Text ab)
-    const wrap = document.getElementById('bossWrap');
-    const uiTop = wrap && wrap.offsetHeight ? wrap.offsetTop + wrap.offsetHeight + 8 : 108;
+    const uiTop = this.uiTop ? this.uiTop() : 108, iT = this.insetT || 0; // iT: HUD liegt am Handy über dem Spielfeld
     // Stufenanzeige: Kasten wächst mit dem Text, Text schrumpft notfalls
     const label = Run.active ? Run.label(biome) : S.farm ? `Stufe ${S.stage} · ${biome.name} · Farm-Modus` : `Stufe ${S.stage} · ${biome.name}`;
     let fs = 15 * k;
     ctx.font = `800 ${fs}px "Segoe UI", system-ui, sans-serif`;
     const tw = ctx.measureText(label).width;
-    const bw = Math.min(W - 64, Math.max(Math.min(360, W * 0.5), tw + 6)), by = 14;
+    const bw = Math.min(W - 64, Math.max(Math.min(360, W * 0.5), tw + 6)), by = 14 + iT;
     // mittig im ganzen Spielfeld, aber nie unter die Symbolleiste rechts
     const bcx = Math.min(this.W / 2, W - bw / 2 - 20), bx = bcx - bw / 2;
     if (tw > bw) { fs *= bw / tw; ctx.font = `800 ${fs}px "Segoe UI", system-ui, sans-serif`; }
@@ -1462,11 +1487,11 @@ const Battle = {
 
     // Combo (breit: rechts oben; schmal: rechts unter den Boss-Knöpfen, kleiner)
     {
-      const cx = W - (narrow ? 14 : 22), cy = narrow ? uiTop + 34 : 92;
+      const cx = W - (narrow ? 14 : 22) - (this.railW || 0), cy = narrow ? uiTop + 34 : 92 + iT;
       Combo.draw(ctx, this, cx, cy, narrow, this.frameDt || 0.016);
     }
     // Goldrausch- und Ereignis-Pille: breit links oben, schmal links unter den Boss-Knöpfen
-    const py = narrow ? uiTop : 14;
+    const py = narrow ? uiTop : 14 + iT;
     if (this.rush > 0) {
       ctx.textAlign = 'left';
       Draw.rrect(ctx, 14, py, 170, 30, 15, 'rgba(60,40,0,0.7)');

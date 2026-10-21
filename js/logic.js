@@ -123,7 +123,7 @@ const Game = {
       S.boxesBought++;
       let r = 1 + S.up.box;
       if (Math.random() < 0.05 * S.perks.boxluck) r++;
-      const w = { t: U.pick(WEAPON_IDS), r: Math.min(MAX_TIER, r) };
+      const w = { t: U.pick(WEAPON_IDS), r: Math.min(BOX_MAX_TIER, r) };
       S.grid[free] = w;
       Game.discover(w);
       bought++;

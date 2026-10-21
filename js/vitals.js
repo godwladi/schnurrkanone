@@ -35,7 +35,7 @@ const Vitals = {
   // ---------------------------------------------------------------- Ablauf
   update(dt, B) {
     const wasDazed = this.dazed > 0;
-    for (const k of ['shield', 'dazed', 'hurtT', 'healT', 'stun', 'beam', 'charred']) this[k] = Math.max(0, this[k] - dt);
+    for (const k of ['shield', 'dazed', 'hurtT', 'healT', 'stun', 'beam', 'charred', 'ouchT']) this[k] = Math.max(0, (this[k] || 0) - dt);
     if (wasDazed && this.dazed <= 0 && this.koPending && !Run.active) {
       this.koPending = false;
       const rr = this.ref(); rr.hp = Math.max(rr.hp, rr.maxHp * 0.4);
@@ -293,6 +293,7 @@ const Vitals = {
     amount *= Run.takenMul();
     r.hp = Math.max(0, r.hp - amount);
     this.hurtT = 0.45;
+    this.ouchT = big ? 1.3 : 0.75; this.ouchBig = !!big; // Gesicht der Katze (draw.js)
     B.shake = Math.max(B.shake, big ? 22 : 8);
     B.text(p.x, p.y - 46 * B.cs, `-${Math.round(amount)} ❤️`, '#ff4d6d', (big ? 26 : 18) * B.cs, true);
     SFX.play('hurt');

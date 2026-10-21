@@ -615,7 +615,7 @@ const UI = {
           <button class="btn buy" data-pet="${p.id}" data-cost="${cost}" data-cur="bones"><span>${lvl ? 'Stufe +1' : 'Freischalten'}</span><b>🦴 ${cost}</b></button>
         </div>`;
       }).join('')}</div>
-      <p class="hint">🦴 Fischgräten bekommst du von Bossen, Erfolgen, dem Tagesbonus und für Katzen auf Max-Stufe.</p></div>`;
+      <p class="hint">${S.run && S.run.active ? '🗺️ <b>Streifzug:</b> Begleiter starten bei null. Jeder Boss bringt Streifzug-Gräten – nicht ausgegebene nimmst du am Ende mit nach Hause. Deine Begleiter daheim bleiben unverändert.' : '🦴 Fischgräten bekommst du von Bossen, Erfolgen, dem Tagesbonus und für Katzen auf Max-Stufe.'}</p></div>`;
   },
   after_pets(el) { $$('[data-pet]', el).forEach(b => b.addEventListener('click', () => Game.buyPet(b.dataset.pet))); },
   // Live-Status der Begleiter: Fortschritt bis zur nächsten Wirkung, Eis bei Schattenfluch

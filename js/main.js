@@ -69,6 +69,8 @@ const Main = {
   },
 
   loop(now) {
+    // Titelbildschirm: Spiel ruht ganz (kein Rechnen, kein Zeichnen)
+    if (Title.open) { this.last = now; requestAnimationFrame(t => this.loop(t)); return; }
     // Bildrate begrenzen (Akku-Modus, hinter Menüs): Bilder überspringen, dt läuft weiter
     if (now - (this.lastDraw || 0) < 1000 / Perf.fps() - 4) { requestAnimationFrame(t => this.loop(t)); return; }
     this.lastDraw = now;
@@ -78,8 +80,10 @@ const Main = {
     S.stats.playTime += dt;
     // Streifzug: offenes Menü/Fenster oder Ziehen einer Waffe pausiert den Kampf
     // Pause-Menü (beide Modi) bzw. Streifzug: offenes Menü/Fenster oder Ziehen einer Waffe hält den Kampf an
+    const w0 = performance.now();
     if (UI.paused || Run.frozen()) Battle.frameDt = 0; else Battle.update(dt);
     Battle.render();
+    Perf.sample(performance.now() - w0, dt);
     UI.tick(dt);
     this.achT -= dt;
     if (this.achT <= 0) { this.achT = 1; Game.checkAchievements(); Quests.ensure(); Quests.check(); }
