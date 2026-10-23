@@ -120,10 +120,28 @@ const RunLog = {
     const tot = Object.values(L.dmg).reduce((a, b) => a + b, 0) || 1;
     const rows = Object.entries(L.dmg).sort((a, b) => b[1] - a[1]).slice(0, 6);
     const secs = Math.max(1, (Date.now() - L.t0) / 1000);
-    const path = L.path.map(p => `<i title="${DOORS[p] ? DOORS[p].name : p}">${DOORS[p] ? DOORS[p].icon : '⚔️'}</i>`).join('');
+    // Raum 1 ist immer ein Kampf; danach bestimmt die Wegwahl die Art jedes Raums (letzter Raum = K.O.)
+    const depth = S.run.depth;
+    const rooms = Array.from({ length: depth + 1 }, (_, i) => (i === 0 ? 'fight' : L.path[i - 1] || 'fight'));
+    const done = rooms.slice(0, depth);
+    const count = t => done.filter(x => x === t).length;
+    const nodes = rooms.map((t, i) => {
+      const last = i === rooms.length - 1;
+      return `<i class="rm-n rm-${t}${(i + 1) % 10 === 0 ? ' ms' : ''}${last ? ' rm-dead' : ''}" title="Raum ${i + 1} · ${DOORS[t].name}${last ? ' · K.O.' : ''}">${last ? '☠️' : DOORS[t].icon}</i>`;
+    });
+    const rmap = [];
+    for (let s = 0; s < nodes.length; s += 10) rmap.push(`<div class="rm-row"><span>${s + 1}–${Math.min(s + 10, nodes.length)}</span><div class="rm-nodes">${nodes.slice(s, s + 10).join('')}</div></div>`);
+    const legend = ['fight', 'elite', 'shop', 'rest', 'event'].map(t => `<span>${DOORS[t].icon} ${DOORS[t].name}</span>`).join('');
     return `<div class="runlog">
-      <div class="rbstats"><div><span>Zerstörungen</span><b>${U.fmt(L.kills)}</b></div><div><span>Dauer</span><b>${U.fmtTime(secs)}</b></div><div><span>Segen</span><b>${Run.owned().length}</b></div></div>
-      ${path ? `<h4 class="mh">Dein Weg</h4><div class="runpath">${path}</div>` : ''}
+      <div class="rbstats">
+        <div><span>Gegner besiegt</span><b>${U.fmt(Math.max(0, L.kills - depth))}</b></div>
+        <div><span>Bosse besiegt</span><b>${U.fmt(depth)}</b></div>
+        <div><span>Elite-Räume</span><b>${count('elite')}</b></div>
+        <div><span>Zwischenhalte</span><b>${count('shop') + count('rest') + count('event')}</b></div>
+        <div><span>Dauer</span><b>${U.fmtTime(secs)}</b></div>
+        <div><span>Segen</span><b>${Run.owned().length}</b></div>
+      </div>
+      <h4 class="mh">Streifzug-Roadmap <small>jeder Raum endet mit einem Boss</small></h4><div class="rmap">${rmap.join('')}</div><div class="rm-legend">${legend}<span>☠️ K.O.</span></div>
       <h4 class="mh">Schaden nach Quelle</h4>
       <div class="dmgbars">${rows.map(([k, v]) => `<div><span>${k}</span><i><em style="width:${(v / tot * 100).toFixed(1)}%;background:${SRC_COL[k] || '#c7b3ff'}"></em></i><b>${Math.round(v / tot * 100)} %</b></div>`).join('')}</div>
     </div>`;

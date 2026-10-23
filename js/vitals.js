@@ -506,11 +506,9 @@ const Vitals = {
     // Lebensbalken über der Katze (nur wenn er etwas zu sagen hat)
     if (Run.active || B.bossState === 'active' || r.hp < r.maxHp - 0.5 || this.dazed > 0) {
       const w = 64 * cs, h = 8 * cs, x = B.catX + 10 * cs - w / 2, y = B.groundY - 96 * cs;
-      const f = U.clamp(this.shownHp / r.maxHp, 0, 1), now = this.frac();
-      Draw.rrect(ctx, x - 2, y - 2, w + 4, h + 4, 5, 'rgba(20,10,30,0.75)');
-      if (f > now) Draw.rrect(ctx, x, y, w * f, h, 4, '#ffffff');
+      const now = this.frac();
       const col = now < 0.3 ? '#ff4d6d' : now < 0.6 ? '#ffb347' : '#6ee7a0';
-      if (now > 0) Draw.rrect(ctx, x, y, Math.max(h, w * now), h, 4, col);
+      Strata.draw(ctx, this.sb || (this.sb = { start: 1 }), x, y, w, h, now, col, B.t, 4); // Schicht-Balken (strata.js)
       if (this.shield > 0) { ctx.globalAlpha = 0.85; Draw.rrect(ctx, x, y - 4 * cs, w * this.shield / this.shieldMax, 3 * cs, 2, '#7ef9ff'); ctx.globalAlpha = 1; }
       ctx.font = `800 ${10 * cs}px "Segoe UI", "Segoe UI Emoji", sans-serif`; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,10,30,0.85)';
       const label = `❤️ ${Math.ceil(r.hp)}`;

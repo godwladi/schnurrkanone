@@ -53,13 +53,13 @@ const Title = {
     // vor dem Laden aller Skripte nur ein vorläufiges Menü (wird beim 'load' neu gezeichnet)
     const ready = typeof Run !== 'undefined' && !!Battle.cv;
     const run = ready && S.run && S.run.active, runOpen = ready && S.best >= RUN_UNLOCK;
-    const wheel = typeof Wheel !== 'undefined' && Wheel.ready();
+    const wheel = typeof Slots !== 'undefined' && Slots.ready();
     const nav = $('.tt-menu', this.el);
     nav.innerHTML = `
       <button class="tt-btn main" data-t="play">▶️ <span>${S.stats.playTime > 30 ? 'Weiterspielen' : 'Spielen'}<small>${!ready ? 'lädt …' : run ? `Streifzug · Raum ${Run.room()}` : `Stufe ${S.stage} · Rekord ${S.best}`}</small></span></button>
       <div class="tt-row">
         ${runOpen && !run ? '<button class="tt-btn" data-t="run">🗺️ <span>Streifzug</span></button>' : ''}
-        <button class="tt-btn ${wheel ? 'hot' : ''}" data-t="wheel">🎡 <span>Glücksrad</span></button>
+        <button class="tt-btn ${wheel ? 'hot' : ''}" data-t="wheel">🎰 <span>Automat</span></button>
         <button class="tt-btn" data-t="opt">⚙️ <span>Optionen</span></button>
         <button class="tt-btn" data-t="music">${S.music ? '🎵' : '🔇'} <span>Musik ${S.music ? 'an' : 'aus'}</span></button>
       </div>`;
@@ -73,7 +73,7 @@ const Title = {
       this.play();
       if (k === 'run') { UI.tab = 'run'; UI.renderTab(); if (typeof Dock !== 'undefined' && Dock.active()) Dock.open(); }
       if (k === 'opt') { UI.tab = 'options'; UI.renderTab(); if (typeof Dock !== 'undefined' && Dock.active()) Dock.open(); }
-      if (k === 'wheel' && typeof Wheel !== 'undefined') setTimeout(() => Wheel.show(), 450);
+      if (k === 'wheel' && typeof Slots !== 'undefined') setTimeout(() => Slots.show(), 450);
     };
   },
 

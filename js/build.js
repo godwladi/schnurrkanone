@@ -58,7 +58,10 @@ const Build = {
   },
   chill(B, o, dur = 1.5) {
     if (o.burn && o.burn.t > 0 && this.syn('thermo')) { this.thermo(B, o); return; }
-    if (!(o.chill > 0)) for (let i = 0; i < 6; i++) B.particle(o.x + U.rand(-20, 20) * B.cs, this.cy(o) + U.rand(-25, 25) * B.cs, U.rand(-60, 60), U.rand(-90, -10), '#e6fbff', 0.5, 2.4 * B.cs, 0, false, 'streak');
+    if (!(o.chill > 0)) {
+      o.chillT = B.t; // Zeitpunkt des Einfrierens: die Gegner-Animation bleibt in dieser Pose stehen
+      for (let i = 0; i < 6; i++) B.particle(o.x + U.rand(-20, 20) * B.cs, this.cy(o) + U.rand(-25, 25) * B.cs, U.rand(-60, 60), U.rand(-90, -10), '#e6fbff', 0.5, 2.4 * B.cs, 0, false, 'streak');
+    }
     o.chill = Math.max(o.chill || 0, dur);
   },
   thermo(B, o) {

@@ -2,8 +2,8 @@
 // ---------------------------------------------------------------------------
 // Kompaktes HUD im Stil moderner Handyspiele:
 //   oben links ≡ (Menü mit allen weiteren Reitern, Pause, Musik), daneben Level-Ring
-//   und Ressourcen-Pillen; links darunter der Streifzug; rechts eine Spalte mit
-//   Schnellknöpfen (Pause, Musik, Glücksrad, Aufgaben, Gratis-Kiste) mit Hinweis-Punkten.
+//   und Ressourcen-Pillen; links unter dem Menü eine Spalte mit Schnellknöpfen
+//   (Katzen-Automat, Aufgaben, Gratis-Kiste) mit Hinweis-Punkten; oben rechts Pause neben 🐞.
 // Am Handy liegt das HUD durchsichtig über dem Spielfeld (Battle.insetT hält Abstand).
 // ---------------------------------------------------------------------------
 
@@ -17,25 +17,26 @@ const Hud = {
     hud.prepend(menu);
     menu.addEventListener('click', e => { e.stopPropagation(); SFX.init(); this.toggleMenu(); });
 
-    // Seitenleisten über dem Spielfeld
-    const railL = document.createElement('div'), railR = document.createElement('div');
-    railL.id = 'railL'; railR.id = 'railR';
-    railL.innerHTML = '<button class="railb" data-r="run" title="Streifzug"><span class="ri">🗺️</span><i class="dot"></i><em></em></button>';
-    railR.innerHTML = `
-      <button class="railb sm" data-r="pause" title="Pause (P)"><span class="ri">⏸️</span></button>
-      <button class="railb sm" data-r="music" title="Musik (N)"><span class="ri">🎵</span></button>
-      <button class="railb" data-r="wheel" title="Glücksrad"><span class="ri">🎡</span><i class="dot"></i></button>
+    // Schnellknöpfe links unter dem Menü (Streifzug und Musik liegen im Menü)
+    const railL = document.createElement('div');
+    railL.id = 'railL';
+    railL.innerHTML = `
+      <button class="railb" data-r="slots" title="Katzen-Automat"><span class="ri">🎰</span><i class="dot"></i></button>
       <button class="railb" data-r="quests" title="Aufgaben"><span class="ri">📜</span><i class="dot"></i></button>
       <button class="railb" data-r="chest" title="Gratis-Katzenkiste"><span class="ri">🎁</span><i class="dot"></i><em></em></button>`;
-    battle.append(railL, railR);
-    for (const r of [railL, railR]) {
-      r.addEventListener('pointerdown', e => e.stopPropagation());
-      r.addEventListener('click', e => {
-        const b = e.target.closest('.railb'); if (!b) return;
-        e.stopPropagation(); SFX.init();
-        this.act(b.dataset.r);
-      });
-    }
+    battle.append(railL);
+    railL.addEventListener('pointerdown', e => e.stopPropagation());
+    railL.addEventListener('click', e => {
+      const b = e.target.closest('.railb'); if (!b) return;
+      e.stopPropagation(); SFX.init();
+      this.act(b.dataset.r);
+    });
+    // Pause oben rechts neben dem 🐞-Knopf
+    const pause = document.createElement('button');
+    pause.id = 'pauseFab'; pause.className = 'hudbtn'; pause.title = 'Pause (P)'; pause.textContent = '⏸️';
+    pause.addEventListener('pointerdown', e => e.stopPropagation());
+    pause.addEventListener('click', e => { e.stopPropagation(); SFX.init(); this.act('pause'); });
+    document.body.appendChild(pause);
     // Menü: alle übrigen Reiter + Pause/Musik/Töne
     // eigenes Menü statt der Pfeil-Liste aus dock.js (Element ersetzen = deren Klick-Handler weg)
     const old = $('#dockMore'), more = document.createElement('div');
@@ -75,8 +76,8 @@ const Hud = {
   act(k) {
     if (k === 'pause') { UI.pause(); return; }
     if (k === 'music') { UI.toggleMusic(); this.refresh(); return; }
-    if (k === 'wheel') { SFX.play('paw'); Wheel.show(); return; }
-    const tab = { run: 'run', quests: 'quests', chest: 'cats' }[k];
+    if (k === 'slots') { SFX.play('paw'); Slots.show(); return; }
+    const tab = { quests: 'quests', chest: 'cats' }[k];
     if (!tab) return;
     if (k === 'chest' && Date.now() >= S.freeChestAt) { UI.openChest(true); return; }
     if (Dock.active()) Dock.select(tab);
@@ -85,21 +86,13 @@ const Hud = {
 
   refresh() {
     const set = (sel, on) => { const d = $(sel); if (d) d.classList.toggle('on', !!on); };
-    set('#railR [data-r="wheel"] .dot', Wheel.ready());
-    set('#railR [data-r="quests"] .dot', Quests.claimable());
+    set('#railL [data-r="slots"] .dot', Slots.ready());
+    set('#railL [data-r="quests"] .dot', Quests.claimable());
     const left = S.freeChestAt - Date.now();
-    set('#railR [data-r="chest"] .dot', left <= 0);
-    const em = $('#railR [data-r="chest"] em');
+    set('#railL [data-r="chest"] .dot', left <= 0);
+    const em = $('#railL [data-r="chest"] em');
     if (em) em.textContent = left > 0 ? U.fmtTime(left / 1000) : 'Gratis!';
-    const mu = $('#railR [data-r="music"] .ri');
-    if (mu && mu.dataset.on !== String(S.music)) { mu.dataset.on = String(S.music); mu.textContent = S.music ? '🎵' : '🔇'; }
-    $('#railR [data-r="music"]').classList.toggle('off', !S.music);
-    // Streifzug: erst ab Stufe 8; im Lauf zeigt er den Raum
-    const rb = $('#railL [data-r="run"]');
-    rb.hidden = S.best < RUN_UNLOCK;
-    const rem = $('em', rb);
-    rem.textContent = Run.active ? `R ${Run.room()}` : '';
-    set('#railL [data-r="run"] .dot', !Run.active && typeof Daily !== 'undefined' && Daily.fresh && Daily.fresh());
+    $('#pauseFab').classList.toggle('on', !!UI.paused);
     // Menü-Punkt, wenn in einem der Menü-Reiter etwas bereitliegt
     const extraDot = TABS.some(t => !Dock.MAIN.includes(t.id) && $(`#tabs .tab[data-tab="${t.id}"] .dot.on`));
     set('#menuBtn .dot', extraDot);
@@ -115,8 +108,7 @@ Battle.resize = function () {
     const hr = hud.getBoundingClientRect(), cr = this.cv.parentElement.getBoundingClientRect();
     this.insetT = Math.max(0, hr.bottom - cr.top);
   }
-  const rail = document.getElementById('railR');
-  this.railW = rail ? rail.offsetWidth + 10 : 0; // Combo-Anzeige rückt links neben die Schnellknöpfe
+  this.railW = 0; // rechts liegen keine Schnellknöpfe mehr
   _hResize.call(this);
   this.uiTopAt = 0; // Boss-Knöpfe neu vermessen
 };

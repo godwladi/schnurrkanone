@@ -232,6 +232,11 @@ const EMOJI_ICON = {
 // Engel (Neuntes Leben): Herz mit Heiligenschein statt Plus
 ICONS.angel = HEART('#fff1f6', 0.9, 1.6, 4) + E(16, 5, 7, 2.4, 'none', ' stroke="#ffd34d" stroke-width="2.4"') + P('M3 13 C1 9 4 7 7 9 Z M29 13 C31 9 28 7 25 9Z', '#fff');
 EMOJI_ICON['👼'] = 'angel';
+// Katzen-Automat: Gehäuse mit drei Walzen, Krone oben und Hebel rechts
+ICONS.slot = R(3.5, 9, 21, 19, 4, '#8a6cff') + R(6.5, 4.5, 15, 6, 3, '#ffd34d') + R(6.5, 12.5, 15, 9, 2, '#fff')
+  + C(10, 17, 2, '#ff5d73', NS) + C(14, 17, 2, '#ffd34d', NS) + C(18, 17, 2, '#6ee7a0', NS) + R(8, 23.5, 12, 2.4, 1.2, '#3a2596', NS)
+  + BAR('M24.5 21 L27.5 21 L27.5 10', '#c7b3ff', 1.8) + C(27.5, 8.5, 2.8, '#ff5d73') + HI('M6 11.5 C7 10.2 8.6 9.9 10 10.1 C8.6 10.9 7.6 11.8 7 13Z');
+EMOJI_ICON['🎰'] = 'slot';
 
 // Emoji-Folgen erkennen (Grundzeichen + Variationszeichen/ZWJ-Folgen)
 const EMOJI_RE = /(?:[←-⇿⌀-⏿☀-➿⬀-⯿]|[\uD83C-\uD83E][\uDC00-\uDFFF])️?(?:‍(?:[☀-➿⬛]|[\uD83C-\uD83E][\uDC00-\uDFFF])️?)*/g;

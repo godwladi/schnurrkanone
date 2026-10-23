@@ -50,12 +50,13 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 - Am Ende jedes Streifzugs: gewählter Weg, Zerstörungen, Dauer und **Schaden nach Quelle** als Balken.
 
 ## Titelbildschirm & Jazz (`js/splash.js`, `js/jazz.js`)
-- Beim Start: Logo, die eigene Katze spielt Saxophon im Scheinwerferlicht, Noten steigen auf. Erster Tipp startet den Ton (iOS) und zeigt das Menü: **Spielen/Weiterspielen**, Streifzug, Glücksrad, Optionen, Musik an/aus (`Enter` = Spielen).
+- Beim Start: Logo, die eigene Katze spielt Saxophon im Scheinwerferlicht, Noten steigen auf. Erster Tipp startet den Ton (iOS) und zeigt das Menü: **Spielen/Weiterspielen**, Streifzug, Katzen-Automat, Optionen, Musik an/aus (`Enter` = Spielen).
 - Titelmusik: Old-School-Jazz im Swing, komplett per WebAudio – Walking Bass, Ride-Becken, Charleston-Klavier und ein Altsaxophon (Formantfilter, Vibrato, Atem, Gleiten); 16 Takte in F mit Erkennungsmotiv. Solange der Titel offen ist, ruhen Spiel und Spielmusik.
 
 ## HUD (`js/hud.js`)
 - **≡ Menü** oben links (alle weiteren Reiter, Pause, Musik), daneben Level und Ressourcen-Pillen. Am Handy liegt das HUD durchsichtig über dem Spielfeld.
-- **Schnellknöpfe rechts:** Pause, Musik, 🎡 Glücksrad, 📜 Aufgaben, 🎁 Gratis-Katzenkiste (mit Timer); links 🗺️ Streifzug (zeigt den Raum). Rote „!“-Punkte zeigen, wo etwas bereitliegt.
+- **Schnellknöpfe links unter dem Menü:** 🎰 Katzen-Automat, 📜 Aufgaben, 🎁 Gratis-Katzenkiste (mit Timer). Streifzug und Musik liegen im ≡-Menü, **Pause** oben rechts neben 🐞. Rote „!“-Punkte zeigen, wo etwas bereitliegt.
+- Am Handy reicht das Spielfeld bis an alle Bildschirmränder (kein lila Streifen oben/unten); nur die Bedienelemente halten Abstand zu Notch und Home-Leiste.
 - Unten runde Farbknöpfe für Waffen, Training, Katzen, Begleiter.
 - iOS-Home-Bildschirm-App: die fehlende Höhe (weißer Streifen unten) wird gemessen und aufgefüllt.
 
@@ -71,8 +72,15 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 ## Gesicht der Katze bei Treffern
 - Getroffen: Augen zugekniffen (> <), aufgerissenes Maul, Tränen, die Katze zuckt zurück; bei harten Treffern (Bombe, Vernichtungsschlag, Großangriff) weiter offenes Maul und kreisende Sterne. Bei wenig Leben (Streifzug/Bosskampf) schaut sie besorgt mit Schweißtropfen.
 
-## Glücksrad (`js/wheel.js`)
-- Einmal am Tag gratis, danach 15 🦴: Münzregen, Gräten, Goldrausch, Raserei, Gratis-Katzenkiste, Waffenkiste, selten Katzenminze.
+## Katzen-Automat (`js/slots.js`)
+Slotmaschine mit drei Walzen, Hebel, Lauflichtern und drei Modi (ersetzt das Glücksrad):
+- **Münz-Slot:** Einsatz 1 %, 5 %, 20 % oder alle Münzen. Drei gleiche zahlen ×5 (🐟) bis ×80 (💠), 👑👑👑 ×250 plus **Jackpot** (wächst mit jedem Einsatz um 8 %); 👑👑 ×6, zwei gleiche ×0,5, eine Krone = Einsatz zurück (Quote ≈ 95 % plus Jackpot). Nach einem Gewinn: **Doppelt oder nichts** (Pfote links/rechts, 50 : 50, bis zu fünfmal).
+- **Schatz-Slot:** einmal am Tag gratis, sonst 15 🦴; gewinnt immer: Münzregen, Gräten, Goldrausch, Raserei, Katzenkiste, Waffenkiste, selten Katzenminze.
+- **Kampf-Slot:** Münzen (3 % der Münzen) gegen Kampf-Schübe – ⚡ Raserei, ✨ Goldrausch, 🦉 Eulenruf, 💰 Münzen, 🐾 Schnurr-Meter; drei gleiche = voller, zwei gleiche = kleiner Schub. Startet erst beim Schließen des Fensters; im Streifzug gesperrt.
+- Zwei gleiche auf den ersten Walzen lassen die dritte spannend länger drehen.
+
+## Schicht-Lebensbalken (`js/strata.js`)
+- Lebensbalken von Gegnern und Katze bestehen aus gestapelten Lichtschichten. Bei Schaden glüht der verlorene Teil weiß-gold auf, zerfällt in einzelne Schichten, die abblättern und herunterfallen, Glutfunken steigen auf, der Rest brennt als orange Spur ab.
 
 ## Symbole & Oberfläche
 - **Eigener Symbolsatz** (`js/icons.js`, ~120 SVG-Symbole im Stil der Katzen) statt System-Emojis – sieht auf iPhone, Windows und Android gleich aus. Emojis in Texten werden automatisch ersetzt (HTML per MutationObserver, Leinwand über `fillText`/`measureText`). Neue Symbole: in `ICONS` zeichnen und in `EMOJI_ICON` zuordnen.
@@ -174,7 +182,8 @@ Der Bericht (`schnurrkanone-<art>-<datum>.json`) enthält Beschreibung, Gerät/B
 - `js/hud.js` – ≡-Menü, Schnellknöpfe, HUD über dem Spielfeld, iOS-Höhen-Fix
 - `js/limit.js` – Grenzbruch-Waffen und Raritäten
 - `js/milestones.js` – Meilensteine, Raum 500/1000
-- `js/wheel.js` – Glücksrad
+- `js/slots.js` – Katzen-Automat (Slotmaschine)
+- `js/strata.js` – Schicht-Lebensbalken mit Abblätter- und Glut-Animation
 - `js/winfo.js` – Waffen-Infokarte
 - `js/touch.js` – Touch-Drag & Doppeltipp im Rucksack, Zoom-Sperre, Audio-Fortsetzung, Service-Worker-Registrierung
 - `manifest.webmanifest`, `sw.js`, `icons/` – PWA (Home-Bildschirm, Offline)

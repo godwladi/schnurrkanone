@@ -51,10 +51,12 @@ const Battle = {
     this.cv.height = Math.round(this.H * this.dpr);
     this.cv.style.width = this.W + 'px';
     this.cv.style.height = this.H + 'px';
-    // Handy: Platz für die Symbolleiste (unten hochkant, rechts quer) – Werte aus CSS (--dockB/--dockR)
+    // Handy: Platz für die Symbolleiste (unten hochkant, rechts quer) – Werte aus CSS (--dockB/--dockR).
+    // Die Leinwand reicht bis an den Rand; Notch und Home-Leiste (#safeProbe) zählen zur Leiste dazu.
     const cssv = getComputedStyle(this.cv.parentElement);
-    this.insetB = parseFloat(cssv.getPropertyValue('--dockB')) || 0;
-    this.insetR = parseFloat(cssv.getPropertyValue('--dockR')) || 0;
+    const probe = document.getElementById('safeProbe');
+    this.insetB = (parseFloat(cssv.getPropertyValue('--dockB')) || 0) + (probe ? probe.offsetHeight : 0);
+    this.insetR = (parseFloat(cssv.getPropertyValue('--dockR')) || 0) + (probe ? probe.offsetWidth : 0);
     this.Wp = this.W - this.insetR; // nutzbare Breite links der Leiste
     this.groundY = Math.min(this.H * 0.8, this.H - 58 - this.insetB); // Füße über der Skill-Leiste
     // Größe nach Höhe UND Breite: im hohen Handy-Vollbild sonst riesige Katze, Gegner abgeschnitten
@@ -1373,11 +1375,9 @@ const Battle = {
     const w = (o.boss ? 120 : 56) * this.cs, h = (o.boss ? 10 : 6) * this.cs;
     const jig = (o.hurtT || 0) > 0 ? U.rand(-1.5, 1.5) : 0;
     const x = o.x - w / 2 + jig, y = o.y - OBST_H[o.kind] * o.scale - (o.boss ? 40 : 16) * this.cs + jig;
-    Draw.rrect(ctx, x - 2, y - 2, w + 4, h + 4, 4, 'rgba(20,10,30,0.7)');
-    const ghost = Math.max(0, Math.min(1, (o.hpShow === undefined ? o.hp : o.hpShow) / o.maxHp));
-    if (ghost * w > 1) Draw.rrect(ctx, x, y, w * ghost, h, 3, '#ffffff');
     const fr = Math.max(0, o.hp / o.maxHp);
-    if (fr * w > 1) Draw.rrect(ctx, x, y, w * fr, h, 3, o.boss ? '#ff4d6d' : o.golden ? '#ffd34d' : fr < 0.35 ? '#ffb347' : '#6ee7a0');
+    // Schicht-Balken: verlorene Schichten blättern ab und sprühen Glut (strata.js)
+    Strata.draw(ctx, o.sb || (o.sb = { start: 1 }), x, y, w, h, fr, o.boss ? '#ff4d6d' : o.golden ? '#ffd34d' : fr < 0.35 ? '#ffb347' : '#6ee7a0', this.t);
     if (o.boss && o.shield > 0) Draw.rrect(ctx, x, y - h - 4, w * o.shield / o.shieldMax, h * 0.7, 3, '#5ab0ff');
   },
 

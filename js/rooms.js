@@ -72,11 +72,13 @@ const Rooms = {
 
   spawnAd(B, open) {
     // k: Fenster wachsen mit dem Spielfeld – Handy quer kleiner, großer Desktop bis 1,55×
-    const W = B.Wp || B.W, k = Math.min(U.clamp(Math.min(B.H / 500, W / 620), 0.72, 1.55), W * 0.46 / 220), w = 220 * k, h = 96 * k;
+    // jedes Fenster hat seine eigene Größe: mal klein, mal groß (0,6× bis 1,5× der Grundgröße)
+    const W = B.Wp || B.W, base = Math.min(U.clamp(Math.min(B.H / 500, W / 620), 0.72, 1.55), W * 0.46 / 220);
+    const k = Math.min(base * U.rand(0.6, 1.5), W * 0.7 / 220), w = 220 * k, h = 96 * k;
     const top = 70, bottom = Math.max(top + 10, B.groundY - h - 30);
     let x, y;
     const last = open[open.length - 1];
-    if (last && Math.random() < 0.65) {
+    if (last && Math.random() < 0.2) { // selten kaskadiert, meist an einer zufälligen Stelle
       // Kaskade: leicht versetzt über dem letzten Fenster
       x = last.x + 26; y = last.y + 22;
       if (x + w > W - 10 || y > bottom) { x = U.rand(10, W - w - 10); y = U.rand(top, bottom); }

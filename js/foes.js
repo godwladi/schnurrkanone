@@ -429,21 +429,23 @@ const Foes = {
 const _drawObstacle = Draw.obstacle.bind(Draw);
 Draw.obstacle = function (ctx, o, biome, t) {
   Foes.step(o, t);
-  const breathe = 1 + Math.sin(t * 3 + o.id) * 0.03;
-  const sway = (SWAY[o.kind] || 0) * Math.sin(t * 1.6 + o.id);
-  const hop = o.moving ? Math.abs(Math.sin(t * 11 + o.id)) * 6 * o.scale : 0;
+  // Vereiste Gegner (Frost) erstarren in ihrer Pose: Atmen, Wippen, Hüpfen und Mimik stehen still
+  const ta = o.chill > 0 && o.chillT !== undefined ? o.chillT : t;
+  const breathe = 1 + Math.sin(ta * 3 + o.id) * 0.03;
+  const sway = (SWAY[o.kind] || 0) * Math.sin(ta * 1.6 + o.id);
+  const hop = o.moving && ta === t ? Math.abs(Math.sin(t * 11 + o.id)) * 6 * o.scale : 0;
   const lean = o.windup > 0 ? Math.sin((1 - o.windup / 0.35) * Math.PI) * 0.22 : 0; // ausholen und werfen
   ctx.save();
   ctx.translate(o.x + o.kx, o.y - hop);
   ctx.rotate(sway + o.tilt + lean);
   ctx.scale(2 - breathe, breathe);
   ctx.translate(-o.x, -o.y);
-  if (o.trait === 'flyer' && !o.dead) Foes.wings(ctx, o, t); // hinter dem Körper, bewegt sich mit
-  _drawObstacle(ctx, o, biome, t);
+  if (o.trait === 'flyer' && !o.dead) Foes.wings(ctx, o, ta); // hinter dem Körper, bewegt sich mit
+  _drawObstacle(ctx, o, biome, ta);
   if (o.fl > 0) { // weißes Aufblitzen: additiv nachzeichnen (vor dem Gesicht, damit es klar bleibt)
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = Math.min(o.boss ? 0.4 : 0.6, o.fl * 8);
-    _drawObstacle(ctx, o, biome, t);
+    _drawObstacle(ctx, o, biome, ta);
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   }
   // Gesicht im gleichen Koordinatensystem wie der Körper
@@ -452,8 +454,8 @@ Draw.obstacle = function (ctx, o, biome, t) {
   ctx.scale(o.scale, o.scale);
   const sq = 1 + (o.squash || 0);
   ctx.scale(1 / sq, sq);
-  Foes.cracks(ctx, o, t);
-  Foes.face(ctx, o, t);
+  Foes.cracks(ctx, o, ta);
+  Foes.face(ctx, o, ta);
   ctx.restore();
   ctx.restore();
 };
