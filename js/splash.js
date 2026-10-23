@@ -110,6 +110,23 @@ const Title = {
     ctx.beginPath(); ctx.moveTo(cx - 14 * s, 0); ctx.lineTo(cx + 14 * s, 0); ctx.lineTo(cx + 70 * s, gy); ctx.lineTo(cx - 70 * s, gy); ctx.closePath(); ctx.fill();
     Draw.ellipse(ctx, cx, gy, 78 * s, 13 * s, 'rgba(255,230,160,0.28)');
     Draw.ellipse(ctx, cx, gy, 48 * s, 8 * s, 'rgba(255,240,200,0.3)');
+    // zweiter Scheinwerfer schwenkt von oben rechts über die Bühne
+    ctx.save(); ctx.translate(cx + 120 * s, -20 * s); ctx.rotate(0.55 + Math.sin(t * 0.6) * 0.35);
+    const sw = ctx.createLinearGradient(0, 0, 0, H * 1.2);
+    sw.addColorStop(0, 'rgba(157,123,255,0.26)'); sw.addColorStop(1, 'rgba(157,123,255,0)');
+    ctx.fillStyle = sw; ctx.beginPath(); ctx.moveTo(-5 * s, 0); ctx.lineTo(5 * s, 0); ctx.lineTo(60 * s, H * 1.2); ctx.lineTo(-60 * s, H * 1.2); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    // funkelnde Sterne im Hintergrund
+    if (!this.sparks) this.sparks = Array.from({ length: 26 }, () => ({ x: Math.random(), y: Math.random(), p: Math.random() * 6, sz: 1.5 + Math.random() * 2.5 }));
+    ctx.fillStyle = '#fff6c2';
+    for (const sp of this.sparks) {
+      const k = Math.max(0, Math.sin(t * 2.2 + sp.p)); if (k < 0.05) continue;
+      const x = sp.x * W, y = sp.y * H, rr = sp.sz * s * k;
+      ctx.globalAlpha = k * 0.9;
+      ctx.beginPath(); ctx.moveTo(x, y - rr * 2.2); ctx.lineTo(x + rr * 0.45, y); ctx.lineTo(x, y + rr * 2.2); ctx.lineTo(x - rr * 0.45, y); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x - rr * 2.2, y); ctx.lineTo(x, y + rr * 0.45); ctx.lineTo(x + rr * 2.2, y); ctx.lineTo(x, y - rr * 0.45); ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
     // die eigene Katze wiegt sich im Swing (132 Schläge/min)
     const cat = CAT_BY_ID[S.activeCat] || CATS[0], beat = t * 132 / 60;
     const sway = Math.sin(beat * Math.PI) * 0.06, hop = Math.abs(Math.sin(beat * Math.PI)) * 2;

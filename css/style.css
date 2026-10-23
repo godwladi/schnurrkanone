@@ -463,15 +463,17 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; -webkit-
   background: repeating-conic-gradient(rgba(255, 122, 217, 0.07) 0 10deg, transparent 10deg 20deg);
   animation: spSpin 24s linear infinite, spFade 1s ease-out both; pointer-events: none;
 }
-.sp-logo { position: relative; width: min(34vmin, 210px); aspect-ratio: 1; animation: spDrop 0.9s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+.sp-logo { position: relative; isolation: isolate; width: min(34vmin, 210px); aspect-ratio: 1; animation: spDrop 0.9s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
 .sp-logo img { width: 100%; height: 100%; border-radius: 24%; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55), 0 0 0 3px rgba(255, 255, 255, 0.08); animation: spBob 2.4s ease-in-out 1s infinite; }
-/* Augen des Icons liegen bei 38,6 % / 61,4 % Breite und 52,7 % Höhe */
-.sp-eye { position: absolute; top: 52.7%; width: 13%; aspect-ratio: 1; margin: -6.5% 0 0 -6.5%; border-radius: 50%; background: radial-gradient(#fff 0 20%, #ff3355 45%, transparent 70%); opacity: 0; animation: spEye 0.5s ease-out 0.95s both; }
-.sp-eye.l { left: 38.6%; } .sp-eye.r { left: 61.4%; }
-.sp-beam { position: absolute; top: 52.7%; height: 5%; margin-top: -2.5%; width: 60vw; border-radius: 99px; background: linear-gradient(90deg, #fff, #ff3355 30%, rgba(255, 51, 85, 0)); box-shadow: 0 0 14px #ff3355; transform: scaleX(0); opacity: 0; }
-.sp-beam.r { left: 61.4%; transform-origin: left center; animation: spBeam 0.75s ease-out 1.1s both; }
-.sp-beam.l { right: 61.4%; transform-origin: right center; background: linear-gradient(-90deg, #fff, #ff3355 30%, rgba(255, 51, 85, 0)); animation: spBeam 0.75s ease-out 1.1s both; }
+/* goldener Ring dreht sich hinter dem Icon */
+.sp-logo::before {
+  content: ''; position: absolute; inset: -16%; z-index: -1; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(from 0deg, rgba(255, 211, 77, 0), rgba(255, 211, 77, 0.7), rgba(255, 122, 217, 0.5), rgba(255, 211, 77, 0));
+  -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%, #000 70%, transparent 72%); mask: radial-gradient(circle, transparent 62%, #000 64%, #000 70%, transparent 72%);
+  animation: spSpin 7s linear infinite;
+}
 .sp-title { position: relative; margin: 14px 0 0; font-size: min(9vmin, 54px); font-weight: 900; letter-spacing: 1px; text-shadow: 0 4px 0 rgba(0, 0, 0, 0.35), 0 0 24px rgba(157, 123, 255, 0.5); white-space: nowrap; }
+.sp-title b { animation: spGlow 2.6s ease-in-out 2s infinite; }
 .sp-title b { color: var(--accent); }
 .sp-title span { display: inline-block; animation: spLetter 0.45s cubic-bezier(0.3, 1.8, 0.5, 1) both; }
 .sp-title span:nth-child(1) { animation-delay: 0.45s; } .sp-title span:nth-child(2) { animation-delay: 0.5s; }
@@ -488,8 +490,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; -webkit-
 @keyframes spFade { from { opacity: 0; } }
 @keyframes spDrop { from { transform: translateY(-70vh) rotate(-25deg); } }
 @keyframes spBob { 50% { transform: translateY(-6px) rotate(2deg); } }
-@keyframes spEye { 0% { opacity: 0; transform: scale(0.2); } 40% { opacity: 1; transform: scale(1.6); } 100% { opacity: 1; transform: scale(1); } }
-@keyframes spBeam { 0% { opacity: 1; transform: scaleX(0); } 45% { opacity: 1; transform: scaleX(1); } 100% { opacity: 0; transform: scaleX(1); } }
+@keyframes spGlow { 50% { text-shadow: 0 4px 0 rgba(0, 0, 0, 0.35), 0 0 30px rgba(255, 122, 217, 0.85); } }
 @keyframes spLetter { from { transform: translateY(-40px) scale(0.3); opacity: 0; } }
 @keyframes spPulse { 50% { transform: scale(1.07); background: rgba(255, 122, 217, 0.25); } }
 @media (prefers-reduced-motion: reduce) { #splash *, #splash { animation-duration: 0.01s !important; animation-delay: 0s !important; } }
