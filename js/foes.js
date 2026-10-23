@@ -35,6 +35,13 @@ const CRACK_ZONE = {
 };
 const SWAY = { tree: 0.035, cactus: 0.03, snowman: 0.02, voidling: 0.05, popup: 0.02 };
 const INK = '#2a1a22';
+// Riss-Linie nur bis zum Anteil f zeichnen (für das Hineinwachsen eines frischen Risses)
+const partial = (pts, f) => {
+  const n = (pts.length - 1) * f, i = Math.floor(n);
+  if (i >= pts.length - 1) return pts;
+  const a = pts[i], b = pts[i + 1], q = n - i;
+  return pts.slice(0, i + 1).concat([[a[0] + (b[0] - a[0]) * q, a[1] + (b[1] - a[1]) * q]]);
+};
 
 const Foes = {
   // ---------------------------------------------------------------- Zustand je Bild
@@ -58,6 +65,7 @@ const Foes = {
     const stage = this.crackStage(o);
     if (stage > (o.crackShown || 0)) {
       o.crackShown = stage;
+      o.crackAt = B.t; // neue Risse wachsen ab jetzt ins Bild
       const z = this.zoneCenter(o), deb = biomeFor(S.stage).debris;
       for (let i = 0; i < 6 + stage * 3; i++) {
         const p = B.particle(o.x + z.x * o.scale, o.y + z.y * o.scale, U.rand(-200, 120), U.rand(-320, -80), U.pick(deb), U.rand(0.7, 1.2), U.rand(4, 8) * cs, 1200, true, 'chunk');
@@ -116,6 +124,15 @@ const Foes = {
     };
     const size = circ ? z[2] : Math.min(z[2], z[3]) * 0.9 + 6;
     const paths = [];
+    // zackige Kanten: zwischen zwei Punkten einen seitlich versetzten Knick einfügen
+    const jag = pts => {
+      const out = [pts[0]];
+      for (let i = 1; i < pts.length; i++) {
+        const [ax, ay] = pts[i - 1], [bx, by] = pts[i], L = Math.hypot(bx - ax, by - ay) || 1, j = (rnd() - 0.5) * L * 0.4;
+        out.push([(ax + bx) / 2 - (by - ay) / L * j, (ay + by) / 2 + (bx - ax) / L * j], [bx, by]);
+      }
+      return out;
+    };
     // je Stufe zwei Hauptrisse mit Verästelung
     for (let st = 1; st <= 3; st++) {
       for (let n = 0; n < 2; n++) {
@@ -136,10 +153,10 @@ const Foes = {
               if (!inside(qx, qy)) break;
               bx = qx; by = qy; br.push([bx, by]); ba += (rnd() - 0.5) * 0.8;
             }
-            if (br.length > 1) paths.push({ st, pts: br, w: 1.1 });
+            if (br.length > 1) paths.push({ st, pts: jag(br), w: 1.1 });
           }
         }
-        if (main.length > 1) paths.push({ st, pts: main, w: 1.4 + st * 0.35 });
+        if (main.length > 1) paths.push({ st, pts: jag(main), w: 1.4 + st * 0.35 });
       }
       // ab Stufe 3: herausgebrochene Stellen
       if (st === 3) for (let n = 0; n < 3; n++) { const [cx, cy] = pt(); paths.push({ st, hole: [cx, cy, 2.2 + rnd() * 2.2] }); }
@@ -153,19 +170,30 @@ const Foes = {
     ctx.save();
     if (f && f.bob) ctx.translate(0, f.bob(t, o)); // schwebende Gegner: mitschweben
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    // Der neueste Rissgrad wächst in 0,3 s vom Treffer aus ins Bild
+    const grow = o.crackAt !== undefined ? U.clamp((Battle.t - o.crackAt) / 0.3, 0, 1) : 1;
+    const ease = 1 - Math.pow(1 - grow, 3);
     for (const p of this.crackPaths(o)) {
       if (p.st > stage) continue;
       if (p.hole) { // Loch mit hellem Rand
-        Draw.circle(ctx, p.hole[0], p.hole[1], p.hole[2], 'rgba(15,8,12,0.75)');
+        const hs = p.st === stage ? ease : 1;
+        Draw.circle(ctx, p.hole[0], p.hole[1], p.hole[2] * hs, 'rgba(15,8,12,0.75)');
         ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(p.hole[0], p.hole[1] + 0.6, p.hole[2], 0.2, Math.PI - 0.2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(p.hole[0], p.hole[1] + 0.6, p.hole[2] * hs, 0.2, Math.PI - 0.2); ctx.stroke();
         continue;
       }
-      // Lichtkante unter dem Riss = Tiefe
+      const pts = p.st === stage && grow < 1 ? partial(p.pts, ease) : p.pts;
+      // Lichtkante unter dem Riss = Tiefe, dunkler Kern darüber
       ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = p.w * 0.9;
-      ctx.beginPath(); p.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x + 0.8, y + 1) : ctx.moveTo(x + 0.8, y + 1))); ctx.stroke();
+      ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x + 0.8, y + 1) : ctx.moveTo(x + 0.8, y + 1))); ctx.stroke();
       ctx.strokeStyle = 'rgba(20,10,16,0.82)'; ctx.lineWidth = p.w;
-      ctx.beginPath(); p.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+      ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+      // Glühende Spitze am Rissende: zeigt den frischen Schaden
+      if (p.st === stage && grow < 1) {
+        const [ex, ey] = pts[pts.length - 1];
+        ctx.fillStyle = `rgba(255,170,90,${(0.9 * (1 - grow)).toFixed(3)})`;
+        ctx.beginPath(); ctx.arc(ex, ey, p.w * 1.2, 0, Math.PI * 2); ctx.fill();
+      }
     }
     // Boss bei wenig Leben: Glut leuchtet aus den Rissen
     if (o.boss && stage >= 2) {

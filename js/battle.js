@@ -333,7 +333,8 @@ const Battle = {
     }
     this.flyers = this.flyers.filter(f => !f.done);
 
-    // Schnurr-Meter
+    // Schnurr-Meter; während der Raserei lädt er sich nicht auf, damit er danach leer ist
+    if (this.frenzy > 0) this.purr = 0;
     if (this.purr >= 100) {
       this.purr = 0;
       this.frenzy = 6;
@@ -1556,7 +1557,7 @@ const Battle = {
     ctx.font = '700 11px "Segoe UI", sans-serif'; ctx.fillStyle = '#ffd6f3'; ctx.textAlign = 'left';
     ctx.fillText(this.frenzy > 0 ? `RASEREI ${this.frenzy.toFixed(1)} s` : W < 520 ? 'SCHNURR-METER' : 'SCHNURR-METER · klicken!', mx, my - 11);
     Draw.rrect(ctx, mx, my - 2, mw, 12, 6, 'rgba(255,255,255,0.15)');
-    const f = this.frenzy > 0 ? this.frenzy / 6 : this.purr / 100;
+    const f = Math.min(1, this.frenzy > 0 ? this.frenzy / 6 : this.purr / 100); // Raserei aus dem Automaten kann länger als 6 s dauern
     const gr = ctx.createLinearGradient(mx, 0, mx + mw, 0);
     gr.addColorStop(0, '#ff7ad9'); gr.addColorStop(1, '#9d7bff');
     ctx.fillStyle = gr; ctx.beginPath(); ctx.roundRect(mx, my - 2, Math.max(0.001, mw * f), 12, 6); ctx.fill();
