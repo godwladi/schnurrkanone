@@ -7,22 +7,24 @@
 //   Beschwörung – zwei Alpha-Leibwächter stellen sich vor ihn und fangen die Kugeln ab.
 //   Meteorhagel – sechs Meteore stürzen auf die Katze; Schatten antippen zerschlägt sie.
 //                 Danach ist er rasend und wirft schneller.
+// Jeder Erzwächter hat sein festes Gebiet passend zum Schlüssel (Raum 100 Flüsterwald …
+// Raum 900 Spiegelkabinett); Raum 1000 ist die Goldene Arena mit dem Goldenen Katzenkönig.
 // Belohnung: ein Wächter-Schlüssel (10 Stück bis Raum 1000). Jeder Schlüssel gibt dauerhaft
 // +5 % Schaden und +5 % Münzen, der goldene zehnte zusätzlich +25 %.
 // ---------------------------------------------------------------------------
 
 const ERZ_EVERY = 100;
 const WARDEN_KEYS = [
-  { n: 100,  icon: '🌿', name: 'Moosschlüssel',       col: '#6ee7a0' },
-  { n: 200,  icon: '🌵', name: 'Sandschlüssel',       col: '#ffbe76' },
-  { n: 300,  icon: '❄️', name: 'Frostschlüssel',      col: '#9dbdff' },
-  { n: 400,  icon: '🔥', name: 'Glutschlüssel',       col: '#ff6a2b' },
-  { n: 500,  icon: '💡', name: 'Neonschlüssel',       col: '#ff4fd8' },
-  { n: 600,  icon: '⭐', name: 'Sternenschlüssel',    col: '#ffe680' },
-  { n: 700,  icon: '🌑', name: 'Schattenschlüssel',   col: '#b48cff' },
-  { n: 800,  icon: '⏳', name: 'Zeitschlüssel',       col: '#ffd34d' },
-  { n: 900,  icon: '💠', name: 'Spiegelschlüssel',    col: '#7ef9ff' },
-  { n: 1000, icon: '👑', name: 'Goldener Katzenschlüssel', col: '#ffcf3a' },
+  { n: 100,  icon: '🌿', name: 'Moosschlüssel',       col: '#6ee7a0', biome: 'Flüsterwald' },
+  { n: 200,  icon: '🌵', name: 'Sandschlüssel',       col: '#ffbe76', biome: 'Sonnenwüste' },
+  { n: 300,  icon: '❄️', name: 'Frostschlüssel',      col: '#9dbdff', biome: 'Frostgipfel' },
+  { n: 400,  icon: '🔥', name: 'Glutschlüssel',       col: '#ff6a2b', biome: 'Lavagrund' },
+  { n: 500,  icon: '💡', name: 'Neonschlüssel',       col: '#ff4fd8', biome: 'Neon-City' },
+  { n: 600,  icon: '⭐', name: 'Sternenschlüssel',    col: '#ffe680', biome: 'Sternenmeer' },
+  { n: 700,  icon: '🌑', name: 'Schattenschlüssel',   col: '#b48cff', biome: 'Die Leere' },
+  { n: 800,  icon: '⏳', name: 'Zeitschlüssel',       col: '#ffd34d', biome: 'Zeitreise' },
+  { n: 900,  icon: '💠', name: 'Spiegelschlüssel',    col: '#7ef9ff', biome: 'Spiegelkabinett' },
+  { n: 1000, icon: '👑', name: 'Goldener Katzenschlüssel', col: '#ffcf3a', biome: 'Goldene Arena' },
 ];
 const ERZ_PHASES = [
   { at: 0.75, id: 'runes',  name: 'RUNENKREIS!',  sub: 'Tippe die Kristalle an – solange sie leuchten, schützen sie ihn' },
@@ -30,11 +32,27 @@ const ERZ_PHASES = [
   { at: 0.25, id: 'meteor', name: 'METEORHAGEL!', sub: 'Schatten unter der Katze antippen – danach ist er rasend' },
 ];
 
+// Goldene Arena: nur Raum 1000 (steht nicht in SPECIAL_ROOMS, wird also nie zufällig gewählt)
+RUN_BIOMES.push({ name: 'Goldene Arena', special: 'arena', dark: true, sky: ['#1a0e04', '#7a4a0c'], hills: '#3a2208', hills2: '#4a2c0c',
+  ground: '#4a300c', ground2: '#ffcf3a', obstacle: 'goldcat', foes: ['mknight', 'glassling', 'squid'], accent: '#ffcf3a',
+  debris: ['#ffcf3a', '#fff1a8', '#b8860b'], desc: 'Das Finale der tausend Räume' });
+Object.assign(BOSS_NAMES, { goldcat: 'Der Goldene Katzenkönig' });
+Object.assign(BOSS_ATTACKS, { goldcat: { icon: '👑', name: 'Kronenwurf', n: 3, speed: 1.2, size: 1.1, dmg: 0.8 } });
+Object.assign(OBST_H, { goldcat: 86 }); Object.assign(OBST_W, { goldcat: 70 });
+NEW_FOES.goldcat = NEW_FOES.mirrorcat; // gleiche Figur, goldene Farben (rooms3.js)
+SONGS.goldcat = { ...SONGS.vending, tempo: 120 };
+
 const Warden = {
   crystals: [], meteors: [], meteorLeft: 0, meteorT: 0,
 
   keys() { return (S.wardenKeys = S.wardenKeys || []); },
   isErzRoom() { return Run.active && Run.room() % ERZ_EVERY === 0; },
+  // festes Gebiet des Erzwächters (Index in RUN_BIOMES); ab Raum 1100 wiederholt sich der Kreis
+  biomeFor(room) {
+    const key = WARDEN_KEYS[(room / ERZ_EVERY - 1) % WARDEN_KEYS.length];
+    const i = RUN_BIOMES.findIndex(b => b.name === key.biome);
+    return i < 0 ? 0 : i;
+  },
   // Dauerbonus aller Schlüssel
   mul() { const k = this.keys(); return (1 + 0.05 * k.length) * (k.includes(1000) ? 1.25 : 1); },
 
@@ -238,6 +256,49 @@ const Warden = {
 };
 
 // ---------------------------------------------------------------- Einhängen
+// Wegkarte vor einem Erzwächter-Raum: nur eine Pflicht-Tür ins feste Gebiet
+const _wDoors = Path.rollDoors;
+Path.rollDoors = function (afterStop) {
+  if (Run.room() % ERZ_EVERY === 0) return [{ type: 'fight', biome: Warden.biomeFor(Run.room()), guard: true, erz: true }];
+  return _wDoors.call(this, afterStop);
+};
+// Absicherung (z. B. eine noch gespeicherte alte Wegkarte): Erzwächter-Raum immer im festen Gebiet
+const _wEnter = Run.enterRoom;
+Run.enterRoom = function (biome, kind) {
+  if (Run.room() % ERZ_EVERY === 0) { biome = Warden.biomeFor(Run.room()); kind = 'fight'; }
+  return _wEnter.call(this, biome, kind);
+};
+// Hintergrund der Goldenen Arena: Ränge mit Publikum, Säulen mit Fackeln, goldener Sand, Konfetti
+const _wBg = Rooms.drawBg;
+Rooms.drawBg = function (ctx, B, biome) {
+  if (biome.special !== 'arena') return _wBg.call(this, ctx, B, biome);
+  const W = B.W, H = B.H, gy = B.groundY, t = B.t, sc = B.scroll;
+  this.sky(ctx, B, biome);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  FX.drawGlow(ctx, W * 0.55, gy * 0.3, Math.min(W, H) * 0.45, '#ffcf3a', 0.25);
+  ctx.restore();
+  for (let r = 0; r < 3; r++) {
+    const y = gy - 150 + r * 38;
+    ctx.fillStyle = r % 2 ? '#3a2208' : '#4a2c0c'; ctx.fillRect(-20, y, W + 40, 38);
+    for (let x = -((sc * 0.2 + r * 17) % 22); x < W + 22; x += 22) Draw.circle(ctx, x, y + 10, 5, `hsl(${Math.round(x * 7 + r * 60) % 360},60%,${Math.round(45 + Math.sin(t * 3 + x) * 10)}%)`);
+  }
+  const sp = 160, so = (sc * 0.4) % sp;
+  for (let x = -so; x < W + sp; x += sp) {
+    Draw.rrect(ctx, x - 14, gy - 190, 28, 190, 6, '#c9a227'); Draw.rrect(ctx, x - 20, gy - 200, 40, 14, 4, '#ffd34d');
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    FX.drawGlow(ctx, x, gy - 214, 40, '#ff8a3c', 0.6 + Math.sin(t * 12 + x) * 0.12); FX.drawGlow(ctx, x, gy - 216, 12, '#fff1a8', 0.9);
+    ctx.restore();
+  }
+  ctx.fillStyle = biome.ground; ctx.fillRect(-20, gy, W + 40, H - gy + 20);
+  ctx.fillStyle = 'rgba(255,207,58,0.18)';
+  for (let x = -(sc % 30); x < W + 30; x += 30) ctx.fillRect(x, gy + 12, 16, 3);
+  for (let i = 0; i < 18; i++) {
+    const x = (i * 83 + t * 30) % (W + 40) - 20, y = ((t * (40 + i % 4 * 12) + i * 57) % (gy + 20)) - 20;
+    ctx.fillStyle = `hsl(${i * 40},90%,62%)`; ctx.fillRect(x, y, 4, 7);
+  }
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.6; ctx.fillStyle = biome.ground2; ctx.fillRect(-20, gy, W + 40, 2);
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+};
 const _wSpawn = Battle.spawnBoss;
 Battle.spawnBoss = function () {
   _wSpawn.call(this);

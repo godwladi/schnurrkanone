@@ -87,10 +87,11 @@ for (const k of ['clown', 'poodle', 'glassling']) SONGS[k] = SONGS.mirrorcat;
 // ---------------------------------------------------------------- Zeichnen der neuen Gegner
 // lokale Koordinaten: Füße bei (0, 0), y nach oben negativ, Blick nach links (zur Katze)
 const ln3 = (ctx, x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
-// dunkle Kopie der aktiven Katze (Spiegelkatze)
-const shadowCat = () => {
+// Kopie der aktiven Katze: dunkel (Spiegelkatze) oder golden (Katzenkönig der Goldenen Arena, warden.js)
+const shadowCat = gold => {
   const c = CAT_BY_ID[S.activeCat] || CATS[0];
-  return { ...c, fur: '#2e2448', belly: '#4b3a72', stripe: '#171030', eye: '#ff2d55', ghost: false };
+  return gold ? { ...c, fur: '#ffcf3a', belly: '#fff1a8', stripe: '#c9902a', eye: '#ff4d6d', ghost: false }
+    : { ...c, fur: '#2e2448', belly: '#4b3a72', stripe: '#171030', eye: '#ff2d55', ghost: false };
 };
 Object.assign(NEW_FOES, {
   mknight(ctx, o, t) { // Maus in Rüstung mit Rundschild und Lanze
@@ -257,14 +258,14 @@ Object.assign(NEW_FOES, {
   mirrorcat(ctx, o, t) { // Spiegelkatze: dunkle Kopie der eigenen Katze mit der eigenen Waffe
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    FX.drawGlow(ctx, 0, -40, 60, '#b48cff', 0.35 + Math.sin(t * 3) * 0.1);
+    FX.drawGlow(ctx, 0, -40, 60, o.kind === 'goldcat' ? '#ffcf3a' : '#b48cff', 0.35 + Math.sin(t * 3) * 0.1);
     ctx.restore();
     // getroffen: dasselbe Schmerz-Gesicht wie die eigene Katze (> <, offenes Maul, Tränen,
     // Zurückzucken); harte Treffer mit kreisenden Sternen, wenig Leben: besorgt
     const hurt = o.hurtT || 0, ouch = U.clamp(hurt / 0.28, 0, 1), flinch = ouch * ouch;
     const ox = flinch ? -flinch * 7 + Math.sin(t * 60) * flinch * 2.5 : 0;
     ctx.save(); ctx.scale(-1, 1); // schaut nach links zur Katze
-    Draw.cat(ctx, ox, 0, 1, shadowCat(), t, {
+    Draw.cat(ctx, ox, 0, 1, shadowCat(o.kind === 'goldcat'), t, {
       weapon: S.slots[0] || null, look: { x: 1, y: 0 }, fury: ouch ? 0 : o.enraged ? 1 : 0.4,
       ouch, ouchBig: hurt > 0.32, worry: !ouch && o.hp < o.maxHp * 0.3, squash: flinch * 0.14,
     });

@@ -79,8 +79,8 @@ const Path = {
       const t = DOORS[d.type], b = d.biome !== undefined ? RUN_BIOMES[d.biome % RUN_BIOMES.length] : null;
       const where = b ? `<span class="dbiome" style="--bc:${b.accent || '#c7b3ff'}">${b.special ? '✨ ' : ''}${b.name}</span>` : '<span class="dbiome stop">Zwischenhalt</span>';
       return `<button class="door door-${d.type}" data-door="${i}" style="--dc:${t.col}">
-        <span class="dicon">${t.icon}</span><b>${d.guard ? 'Wächter' : t.name}</b>${where}
-        <small>${d.guard ? 'Pflichtkampf · stärkerer Boss · Segen garantiert' : b && b.special ? b.desc : t.desc}</small>${d.type === 'fight' && !d.guard && Run.room() % BOON_EVERY === 0 ? '<em class="dboon">✨ Segen</em>' : ''}</button>`;
+        <span class="dicon">${t.icon}</span><b>${d.erz ? 'Erzwächter' : d.guard ? 'Wächter' : t.name}</b>${where}
+        <small>${d.erz ? 'Pflichtkampf · Runenkreis, Beschwörung, Meteorhagel · Wächter-Schlüssel' : d.guard ? 'Pflichtkampf · stärkerer Boss · Segen garantiert' : b && b.special ? b.desc : t.desc}</small>${d.type === 'fight' && !d.guard && Run.room() % BOON_EVERY === 0 ? '<em class="dboon">✨ Segen</em>' : ''}</button>`;
     }).join('');
     this.modal({
       title: '🗺️ Wohin geht die Reise?',

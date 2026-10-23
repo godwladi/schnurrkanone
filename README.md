@@ -75,7 +75,8 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 ## Katzen-Automat (`js/slots.js`)
 Slotmaschine mit drei Walzen, Hebel, Lauflichtern und drei Modi (ersetzt das Glücksrad):
 - **Münz-Slot:** Einsatz 1 %, 5 %, 20 % oder alle Münzen. Drei gleiche zahlen ×5 (🐟) bis ×80 (💠), 👑👑👑 ×250 plus **Jackpot** (wächst mit jedem Einsatz um 8 %); 👑👑 ×6, zwei gleiche ×0,5, eine Krone = Einsatz zurück (Quote ≈ 95 % plus Jackpot). Nach einem Gewinn: **Doppelt oder nichts** (Pfote links/rechts, 50 : 50, bis zu fünfmal).
-- **Schatz-Slot:** einmal am Tag gratis, sonst 15 🦴; gewinnt immer: Münzregen, Gräten, Goldrausch, Raserei, Katzenkiste, Waffenkiste, selten Katzenminze.
+- **Gratis-Dreh alle 15 Minuten** (wie die Gratis-Kiste, Timer am 🎰-Knopf), in jedem Modus; im Münz-Slot setzt er höchstens 5 % der Münzen.
+- **Schatz-Slot:** Gratis-Dreh oder 15 🦴; gewinnt immer: Münzregen, Gräten, Goldrausch, Raserei, Katzenkiste, Waffenkiste, selten Katzenminze.
 - **Kampf-Slot:** Münzen (3 % der Münzen) gegen Kampf-Schübe – ⚡ Raserei, ✨ Goldrausch, 🦉 Eulenruf, 💰 Münzen, 🐾 Schnurr-Meter; drei gleiche = voller, zwei gleiche = kleiner Schub. Startet erst beim Schließen des Fensters; im Streifzug gesperrt.
 - Zwei gleiche auf den ersten Walzen lassen die dritte spannend länger drehen.
 
@@ -84,6 +85,7 @@ Slotmaschine mit drei Walzen, Hebel, Lauflichtern und drei Modi (ersetzt das Gl�
   - **75 % – Runenkreis:** vier Kristalle kreisen um ihn, solange einer leuchtet, nimmt er nur 25 % Schaden. Antippen zerschlägt sie (nach 12 s verlöschen sie).
   - **50 % – Beschwörung:** zwei Alpha-Leibwächter stellen sich vor ihn und fangen die Kugeln ab.
   - **25 % – Meteorhagel:** sechs Meteore auf die Katze (Schatten antippen), danach rasend.
+- **Festes Gebiet je Erzwächter** passend zum Schlüssel: 100 Flüsterwald, 200 Sonnenwüste, 300 Frostgipfel, 400 Lavagrund, 500 Neon-City, 600 Sternenmeer, 700 Die Leere, 800 Zeitreise, 900 Spiegelkabinett, 1000 **Goldene Arena** mit dem Goldenen Katzenkönig (goldene Kopie der eigenen Katze). Die Wegkarte zeigt davor nur die Pflicht-Tür „Erzwächter“.
 - **Wächter-Schlüssel** (10 Stück bis Raum 1000: Moos, Sand, Frost, Glut, Neon, Sterne, Schatten, Zeit, Spiegel, Gold): je dauerhaft +5 % Schaden und Münzen, der goldene zusätzlich +25 %. Schlüsselbund im Reiter Streifzug.
 
 ## Treffer der Geschosse

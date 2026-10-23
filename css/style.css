@@ -1554,7 +1554,7 @@ body.more-open #dockMore { display: flex; animation: modalIn 0.18s ease-out; }
    Schnellknöpfe (Automat, Aufgaben, Gratis-Kiste) als Spalte direkt unter dem Menü-Knopf;
    Musik und Streifzug nur noch im Menü; Pause oben rechts neben dem 🐞-Knopf. */
 #railR { display: none; }
-#railL { top: calc(var(--hudH) + 12px); }
+#railL { top: calc(var(--hudH) + 12px); gap: 16px; } /* Platz für die Timer-Plaketten (Automat, Kiste) */
 #bugBtn, #pauseFab { width: 38px; height: 38px; border-radius: 12px; top: calc(9px + env(safe-area-inset-top)); }
 #pauseFab {
   position: fixed; z-index: 49; right: calc(54px + env(safe-area-inset-right));
@@ -1572,7 +1572,7 @@ body.more-open #dockMore { display: flex; animation: modalIn 0.18s ease-out; }
   #bugBtn, #pauseFab { width: 34px; height: 34px; font-size: 15px; top: calc(8px + env(safe-area-inset-top)); }
   #pauseFab { right: calc(50px + env(safe-area-inset-right)); }
   #hud { padding-right: calc(96px + env(safe-area-inset-right)); }
-  #railL { top: calc(var(--hudH) + 8px); gap: 9px; }
+  #railL { top: calc(var(--hudH) + 8px); gap: 14px; }
   /* Meldungen rechts neben der Knopfspalte */
   #toasts { left: calc(70px + env(safe-area-inset-left)); }
 }

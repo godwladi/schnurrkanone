@@ -3,7 +3,7 @@
 // Kompaktes HUD im Stil moderner Handyspiele:
 //   oben links ≡ (Menü mit allen weiteren Reitern, Pause, Musik), daneben Level-Ring
 //   und Ressourcen-Pillen; links unter dem Menü eine Spalte mit Schnellknöpfen
-//   (Katzen-Automat, Aufgaben, Gratis-Kiste) mit Hinweis-Punkten; oben rechts Pause neben 🐞.
+//   (Katzen-Automat und Gratis-Kiste mit Timer, Aufgaben) mit Hinweis-Punkten; oben rechts Pause neben 🐞.
 // Am Handy liegt das HUD durchsichtig über dem Spielfeld (Battle.insetT hält Abstand).
 // ---------------------------------------------------------------------------
 
@@ -21,7 +21,7 @@ const Hud = {
     const railL = document.createElement('div');
     railL.id = 'railL';
     railL.innerHTML = `
-      <button class="railb" data-r="slots" title="Katzen-Automat"><span class="ri">🎰</span><i class="dot"></i></button>
+      <button class="railb" data-r="slots" title="Katzen-Automat"><span class="ri">🎰</span><i class="dot"></i><em></em></button>
       <button class="railb" data-r="quests" title="Aufgaben"><span class="ri">📜</span><i class="dot"></i></button>
       <button class="railb" data-r="chest" title="Gratis-Katzenkiste"><span class="ri">🎁</span><i class="dot"></i><em></em></button>`;
     battle.append(railL);
@@ -88,6 +88,8 @@ const Hud = {
   refresh() {
     const set = (sel, on) => { const d = $(sel); if (d) d.classList.toggle('on', !!on); };
     set('#railL [data-r="slots"] .dot', Slots.ready());
+    const sem = $('#railL [data-r="slots"] em'); // Gratis-Dreh: Restzeit wie bei der Gratis-Kiste
+    if (sem) sem.textContent = Slots.ready() ? 'Gratis!' : U.fmtTime(Slots.freeLeft() / 1000);
     set('#railL [data-r="quests"] .dot', Quests.claimable());
     const left = S.freeChestAt - Date.now();
     set('#railL [data-r="chest"] .dot', left <= 0);

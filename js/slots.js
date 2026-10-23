@@ -4,7 +4,9 @@
 //   Münz-Slot   – Einsatz in Münzen (1 %, 5 %, 20 % oder alles), Gewinntabelle mit
 //                 wachsendem Jackpot (3 Kronen) und „Doppelt oder nichts“ nach Gewinnen.
 //                 Auszahlung ≈ 95 % plus Jackpot – auf Dauer ein Münz-Fresser mit Nervenkitzel.
-//   Schatz-Slot – einmal am Tag gratis, sonst Fischgräten; gewinnt immer einen Preis
+// Alle 15 Minuten ein Gratis-Dreh (wie die Gratis-Katzenkiste), in jedem Modus; im
+// Münz-Slot setzt er höchstens 5 % der Münzen (sonst wäre „Alles!“ gratis zu stark).
+//   Schatz-Slot – Gratis-Dreh oder Fischgräten; gewinnt immer einen Preis
 //                 (die alten Glücksrad-Preise: Kisten, Waffen, Gräten, Minze …).
 //   Kampf-Slot  – Münzen gegen Kampf-Schübe (Raserei, Goldrausch, Eulenruf, Schnurr-Meter);
 //                 drei gleiche = voller Schub, zwei gleiche = kleiner Schub.
@@ -12,6 +14,8 @@
 // ---------------------------------------------------------------------------
 
 const SLOT_BONE_COST = 15;
+const SLOT_FREE_MS = 15 * 60 * 1000; // Gratis-Dreh alle 15 Minuten
+const SLOT_FREE_BET = 0.05;          // Münz-Slot gratis: höchstens 5 % der Münzen
 const SLOT_BETS = [{ f: 0.01, n: '1 %' }, { f: 0.05, n: '5 %' }, { f: 0.2, n: '20 %' }, { f: 1, n: 'Alles!' }];
 // Münz-Slot: Gewicht je Walze und Faktor für drei gleiche (Auszahlungsquote ≈ 95 % ohne Jackpot)
 const SLOT_COIN_SYMS = [
@@ -43,12 +47,15 @@ const Slots = {
 
   st() {
     if (!S.casino) {
-      S.casino = { day: S.wheel ? S.wheel.day : '', spins: 0, pot: 0, betI: 1, best: 0, net: 0 };
+      S.casino = { spins: 0, pot: 0, betI: 1, best: 0, net: 0 };
       delete S.wheel;
     }
+    if (S.casino.freeAt === undefined) S.casino.freeAt = 0; // alte Spielstände: sofort ein Gratis-Dreh
     return S.casino;
   },
-  ready() { return this.st().day !== U.today(); },
+  ready() { return Date.now() >= this.st().freeAt; },
+  freeLeft() { return Math.max(0, this.st().freeAt - Date.now()); },
+  freeBet() { return Math.max(this.minBet(), Math.floor(S.coins * Math.min(SLOT_FREE_BET, SLOT_BETS[this.st().betI].f))); },
   unit() { return Econ.coins(S.stage) * R.coinMult; },          // Münzen je Gegner
   minBet() { return Math.ceil(this.unit() * 5); },
   bet() { return Math.max(this.minBet(), Math.floor(S.coins * SLOT_BETS[this.st().betI].f)); },
@@ -60,7 +67,6 @@ const Slots = {
   // ----------------------------------------------------------------- Fenster
   show() {
     this.st();
-    if (this.ready()) this.mode = 'treasure';
     if (!this.vis) this.vis = [0, 1, 2].map(() => [0, 1, 2].map(() => U.pick(SLOT_COIN_SYMS).s));
     this.gamble = null;
     UI.modal({
@@ -93,7 +99,9 @@ const Slots = {
     const root = this.root; if (!root || !root.isConnected) return;
     const st = this.st(), m = SLOT_MODES.find(x => x.id === this.mode);
     $$('.sl-mode', root).forEach(b => b.classList.toggle('on', b.dataset.m === this.mode));
-    $('.sl-mode[data-m="treasure"] .dot', root).classList.toggle('on', this.ready());
+    $$('.sl-mode .dot', root).forEach(d => d.classList.toggle('on', this.ready()));
+    this.wasReady = this.ready();
+    const free = this.wasReady;
     $('.slotm', root).dataset.mode = this.mode;
     // Walzen zeigen die Symbole des gewählten Modus
     if (this.visMode !== this.mode && !this.spinning) {
@@ -113,16 +121,18 @@ const Slots = {
         <button class="btn wide" data-g="take">Einsammeln</button>`;
     } else if (this.mode === 'coins') {
       c.innerHTML = `<div class="sl-bets">${SLOT_BETS.map((b, i) => `<button class="sl-bet ${i === st.betI ? 'on' : ''}" data-b="${i}">${b.n}</button>`).join('')}</div>
-        <button class="btn gold wide sl-go">🎰 Drehen · ${U.fmt(this.bet())} 💰</button>
+        <button class="btn gold wide sl-go">${free ? `🎁 Gratis drehen · Einsatz ${U.fmt(this.freeBet())} 💰` : `🎰 Drehen · ${U.fmt(this.bet())} 💰`}</button>
+        <p class="sl-note sl-free muted"></p>
         <details class="sl-pay"><summary>Gewinntabelle</summary><div>${SLOT_COIN_SYMS.map(x => `<span>${x.s}${x.s}${x.s} <b>×${x.pay}${x.s === '👑' ? ' + Jackpot' : ''}</b></span>`).join('')}
           <span>👑👑 <b>×6</b></span><span>2 gleiche <b>×0,5</b></span><span>1 👑 <b>×1</b></span></div></details>`;
     } else if (this.mode === 'treasure') {
-      const free = this.ready();
-      c.innerHTML = `<button class="btn ${free ? 'gold' : 'primary'} wide sl-go">${free ? '🎰 Gratis drehen!' : `🎰 Drehen · ${SLOT_BONE_COST} 🦴`}</button>
+      c.innerHTML = `<button class="btn ${free ? 'gold' : 'primary'} wide sl-go">${free ? '🎁 Gratis drehen!' : `🎰 Drehen · ${SLOT_BONE_COST} 🦴`}</button>
+        <p class="sl-note sl-free muted"></p>
         <p class="sl-note muted">Preise: ${SLOT_TREASURE.map(p => p.s).join(' ')}</p>`;
     } else {
       c.innerHTML = Run.active ? '<p class="sl-note muted">Im Streifzug ist der Kampf-Slot gesperrt.</p>'
-        : `<button class="btn gold wide sl-go">🎰 Drehen · ${U.fmt(this.fightCost())} 💰</button>
+        : `<button class="btn gold wide sl-go">${free ? '🎁 Gratis drehen!' : `🎰 Drehen · ${U.fmt(this.fightCost())} 💰`}</button>
+        <p class="sl-note sl-free muted"></p>
         <p class="sl-note muted">⚡ Raserei · ✨ Goldrausch · 🦉 Eulenruf · 💰 Münzen · 🐾 Schnurr-Meter<br>3 gleiche = voller Schub, 2 gleiche = kleiner Schub</p>`;
     }
     this.syncCant();
@@ -138,41 +148,46 @@ const Slots = {
   // Knöpfe grau, solange Münzen bzw. Fischgräten nicht reichen (bleiben antippbar und sagen, was fehlt)
   syncCant() {
     const root = this.root; if (!root || !root.isConnected) return;
+    const free = this.ready();
+    // Gratis-Dreh wird während des offenen Fensters bereit → Knöpfe neu beschriften
+    if (free !== this.wasReady && !this.spinning && !this.gamble) { this.render(); return; }
     const go = $('.sl-go', root);
     if (go) {
-      const cant = this.mode === 'coins' ? S.coins < this.bet()
-        : this.mode === 'treasure' ? !this.ready() && S.bones < SLOT_BONE_COST
-        : S.coins < this.fightCost();
+      const cant = !free && (this.mode === 'coins' ? S.coins < this.bet()
+        : this.mode === 'treasure' ? S.bones < SLOT_BONE_COST
+        : S.coins < this.fightCost());
       go.classList.toggle('cant', cant);
     }
+    const fr = $('.sl-free', root);
+    if (fr) fr.innerHTML = free ? '🎁 Gratis-Dreh bereit – alle 15 Minuten ein neuer' : `🎁 Nächster Gratis-Dreh in <b>${U.fmtTime(this.freeLeft() / 1000)}</b>`;
     $$('.sl-bet', root).forEach(b => b.classList.toggle('cant', S.coins < this.minBet()));
   },
 
   // ----------------------------------------------------------------- Drehen
   spin() {
     if (this.spinning || this.gamble) return;
-    const st = this.st();
+    const st = this.st(), free = this.ready();
     let res, cost = 0;
+    // cost = Einsatz, nach dem sich der Gewinn richtet; beim Gratis-Dreh wird er nicht abgezogen
     if (this.mode === 'coins') {
-      cost = this.bet();
-      if (S.coins < cost) return this.deny(`Zu wenig Münzen (mind. ${U.fmt(cost)} 💰)`);
-      S.coins -= cost; st.net -= cost;
-      st.pot = this.pot() + cost * 0.08;
+      cost = free ? this.freeBet() : this.bet();
+      if (!free && S.coins < cost) return this.deny(`Zu wenig Münzen (mind. ${U.fmt(cost)} 💰)`);
+      if (!free) { S.coins -= cost; st.net -= cost; st.pot = this.pot() + cost * 0.08; }
       res = [0, 1, 2].map(() => U.weightedPick(SLOT_COIN_SYMS).s);
     } else if (this.mode === 'treasure') {
-      const free = this.ready();
       if (!free && S.bones < SLOT_BONE_COST) return this.deny(`Zu wenig Fischgräten (${SLOT_BONE_COST} 🦴)`);
-      if (free) st.day = U.today(); else S.bones -= SLOT_BONE_COST;
+      if (!free) S.bones -= SLOT_BONE_COST;
       const p = U.weightedPick(SLOT_TREASURE);
       res = [p.s, p.s, p.s];
       this.prize = p;
     } else {
       if (Run.active) return this.deny('Im Streifzug gesperrt');
       cost = this.fightCost();
-      if (S.coins < cost) return this.deny(`Zu wenig Münzen (${U.fmt(cost)} 💰)`);
-      S.coins -= cost;
+      if (!free && S.coins < cost) return this.deny(`Zu wenig Münzen (${U.fmt(cost)} 💰)`);
+      if (!free) S.coins -= cost;
       res = [0, 1, 2].map(() => U.weightedPick(SLOT_FIGHT).s);
     }
+    if (free) st.freeAt = Date.now() + SLOT_FREE_MS;
     st.spins++;
     this.spinning = true;
     SFX.init(); SFX.play('buy');
@@ -186,7 +201,7 @@ const Slots = {
     const tease = this.mode !== 'treasure' && res[0] === res[1];
     this.roll(res, this.pool(), tease, () => {
       this.spinning = false;
-      this.finish(res, cost);
+      this.finish(res, cost, free);
       Save.write();
     });
   },
@@ -224,7 +239,7 @@ const Slots = {
     });
   },
 
-  finish(res, cost) {
+  finish(res, cost, free) {
     // Gewinne zählen auch, wenn das Fenster während des Drehens geschlossen wurde
     const root = this.root, ui = !!(root && root.isConnected), st = this.st(), B = Battle;
     let msg = '', win = 0, big = false;
@@ -237,8 +252,8 @@ const Slots = {
         else msg = `${a}${a}${a} <b>+${U.fmt(win)} 💰</b> (×${sym.pay})`;
         big = big || sym.pay >= 30;
       } else if (crowns === 2) { win = cost * 6; msg = `👑👑 <b>+${U.fmt(win)} 💰</b> (×6)`; }
-      else if (a === b || b === c || a === c) { win = Math.floor(cost * 0.5); msg = `Zwei gleiche – <b>${U.fmt(win)} 💰</b> zurück`; }
-      else if (crowns === 1) { win = cost; msg = `Eine Krone – Einsatz zurück`; }
+      else if (a === b || b === c || a === c) { win = Math.floor(cost * 0.5); msg = free ? `Zwei gleiche – <b>+${U.fmt(win)} 💰</b> geschenkt` : `Zwei gleiche – <b>${U.fmt(win)} 💰</b> zurück (halber Einsatz)`; }
+      else if (crowns === 1) { win = cost; msg = free ? `Eine Krone – <b>+${U.fmt(win)} 💰</b> geschenkt` : 'Eine Krone – Einsatz zurück'; }
       if (win > 0) {
         S.coins += win; st.net += win; st.best = Math.max(st.best, win);
         Game.emit('gain', win);
