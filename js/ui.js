@@ -256,11 +256,13 @@ const UI = {
     const wrap = $('#bossWrap');
     wrap.classList.toggle('farm', S.farm);
     wrap.classList.toggle('manual', S.farm && !S.autoBoss);
-    $('#autoBossBtn').innerHTML = S.autoBoss ? '🔁 Auto-Boss: <b>AN</b>' : '⏸️ Auto-Boss: <b>AUS</b>';
+    // Kapsel: links der Boss-Knopf (nur im Farm-Modus), rechts der Auto-Boss-Schalter
+    const ab = `<span class="ab-t">Auto-Boss</span><i class="ab-sw"><i></i></i><b>${S.autoBoss ? 'AN' : 'AUS'}</b>`;
+    if ($('#autoBossBtn').dataset.v !== String(S.autoBoss)) { $('#autoBossBtn').dataset.v = String(S.autoBoss); $('#autoBossBtn').innerHTML = ab; }
     $('#autoBossBtn').classList.toggle('off', !S.autoBoss);
     $('#bossBtn').innerHTML = S.farm && S.autoBoss
-      ? `👑 Boss jetzt <small>(auto in ${Math.max(0, KILLS_PER_STAGE - S.farmKills)})</small>`
-      : '👑 Boss herausfordern';
+      ? `<span class="bb-i">👑</span><span class="bb-t">Boss jetzt<small>auto in ${Math.max(0, KILLS_PER_STAGE - S.farmKills)}</small></span>`
+      : '<span class="bb-i">👑</span><span class="bb-t">Boss herausfordern</span>';
   },
 
   // Im Streifzug schalten Skills mit dem erreichten Raum frei (Hauptspiel: über onStageUp)

@@ -1508,9 +1508,14 @@ const Battle = {
     let fs = 15 * k;
     ctx.font = `800 ${fs}px "Segoe UI", system-ui, sans-serif`;
     const tw = ctx.measureText(label).width;
-    const bw = Math.min(W - 64, Math.max(Math.min(360, W * 0.5), tw + 6)), by = 14 + iT;
+    let bw = Math.min(W - 64, Math.max(Math.min(360, W * 0.5), tw + 6)), by = 14 + iT;
     // mittig im ganzen Spielfeld, aber nie unter die Symbolleiste rechts
-    const bcx = Math.min(this.W / 2, W - bw / 2 - 20), bx = bcx - bw / 2;
+    let bcx = Math.min(this.W / 2, W - bw / 2 - 20);
+    // Handy quer: in der freien Lücke der oberen HUD-Zeile (trailBox aus hud.js), damit
+    // Boss-Name und Lebensbalken darunter Platz haben
+    const tb = this.trailBox;
+    if (tb) { bw = Math.min(bw, tb.r - tb.l - 24); bcx = (tb.l + tb.r) / 2; by = tb.y; }
+    const bx = bcx - bw / 2;
     if (tw > bw) { fs *= bw / tw; ctx.font = `800 ${fs}px "Segoe UI", system-ui, sans-serif`; }
     this.drawTrail(ctx, biome, label, bx, by, bw, bcx);
 

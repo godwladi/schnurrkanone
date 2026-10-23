@@ -1718,3 +1718,45 @@ body.slowmo #battle::after { opacity: 1; }
 @keyframes pZap { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
 @media (max-height: 500px) and (orientation: landscape) { .pup { width: 38px; height: 38px; } #pups { gap: 11px; } }
 @media (prefers-reduced-motion: reduce) { .pup, .pup.low { animation: none; } }
+
+/* ============================================================= Boss-Leiste als Kapsel (Boss-Knopf + Auto-Boss-Schalter) */
+#bossWrap {
+  gap: 4px; padding: 4px; border-radius: 999px; z-index: 4;
+  background: rgba(14, 8, 30, 0.72); border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  transition: opacity 0.25s, transform 0.25s;
+}
+body.bossfight #bossWrap { opacity: 0; pointer-events: none; } /* im Bosskampf frei für Name und Lebensbalken */
+#bossBtn {
+  display: none; align-items: center; gap: 7px; padding: 4px 14px 4px 4px; font-size: 12.5px; white-space: nowrap;
+  background: linear-gradient(180deg, #ff6d86, #d63a57); box-shadow: 0 2px 0 #8e1f34, 0 0 14px rgba(255, 77, 109, 0.35);
+}
+#bossWrap.farm #bossBtn { display: inline-flex; }
+#bossBtn .bb-i { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: rgba(255, 255, 255, 0.22); font-family: var(--emoji); font-size: 14px; }
+#bossBtn .bb-i .ic { width: 17px; height: 17px; }
+#bossBtn .bb-t { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.05; font-weight: 900; }
+#bossBtn .bb-t small { display: block; font-size: 9.5px; font-weight: 700; opacity: 0.85; }
+#autoBossBtn {
+  display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px 5px 12px; border: 0; background: transparent;
+  color: var(--text); font: 800 11px/1 var(--font); white-space: nowrap;
+}
+#autoBossBtn .ab-t { opacity: 0.85; }
+#autoBossBtn .ab-sw { position: relative; width: 30px; height: 17px; border-radius: 99px; background: #2fbf71; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35); transition: background 0.2s; }
+#autoBossBtn .ab-sw i { position: absolute; top: 2px; left: 15px; width: 13px; height: 13px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); transition: left 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+#autoBossBtn.off .ab-sw { background: #5a4f7a; }
+#autoBossBtn.off .ab-sw i { left: 2px; }
+#autoBossBtn b { min-width: 24px; text-align: left; color: var(--good); }
+#autoBossBtn.off b { color: var(--warn); }
+#autoBossBtn:hover { background: transparent; }
+@media (max-width: 1000px) {
+  #bossBtn { padding: 3px 12px 3px 3px; font-size: 11.5px; }
+  #bossBtn small { display: block; }
+  #autoBossBtn { padding: 4px 8px 4px 10px; font-size: 10.5px; }
+}
+
+/* ---- Handy quer: Raumleiste sitzt in der oberen HUD-Zeile, Boss-Leiste direkt darunter */
+@media (max-height: 500px) and (orientation: landscape) {
+  #bossWrap { top: calc(56px + env(safe-area-inset-top)); }
+  #boonBar { top: calc(56px + env(safe-area-inset-top)); }
+}

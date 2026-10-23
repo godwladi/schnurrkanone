@@ -104,6 +104,10 @@ const Hud = {
       const top = Math.max(0, hud.getBoundingClientRect().bottom - cv.parentElement.getBoundingClientRect().top);
       if (Math.abs(top - (Battle.insetT || 0)) > 1 || probe.offsetHeight !== Battle.safeB || probe.offsetWidth !== Battle.safeR) Battle.resize();
     }
+    document.body.classList.toggle('bossfight', Battle.bossState === 'active');
+    // HUD-Pillen ändern ihre Breite mit den Zahlen → Lücke für die Raumleiste (quer) nachführen
+    const tb = Battle.measureTrail(), ob = Battle.trailBox;
+    if (!tb !== !ob || (tb && ob && (Math.abs(tb.l - ob.l) > 4 || Math.abs(tb.r - ob.r) > 4))) Battle.trailBox = tb;
     // Menü-Punkt, wenn in einem der Menü-Reiter etwas bereitliegt
     const extraDot = TABS.some(t => !Dock.MAIN.includes(t.id) && $(`#tabs .tab[data-tab="${t.id}"] .dot.on`));
     set('#menuBtn .dot', extraDot);
@@ -127,6 +131,35 @@ Battle.resize = function () {
   this.safeB = probe ? probe.offsetHeight : 0; this.safeR = probe ? probe.offsetWidth : 0;
   _hResize.call(this);
   this.uiTopAt = 0; // Boss-Knöpfe neu vermessen
+  this.trailBox = this.measureTrail();
+  // Handy quer: die Knopf-Spalte links (und die Notch) lag über Katze, Eule und Goldfisch →
+  // Katze so weit nach rechts, dass Eule (66 px links von ihr) neben der Spalte steht
+  if (this.landscape() && railL && railL.offsetWidth) {
+    const minX = this.pillX + 66 * this.cs;
+    if (this.catX < minX) {
+      this.catX = minX;
+      this.frontX = this.Wp < 520 ? Math.max(this.catX + 135 * this.cs, this.Wp * 0.4) : Math.max(this.catX + 200 * this.cs, this.Wp * 0.47);
+      this.spacing = Math.min(150 * this.cs, (this.Wp - this.frontX - 30) / 3.2);
+      this.realignT = 1; // Gegner wieder einreihen
+    }
+  }
+};
+Battle.landscape = function () { return matchMedia('(max-height: 500px) and (orientation: landscape)').matches; };
+// freie Lücke in der oberen HUD-Zeile (Spielfeld-Koordinaten): rechts neben den Ressourcen,
+// links vom Pause-Knopf; nur quer und nur, wenn die Raumleiste dort gut hineinpasst
+Battle.measureTrail = function () {
+  if (!this.cv || !this.landscape()) return null;
+  const cl = this.cv.getBoundingClientRect().left;
+  let l = 0;
+  for (const el of document.querySelectorAll('#hud > *')) {
+    if (el.id === 'pauseBtn' || el.id === 'musicBtn' || !el.offsetWidth) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width && r.right < innerWidth * 0.7) l = Math.max(l, r.right);
+  }
+  const pf = document.getElementById('pauseFab');
+  const r = pf && pf.offsetWidth ? pf.getBoundingClientRect().left : innerWidth - 100;
+  const box = { l: l - cl + 12, r: r - cl - 12, y: 7 };
+  return box.r - box.l > 240 ? box : null;
 };
 // Unterkante der Boss-Knöpfe nur zweimal pro Sekunde messen (jedes Bild erzwang ein Layout)
 Battle.uiTop = function () {
