@@ -103,6 +103,11 @@ Reguläre Gebiete im Hauptspiel (Stufe 71–80 Mäusefestung, 91–100 Spiegelka
 - **Alpha-Boss** (ab Stufe 20; jede 10. Stufe 50 %, sonst 12 %; im Streifzug ab Raum 8): 2,2× Leben, +8 s, wirft öfter, ab 50 % rasend, ruft zwei Schattenwesen. Beute 3× Münzen und 3× Gräten.
 - **Schattenwesen im Bosskampf:** normale Bosse rufen mit 40 % eines. Es stellt sich vor den Boss, fängt die Kugeln ab und der Boss-Countdown läuft weiter.
 
+## Kleine Freuden (`js/fun.js`)
+- **Sieges-Tänzchen:** nach jedem Boss hüpft und wackelt die Katze; neuer Rekord im Hauptspiel = Feuerwerk am Himmel.
+- **Combo-Kamera:** ab Combo 25 zoomt das Bild sanft heran (aus, wenn Bildschirm-Wackeln abgeschaltet ist).
+- **Katze antippen:** sie maunzt, hüpft und verteilt Herzchen (kein Pfotenhieb).
+
 ## Power-up-Symbole (`js/powerups.js`)
 - Laufende Zeit-Effekte (Goldrausch, Gewitter/Sternschnuppen/Goldregen/Katzenminze, Raserei, Eulenruf, Espresso) stehen oben rechts unter der Raumleiste als runde Symbole mit ablaufendem Farbring und Sekunden; unter 3 s pulsieren sie. Beim Ablauf verpuffen sie in ihrer Farbe (Funken, Sterne, beim Gewitter ein Blitz). Ersetzt die alten Pillen links oben.
 
