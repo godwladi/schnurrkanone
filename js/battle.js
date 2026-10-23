@@ -194,7 +194,7 @@ const Battle = {
     for (const o of this.obs) {
       if (o.fleeing) { o.x += 700 * dt; continue; }
       // Schattenwesen im Bosskampf stellen sich vor den Boss (alpha.js)
-      const tx = o.boss ? this.frontX + 30 * this.cs : o.bossMinion ? this.frontX - 55 * this.cs : this.frontX + idx * this.spacing;
+      const tx = o.boss ? this.frontX + 30 * this.cs : o.bossMinion ? this.frontX - (55 - (o.minionIdx || 0) * 48) * this.cs : this.frontX + idx * this.spacing;
       idx++;
       if (o.x > tx) o.x = Math.max(tx, o.x - 420 * dt);
       else if (this.realignT > 0 && o.x < tx - 1 && !(o.dying > 0)) o.x = Math.min(tx, o.x + 420 * dt); // nach Drehen wieder einreihen
@@ -271,6 +271,17 @@ const Battle = {
 
     // Projektile
     for (const b of this.bul) {
+      // Kugeln mit Ziel steuern leicht nach, falls sie über oder unter dem Gegner vorbeifliegen
+      // würden (Geisterkatzen schweben hoch, Schrot streut) – so sitzt jeder Einschlag am Körper
+      const tg = b.tg && !b.tg.dead && !b.tg.fleeing && !(b.tg.dying > 0) ? b.tg : null;
+      if (tg && b.vx > 0 && !b.drop) {
+        const dx = tg.x - b.x;
+        if (dx > 4) {
+          const top = tg.y - OBST_H[tg.kind] * tg.scale * 0.88, bot = tg.y - 6 * this.cs, ay = b.y + b.vy * dx / b.vx;
+          if (ay < top || ay > bot) b.vy += ((U.clamp(ay, top, bot) - b.y) * b.vx / dx - b.vy) * Math.min(1, dt * 12);
+        }
+      }
+      if (b.drop) b.vy += 1500 * dt; // Wollknäuel ohne weiteres Ziel fällt zu Boden
       b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
       if (b.arc) b.phase += dt * 9;
       if (b.trail) { b.trail.push(b.x, b.y); if (b.trail.length > 12) b.trail.splice(0, 2); }
@@ -279,15 +290,17 @@ const Battle = {
       for (const o of this.obs) {
         if (o.dead || o.fleeing || o.dying > 0 || b.hit.has(o.id) || (b.aim && o !== b.aim)) continue;
         if (b.arc && o.trait === 'flyer') continue; // Bogenschüsse fliegen unter Fliegern durch
-        if (b.x >= o.x - OBST_W[o.kind] * 0.45 * o.scale && (!b.needY || b.y >= o.y - OBST_H[o.kind] * o.scale)) {
+        const top = o.y - OBST_H[o.kind] * o.scale;
+        // Treffer nur am Körper (nicht hoch darüber); Sternschauer kommt von oben (needY)
+        if (b.x >= o.x - OBST_W[o.kind] * 0.45 * o.scale && b.y >= top - 14 * this.cs && (b.needY || b.y <= o.y + 12 * this.cs)) {
           b.hit.add(o.id);
           this.onBulletHit(b, o);
-          if (b.pierce > 0) { b.pierce--; b.vy = b.arc ? -Math.abs(b.vy) : b.vy; }
+          if (b.pierce > 0) { b.pierce--; this.retarget(b, o); }
           else b.dead = true;
           break;
         }
       }
-      if (b.x > W + 60 || b.y > this.H + 40 || b.life <= 0) b.dead = true;
+      if (b.x > W + 60 || b.y > this.H + 40 || b.life <= 0 || (b.drop && b.y > this.groundY - 4)) b.dead = true;
     }
     this.bul = this.bul.filter(b => !b.dead);
 
@@ -424,14 +437,26 @@ const Battle = {
   shootBullet(x, y, target, o) {
     const ty = target.y - OBST_H[target.kind] * target.scale * U.rand(0.3, 0.7);
     let ang = Math.atan2(ty - y, target.x - x) + (o.spread ? U.rand(-o.spread, o.spread) : 0);
-    ang = U.clamp(ang, -0.6, 0.6);
+    ang = U.clamp(ang, -1.1, 1.1);
     this.bul.push({
-      x, y, vx: Math.cos(ang) * o.speed, vy: Math.sin(ang) * o.speed,
+      x, y, vx: Math.cos(ang) * o.speed, vy: Math.sin(ang) * o.speed, tg: target,
       ox: x, oy: y, dmg: o.dmg, color: o.color, size: o.size, pierce: o.pierce || 0, splash: o.splash || 0,
       arc: o.arc, phase: 0, life: 3, hit: new Set(), noCrit: o.noCrit, type: o.type, src: o.src || 'bullet',
       sprite: o.sprite, needY: o.needY, fullSplash: o.fullSplash, v: o.v,
       trail: o.type === 'rocket' || o.type === 'laser' ? [] : null,
     });
+  },
+
+  // Durchschlag: weiter zum nächsten Gegner dahinter. Wollknäuel & Co. hüpfen im Bogen hinüber,
+  // ohne nächstes Ziel fällt der Bogenschuss zu Boden (früher flog er senkrecht in den Himmel)
+  retarget(b, o) {
+    const next = this.obs.filter(x => x !== o && !x.dead && !x.fleeing && !(x.dying > 0) && x.x > o.x && !b.hit.has(x.id)).sort((p, q) => p.x - q.x)[0];
+    b.tg = next || null;
+    if (!b.arc) return;
+    if (!next) { b.drop = true; b.vx = Math.min(b.vx, 220); b.vy = -260; return; }
+    const sp = Math.max(420, Math.hypot(b.vx, b.vy)), ty = next.y - OBST_H[next.kind] * next.scale * 0.5;
+    const a = Math.atan2(ty - b.y, next.x - b.x);
+    b.vx = Math.cos(a) * sp; b.vy = Math.sin(a) * sp; b.phase = 0;
   },
 
   onBulletHit(b, o) {
@@ -1378,9 +1403,10 @@ const Battle = {
     const w = (o.boss ? 120 : 56) * this.cs, h = (o.boss ? 10 : 6) * this.cs;
     const jig = (o.hurtT || 0) > 0 ? U.rand(-1.5, 1.5) : 0;
     const x = o.x - w / 2 + jig, y = o.y - OBST_H[o.kind] * o.scale - (o.boss ? 40 : 16) * this.cs + jig;
+    o.bar = { x, y, w, h }; // Plaketten (α, Eigenschaften) hängen genau an diesem Balken
     const fr = Math.max(0, o.hp / o.maxHp);
     // Schicht-Balken: verlorene Schichten blättern ab und sprühen Glut (strata.js)
-    Strata.draw(ctx, o.sb || (o.sb = { start: 1 }), x, y, w, h, fr, o.boss ? '#ff4d6d' : o.golden ? '#ffd34d' : fr < 0.35 ? '#ffb347' : '#6ee7a0', this.t);
+    Strata.draw(ctx, o.sb || (o.sb = { start: 1 }), x, y, w, h, fr, o.erz ? '#ffcf3a' : o.boss ? '#ff4d6d' : o.golden ? '#ffd34d' : fr < 0.35 ? '#ffb347' : '#6ee7a0', this.t);
     if (o.boss && o.shield > 0) Draw.rrect(ctx, x, y - h - 4, w * o.shield / o.shieldMax, h * 0.7, 3, '#5ab0ff');
   },
 

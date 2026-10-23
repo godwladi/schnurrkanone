@@ -19,7 +19,7 @@ const Alpha = {
     if (!o || o.treasure || o.shade || o.kind === 'shade') return o;
     const B = Battle, run = Run.active, depth = run ? S.run.depth : 0;
     if (o.boss) {
-      const ok = run ? depth >= 8 : S.stage >= ALPHA_BOSS_FROM;
+      const ok = run ? depth >= 8 && Run.room() % 100 !== 0 : S.stage >= ALPHA_BOSS_FROM; // Erzwächter-Räume: kein Alpha obendrauf
       const chance = run ? 0.12 : S.stage % 10 === 0 ? 0.5 : 0.12;
       if (!ok || Math.random() > chance) return o;
       o.alpha = true; o.hp = o.maxHp = o.maxHp * 2.2; o.scale *= 1.12;
@@ -81,12 +81,12 @@ const Alpha = {
 
   // Aura hinter dem Körper (kühl-gold, rasend rot) und aufsteigende Glut
   aura(ctx, o, t) {
-    const h = OBST_H[o.kind] * o.scale, cy = o.y - h * 0.5, pulse = 0.5 + Math.sin(t * (o.enraged ? 9 : 4) + o.id) * 0.18;
+    const h = OBST_H[o.kind] * o.scale, cy = o.y - h * 0.5, ox = o.x + (o.kx || 0), pulse = 0.5 + Math.sin(t * (o.enraged ? 9 : 4) + o.id) * 0.18;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    FX.drawGlow(ctx, o.x, cy, h * (o.boss ? 0.95 : 1.05), o.enraged ? '#ff2d55' : '#ffb347', pulse);
+    FX.drawGlow(ctx, ox, cy, h * (o.boss ? 0.95 : 1.05), o.enraged ? '#ff2d55' : '#ffb347', pulse);
     ctx.restore();
-    if (Math.random() < 0.35) Battle.particle(o.x + U.rand(-0.4, 0.4) * h, o.y - U.rand(0.1, 0.9) * h, U.rand(-15, 15), U.rand(-70, -30), o.enraged ? '#ff5d73' : '#ffd34d', 0.6, U.rand(2, 4) * Battle.cs, -20, false, 'spark');
+    if (Math.random() < 0.35) Battle.particle(ox + U.rand(-0.4, 0.4) * h, o.y - U.rand(0.1, 0.9) * h, U.rand(-15, 15), U.rand(-70, -30), o.enraged ? '#ff5d73' : '#ffd34d', 0.6, U.rand(2, 4) * Battle.cs, -20, false, 'spark');
   },
 
   // α-Plakette rechts am Lebensbalken
@@ -146,8 +146,7 @@ Draw.obstacle = function (ctx, o, biome, t) {
 const _alphaBar = Battle.drawHpBar;
 Battle.drawHpBar = function (ctx, o) {
   _alphaBar.call(this, ctx, o);
-  if (!o.alpha) return;
-  const w = (o.boss ? 120 : 56) * this.cs, h = (o.boss ? 10 : 6) * this.cs;
-  const y = o.y - OBST_H[o.kind] * o.scale - (o.boss ? 40 : 16) * this.cs;
-  Alpha.badge(ctx, o, o.x + w / 2 + h * 1.4, y + h / 2, h);
+  if (!o.alpha || !o.bar) return;
+  const { x, y, w, h } = o.bar; // wackelt bei Treffern mit dem Balken mit
+  Alpha.badge(ctx, o, x + w + h * 1.4, y + h / 2, h);
 };

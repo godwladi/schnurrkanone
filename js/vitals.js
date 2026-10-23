@@ -61,7 +61,7 @@ const Vitals = {
     if (boss && !(boss.dying > 0) && boss.x <= B.frontX + 40 * B.cs && this.stun <= 0 && (Run.active || S.stage >= ATTACK_FROM)) {
       attacker = boss;
       interval = Math.max(2.4, 5.5 - 0.3 * Math.floor((S.stage - 1) / 10)) * (Run.active ? Math.max(0.6, 1 - 0.02 * S.run.depth) : 1);
-      if (boss.alpha) interval *= boss.enraged ? 0.6 : 0.85; // Alpha-Boss wirft öfter, rasend noch öfter
+      if (boss.alpha || boss.erz) interval *= boss.enraged ? 0.6 : 0.85; // Alpha/Erzwächter wirft öfter, rasend noch öfter // Alpha-Boss wirft öfter, rasend noch öfter
     } else if (!boss && !Run.paused()) {
       // Streifzug: das vorderste Hindernis wirft; Hauptspiel: nur ein Alpha-Gegner vorne
       const f = B.front();

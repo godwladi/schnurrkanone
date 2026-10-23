@@ -79,6 +79,17 @@ Slotmaschine mit drei Walzen, Hebel, Lauflichtern und drei Modi (ersetzt das Gl�
 - **Kampf-Slot:** Münzen (3 % der Münzen) gegen Kampf-Schübe – ⚡ Raserei, ✨ Goldrausch, 🦉 Eulenruf, 💰 Münzen, 🐾 Schnurr-Meter; drei gleiche = voller, zwei gleiche = kleiner Schub. Startet erst beim Schließen des Fensters; im Streifzug gesperrt.
 - Zwei gleiche auf den ersten Walzen lassen die dritte spannend länger drehen.
 
+## Erzwächter & Wächter-Schlüssel (`js/warden.js`)
+- **Jeder 100. Raum** im Streifzug ist ein Erzwächter: ×2,2 Leben, +20 s, goldener Runenring und goldener Lebensbalken, drei Phasen:
+  - **75 % – Runenkreis:** vier Kristalle kreisen um ihn, solange einer leuchtet, nimmt er nur 25 % Schaden. Antippen zerschlägt sie (nach 12 s verlöschen sie).
+  - **50 % – Beschwörung:** zwei Alpha-Leibwächter stellen sich vor ihn und fangen die Kugeln ab.
+  - **25 % – Meteorhagel:** sechs Meteore auf die Katze (Schatten antippen), danach rasend.
+- **Wächter-Schlüssel** (10 Stück bis Raum 1000: Moos, Sand, Frost, Glut, Neon, Sterne, Schatten, Zeit, Spiegel, Gold): je dauerhaft +5 % Schaden und Münzen, der goldene zusätzlich +25 %. Schlüsselbund im Reiter Streifzug.
+
+## Treffer der Geschosse
+- Kugeln steuern leicht nach, falls sie über oder unter dem Gegner vorbeifliegen würden (hoch schwebende Geisterkatzen, Schrot), und treffen nur noch am Körper.
+- Wollknäuel & Haarballen hüpfen nach einem Treffer im Bogen zum nächsten Gegner; ohne weiteres Ziel fallen sie zu Boden (flogen früher senkrecht in den Himmel).
+
 ## Neue Gebiete (`js/rooms3.js`)
 Reguläre Gebiete im Hauptspiel (Stufe 71–80 Mäusefestung, 91–100 Spiegelkabinett, 121–130 Versunkenes Wrack; Stufe 1–70 unverändert), Räume im Streifzug und gelegentlich einzelne Sonderstufen.
 - **Mäusefestung:** Mäuse-Ritter (Rundschild, Lanze), Ratten-Katapult · Boss **Rattenkönigin Brie** auf dem Käsethron. Regel: Katapulte schleudern Käselaibe – antippen schickt sie zurück auf die Gegner (30 % Leben, Boss 4 %), sonst −6 % Leben.
@@ -202,6 +213,7 @@ Der Bericht (`schnurrkanone-<art>-<datum>.json`) enthält Beschreibung, Gerät/B
 - `js/limit.js` – Grenzbruch-Waffen und Raritäten
 - `js/milestones.js` – Meilensteine, Raum 500/1000
 - `js/slots.js` – Katzen-Automat (Slotmaschine)
+- `js/warden.js` – Erzwächter jeder 100. Raum, Wächter-Schlüssel
 - `js/rooms3.js` – Mäusefestung, Versunkenes Wrack, Spiegelkabinett (Spiegelung)
 - `js/alpha.js` – Alpha-Gegner und -Bosse, Schattenwesen im Bosskampf
 - `js/cards.js` – Wischkarten für Ereignisse, Kartenfächer für die Segen-Wahl

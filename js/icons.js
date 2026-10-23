@@ -237,6 +237,11 @@ ICONS.slot = R(3.5, 9, 21, 19, 4, '#8a6cff') + R(6.5, 4.5, 15, 6, 3, '#ffd34d') 
   + C(10, 17, 2, '#ff5d73', NS) + C(14, 17, 2, '#ffd34d', NS) + C(18, 17, 2, '#6ee7a0', NS) + R(8, 23.5, 12, 2.4, 1.2, '#3a2596', NS)
   + BAR('M24.5 21 L27.5 21 L27.5 10', '#c7b3ff', 1.8) + C(27.5, 8.5, 2.8, '#ff5d73') + HI('M6 11.5 C7 10.2 8.6 9.9 10 10.1 C8.6 10.9 7.6 11.8 7 13Z');
 EMOJI_ICON['🎰'] = 'slot';
+// Wächter-Schlüssel: goldener Bart mit Katzenohren-Griff
+ICONS.key = P('M6 9 L9 4 L11.5 8 L14.5 8 L17 4 L20 9 C22 11 22 15 19.5 17 C17 19 9 19 6.5 17 C4 15 4 11 6 9Z', '#ffcf3a')
+  + C(13, 12.5, 2.6, '#7a4a10', NS) + BAR('M13 18 L13 29', '#ffcf3a', 3) + BAR('M13 23.5 L18 23.5 M13 27.5 L17 27.5', '#ffcf3a', 2.2)
+  + HI('M8 10 C9 8.5 10.5 8.6 11.5 9.2 C10 9.6 9.2 10.6 8.8 12Z');
+EMOJI_ICON['🗝'] = 'key'; EMOJI_ICON['🔑'] = 'key';
 
 // Emoji-Folgen erkennen (Grundzeichen + Variationszeichen/ZWJ-Folgen)
 const EMOJI_RE = /(?:[←-⇿⌀-⏿☀-➿⬀-⯿]|[\uD83C-\uD83E][\uDC00-\uDFFF])️?(?:‍(?:[☀-➿⬛]|[\uD83C-\uD83E][\uDC00-\uDFFF])️?)*/g;

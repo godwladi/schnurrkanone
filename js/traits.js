@@ -169,7 +169,9 @@ const Traits = {
       }
       // Eigenschafts-Plakette links am Lebensbalken
       if (o.trait) {
-        const by = o.y - h - (o.boss ? 40 : 16) * cs + 3 * cs, bx = o.x - (o.boss ? 60 : 28) * cs - 12 * cs;
+        // sichtbarer Lebensbalken (wackelt bei Treffern) → Plakette wackelt mit; voll: feste Lage
+        const bar = o.hp < o.maxHp && o.bar;
+        const by = bar ? bar.y + bar.h / 2 : o.y - h - (o.boss ? 40 : 16) * cs + 3 * cs, bx = bar ? bar.x - 12 * cs : o.x - (o.boss ? 60 : 28) * cs - 12 * cs;
         Draw.circle(ctx, bx, by, 10 * cs, 'rgba(20,10,30,0.85)');
         ctx.strokeStyle = TRAITS[o.trait].col; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(bx, by, 10 * cs, 0, Math.PI * 2); ctx.stroke();
         Icons.draw(ctx, TRAITS[o.trait].icon, bx, by, 15 * cs);

@@ -259,8 +259,15 @@ Object.assign(NEW_FOES, {
     ctx.globalCompositeOperation = 'lighter';
     FX.drawGlow(ctx, 0, -40, 60, '#b48cff', 0.35 + Math.sin(t * 3) * 0.1);
     ctx.restore();
+    // getroffen: dasselbe Schmerz-Gesicht wie die eigene Katze (> <, offenes Maul, Tränen,
+    // Zurückzucken); harte Treffer mit kreisenden Sternen, wenig Leben: besorgt
+    const hurt = o.hurtT || 0, ouch = U.clamp(hurt / 0.28, 0, 1), flinch = ouch * ouch;
+    const ox = flinch ? -flinch * 7 + Math.sin(t * 60) * flinch * 2.5 : 0;
     ctx.save(); ctx.scale(-1, 1); // schaut nach links zur Katze
-    Draw.cat(ctx, 0, 0, 1, shadowCat(), t, { weapon: S.slots[0] || null, look: { x: 1, y: 0 }, fury: o.enraged ? 1 : 0.4 });
+    Draw.cat(ctx, ox, 0, 1, shadowCat(), t, {
+      weapon: S.slots[0] || null, look: { x: 1, y: 0 }, fury: ouch ? 0 : o.enraged ? 1 : 0.4,
+      ouch, ouchBig: hurt > 0.32, worry: !ouch && o.hp < o.maxHp * 0.3, squash: flinch * 0.14,
+    });
     ctx.restore();
   },
 });
