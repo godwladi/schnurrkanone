@@ -369,28 +369,24 @@ Draw.keyring = function (ctx, t, bob, opt) {
     const k = WARDEN_KEYS.find(x => x.n === n), last = i === show.length - 1;
     ctx.save();
     ctx.translate(rx, ry + 3);
-    ctx.rotate(sw + (i - (show.length - 1) / 2) * 0.48);
-    ctx.scale(1.35, 1.35);
+    ctx.rotate(sw + (i - (show.length - 1) / 2) * 0.38);
     if (n === 1000 || (last && flash > 0)) { // goldener Schlüssel glüht, neuer blitzt auf
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
-      FX.drawGlow(ctx, 0, 4, n === 1000 ? 4 + Math.sin(t * 4) * 0.6 : 3 + flash * 7, n === 1000 ? '#ffcf3a' : k.col, n === 1000 ? 0.45 : flash);
+      FX.drawGlow(ctx, 0, 6, n === 1000 ? 6 + Math.sin(t * 4) : 4 + flash * 8, n === 1000 ? '#ffcf3a' : k.col, n === 1000 ? 0.7 : flash);
       ctx.restore();
     }
-    ctx.strokeStyle = '#2a1630'; ctx.lineWidth = 2; // dunkle Kontur, damit jeder Schlüssel einzeln lesbar bleibt
-    ctx.beginPath(); ctx.moveTo(0, 1.6); ctx.lineTo(0, 7.6); ctx.stroke();
     ctx.strokeStyle = k.col; ctx.lineWidth = 1.1;
     ctx.beginPath(); ctx.moveTo(0, 1.6); ctx.lineTo(0, 7.6); ctx.stroke();         // Schaft
     ctx.beginPath(); ctx.moveTo(0, 6.4); ctx.lineTo(1.6, 6.4); ctx.moveTo(0, 7.6); ctx.lineTo(1.3, 7.6); ctx.stroke(); // Bart
-    Draw.circle(ctx, 0, 0.6, 2.1, '#2a1630');
-    Draw.circle(ctx, 0, 0.6, 1.6, k.col);                                           // Griff
+    Draw.circle(ctx, 0, 0.6, 1.5, k.col);                                           // Griff
     Draw.circle(ctx, 0, 0.6, 0.6, '#2a1630');
     ctx.restore();
   });
   if (more > 0) {
     ctx.save();
-    Draw.rrect(ctx, rx + 6.5, ry + 9, 7, 4.4, 2.2, 'rgba(20,10,30,0.85)');
+    Draw.rrect(ctx, rx + 3.2, ry + 5, 7, 4.4, 2.2, 'rgba(20,10,30,0.85)');
     ctx.fillStyle = '#ffcf3a'; ctx.font = '800 3.6px "Segoe UI", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(`+${more}`, rx + 10, ry + 11.3);
+    ctx.fillText(`+${more}`, rx + 6.7, ry + 7.3);
     ctx.restore();
   }
 };
