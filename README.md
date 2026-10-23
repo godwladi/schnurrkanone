@@ -79,6 +79,11 @@ Slotmaschine mit drei Walzen, Hebel, Lauflichtern und drei Modi (ersetzt das Gl�
 - **Kampf-Slot:** Münzen (3 % der Münzen) gegen Kampf-Schübe – ⚡ Raserei, ✨ Goldrausch, 🦉 Eulenruf, 💰 Münzen, 🐾 Schnurr-Meter; drei gleiche = voller, zwei gleiche = kleiner Schub. Startet erst beim Schließen des Fensters; im Streifzug gesperrt.
 - Zwei gleiche auf den ersten Walzen lassen die dritte spannend länger drehen.
 
+## Karten-Animationen im Streifzug (`js/cards.js`)
+- **Ereignisse als Wischkarte:** nach rechts wischen = erste Wahl, nach links = zweite. Beim Ziehen kippt die Karte und ein Stempel zeigt Wahl und Folgen; zu kurz gewischt federt sie zurück. Knöpfe und Pfeiltasten gehen weiterhin.
+- **Segen-Wahl als Kartenfächer:** die Karten kommen verdeckt als Stapel, fächern sich mit Federbewegung auf und werden nacheinander aufgedeckt (Seltene und Pakte zuletzt). Touch: antippen hebt an, nochmal tippen wählt; mit Maus genügt ein Klick.
+- Bei „Bewegung reduzieren“ entfallen die Animationen.
+
 ## Schicht-Lebensbalken (`js/strata.js`)
 - Lebensbalken von Gegnern und Katze bestehen aus gestapelten Lichtschichten. Bei Schaden glüht der verlorene Teil weiß-gold auf, zerfällt in einzelne Schichten, die abblättern und herunterfallen, Glutfunken steigen auf, der Rest brennt als orange Spur ab.
 
@@ -183,6 +188,7 @@ Der Bericht (`schnurrkanone-<art>-<datum>.json`) enthält Beschreibung, Gerät/B
 - `js/limit.js` – Grenzbruch-Waffen und Raritäten
 - `js/milestones.js` – Meilensteine, Raum 500/1000
 - `js/slots.js` – Katzen-Automat (Slotmaschine)
+- `js/cards.js` – Wischkarten für Ereignisse, Kartenfächer für die Segen-Wahl
 - `js/strata.js` – Schicht-Lebensbalken mit Abblätter- und Glut-Animation
 - `js/winfo.js` – Waffen-Infokarte
 - `js/touch.js` – Touch-Drag & Doppeltipp im Rucksack, Zoom-Sperre, Audio-Fortsetzung, Service-Worker-Registrierung

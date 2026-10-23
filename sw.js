@@ -5,12 +5,12 @@
 // nach, weil jeder Treffer im Hintergrund aktualisiert wird). Immer am HTTP-Cache
 // des Browsers vorbei laden, sonst landen alte Dateien im Offline-Speicher.
 // ---------------------------------------------------------------------------
-const CACHE = 'schnurrkanone-20261023-1429';
+const CACHE = 'schnurrkanone-20261023-1440';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png',
   'js/icons.js', 'js/feedback.js', 'js/engine.js', 'js/perf.js', 'js/data.js', 'js/logic.js', 'js/progress.js', 'js/draw.js', 'js/fx.js', 'js/strata.js',
-  'js/audio2.js', 'js/jazz.js', 'js/events.js', 'js/talents.js', 'js/battle.js', 'js/ui.js', 'js/touch.js', 'js/splash.js', 'js/main.js', 'js/vitals.js', 'js/combo.js', 'js/foes.js', 'js/rooms.js', 'js/rooms2.js', 'js/shades.js', 'js/run.js', 'js/path.js', 'js/build.js', 'js/traits.js', 'js/variants.js', 'js/daily.js', 'js/limit.js', 'js/winfo.js', 'js/milestones.js', 'js/slots.js', 'js/anim.js', 'js/dock.js', 'js/hud.js',
+  'js/audio2.js', 'js/jazz.js', 'js/events.js', 'js/talents.js', 'js/battle.js', 'js/ui.js', 'js/touch.js', 'js/splash.js', 'js/main.js', 'js/vitals.js', 'js/combo.js', 'js/foes.js', 'js/rooms.js', 'js/rooms2.js', 'js/shades.js', 'js/run.js', 'js/path.js', 'js/build.js', 'js/cards.js', 'js/traits.js', 'js/variants.js', 'js/daily.js', 'js/limit.js', 'js/winfo.js', 'js/milestones.js', 'js/slots.js', 'js/anim.js', 'js/dock.js', 'js/hud.js',
 ];
 
 self.addEventListener('install', e => {

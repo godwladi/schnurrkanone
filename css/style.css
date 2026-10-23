@@ -1592,3 +1592,59 @@ body.more-open #dockMore > * { animation: menuItem 0.42s cubic-bezier(0.34, 1.56
   #menuBtn .mb i { transition: none; }
   body.more-open #dockMore, body.more-open #dockMore > * { animation: none; }
 }
+
+/* ---- Streifzug-Ereignis als Wischkarte (js/cards.js) */
+.swipe { position: relative; max-width: 360px; margin: 2px auto 8px; }
+.sw-peek { position: absolute; inset: 0; border-radius: 18px; background: linear-gradient(180deg, #30275e, #1f1842); border: 1px solid var(--edge); }
+.sw-peek.p1 { transform: translateY(9px) scale(0.95); opacity: 0.8; }
+.sw-peek.p2 { transform: translateY(18px) scale(0.9); opacity: 0.45; }
+.sw-card {
+  position: relative; z-index: 1; padding: 20px 16px 12px; border-radius: 18px; cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none;
+  background: linear-gradient(180deg, #43378a, #2a2156); border: 2px solid rgba(199, 179, 255, 0.55);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 calc(var(--sr, 0) * 22px) rgba(255, 211, 77, calc(var(--sr, 0) * 0.8)), 0 0 calc(var(--sl, 0) * 22px) rgba(126, 249, 255, calc(var(--sl, 0) * 0.8));
+  animation: swIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.sw-card:active { cursor: grabbing; }
+@keyframes swIn { from { transform: translateY(40px) rotate(-4deg) scale(0.9); opacity: 0; } }
+.sw-ic { display: grid; place-items: center; margin: 4px auto 10px; width: 74px; height: 74px; border-radius: 22px; background: rgba(0, 0, 0, 0.25); font-family: var(--emoji); font-size: 44px; line-height: 1; }
+.sw-ic .ic { width: 52px; height: 52px; }
+.sw-card .evtext { margin: 0 0 12px !important; }
+.sw-sides { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 800; }
+.sw-sides .l { color: #7ef9ff; } .sw-sides .r { color: var(--gold); }
+.sw-sides .ic { width: 1.1em; height: 1.1em; display: inline-block; vertical-align: -2px; }
+.sw-stamp {
+  position: absolute; z-index: 2; top: 14px; max-width: 58%; padding: 5px 9px; border: 3px solid; border-radius: 10px; pointer-events: none;
+  font: 900 13px/1.15 var(--font); text-transform: uppercase; background: rgba(14, 8, 30, 0.85); text-align: center;
+}
+.sw-stamp small { display: block; margin-top: 3px; font-size: 9.5px; font-weight: 700; text-transform: none; color: #fff; }
+.sw-stamp .ic { width: 1.1em; height: 1.1em; display: inline-block; vertical-align: -2px; }
+.sw-stamp.r { left: 12px; color: var(--gold); transform: rotate(-11deg) scale(calc(0.8 + var(--sr, 0) * 0.2)); opacity: var(--sr, 0); }
+.sw-stamp.l { right: 12px; color: #7ef9ff; transform: rotate(11deg) scale(calc(0.8 + var(--sl, 0) * 0.2)); opacity: var(--sl, 0); }
+.sw-tip { text-align: center; font-size: 11px; margin: 14px 0 8px !important; }
+.swipemodal .evopts .boon:first-child { border-color: rgba(126, 249, 255, 0.55); }
+.swipemodal .evopts .boon:last-child { border-color: rgba(255, 211, 77, 0.6); }
+@media (max-height: 500px) {
+  .sw-card { padding: 12px 14px 10px; }
+  .sw-ic { width: 52px; height: 52px; font-size: 30px; margin-bottom: 6px; border-radius: 16px; }
+  .sw-ic .ic { width: 36px; height: 36px; }
+  .sw-tip { margin: 10px 0 6px !important; }
+}
+
+/* ---- Segen-Wahl als Kartenfächer (js/cards.js) */
+.boons.fan { perspective: 900px; }
+.boons.fan .boon { animation: none; transform: translateY(var(--ty, 0)) rotate(var(--rot, 0)); transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s, filter 0.3s, border-color 0.15s; }
+.boons.fan.ready .boon:hover, .boons.fan .boon.lift { transform: translateY(calc(var(--ty, 0) - 14px)) rotate(0deg) scale(1.05); border-color: var(--gold); z-index: 2; box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 18px rgba(255, 211, 77, 0.35); }
+.boons.fan.has-lift .boon:not(.lift) { filter: brightness(0.7); }
+.boons.fan .boon:not(.shown) em { opacity: 0; }
+.boons.fan .boon.lift::after { content: 'Nochmal tippen zum Wählen'; position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); white-space: nowrap; font: 800 9.5px/1 var(--font); color: #2a1a00; background: var(--gold); padding: 3px 8px; border-radius: 99px; }
+.boons.fan.chosen .boon.picked { transform: translateY(-24px) scale(1.12); z-index: 3; }
+.boons.fan.chosen .boon:not(.picked) { transform: translateY(60px) rotate(var(--rot, 0)) scale(0.8); opacity: 0; }
+.cback {
+  position: absolute; inset: -2px; z-index: 3; border-radius: inherit; display: grid; place-items: center; pointer-events: none;
+  background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.06) 0 8px, transparent 8px 16px), linear-gradient(180deg, #5b3fd6, #2a1a70);
+  border: 2px solid rgba(255, 211, 77, 0.75);
+}
+.cback i { font-style: normal; font-size: 30px; }
+.cback .ic { width: 40px; height: 40px; opacity: 0.9; }
+.boon.shown .cback { display: none; }
+.modal.swipemodal { overflow-x: hidden; }
