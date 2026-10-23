@@ -1542,7 +1542,7 @@ const Battle = {
     Run.drawPause(ctx, this);
 
     // Schnurr-Meter
-    const mw = Math.min(260, W * 0.3), mx = W - mw - 18, my = H - 30 - iB;
+    const mw = Math.min(260, W * 0.3), mx = W - mw - 18, my = H - 30 - (this.meterB !== undefined ? this.meterB : iB);
     Draw.rrect(ctx, mx - 6, my - 22, mw + 12, 40, 10, 'rgba(20,14,40,0.55)');
     ctx.font = '700 11px "Segoe UI", sans-serif'; ctx.fillStyle = '#ffd6f3'; ctx.textAlign = 'left';
     ctx.fillText(this.frenzy > 0 ? `RASEREI ${this.frenzy.toFixed(1)} s` : W < 520 ? 'SCHNURR-METER' : 'SCHNURR-METER · klicken!', mx, my - 11);

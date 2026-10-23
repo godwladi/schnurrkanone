@@ -1760,3 +1760,39 @@ body.bossfight #bossWrap { opacity: 0; pointer-events: none; } /* im Bosskampf f
   #bossWrap { top: calc(56px + env(safe-area-inset-top)); }
   #boonBar { top: calc(56px + env(safe-area-inset-top)); }
 }
+
+/* ============================================================= Querformat neu (Handy quer)
+   Eine Zeile unten: Skills links, Symbolleiste in der Mitte (left setzt hud.js), Schnurr-Meter
+   rechts – der Boden liegt direkt darüber, oben bleibt mehr Himmel. Oben: Menü, Level und
+   Münzen links, Roadmap genau in der Mitte, Gräten und Minze rechts neben Pause/🐞. */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root { --dockR: 0; --dockB: 62; }
+  #dock {
+    top: auto; right: auto; left: 50%; bottom: env(safe-area-inset-bottom); transform: translateX(-50%);
+    width: auto; height: calc(var(--dockB) * 1px); flex-direction: row; gap: 10px; background: none;
+  }
+  #dock .dk { width: 50px; height: 50px; }
+  #dock .dk .dki .ic { width: 27px; height: 27px; }
+  #dock .dk.on { transform: translateY(-3px); }
+  #skills { left: calc(10px + env(safe-area-inset-left)); bottom: calc(6px + env(safe-area-inset-bottom)); gap: 7px; }
+  .skill { width: 48px; height: 48px; }
+  #panel { top: calc(var(--hudH) + 4px); right: env(safe-area-inset-right); bottom: calc(var(--dockB) * 1px + env(safe-area-inset-bottom)); } /* unter der HUD-Zeile, sonst verdecken Gräten/Pause den Kopf */
+  #hud .spacer { display: none; }
+  #hudBones { margin-left: auto; }
+  #pups { right: calc(8px + env(safe-area-inset-right)); }
+  #bossWrap { left: 50%; }
+  #toasts { bottom: calc(var(--dockB) * 1px + 14px + env(safe-area-inset-bottom)); }
+}
+/* kleine Handys quer (z. B. iPhone SE): kompaktere Pillen und Skills, damit oben die Roadmap
+   und unten Skills, Symbolleiste und Schnurr-Meter nebeneinander passen */
+@media (max-height: 500px) and (orientation: landscape) and (max-width: 740px) {
+  .res { height: 30px; padding-right: 8px; }
+  .res .hi { width: 24px; height: 24px; }
+  .res b { font-size: 13px; }
+  .lvl { min-width: 44px; }
+  .skill { width: 42px; height: 42px; }
+  #skills { gap: 5px; }
+  #dock .dk { width: 46px; height: 46px; }
+  #dock { gap: 8px; transform-origin: 50% 100%; }
+}
+#dock { transform-origin: 50% 100%; }

@@ -468,8 +468,10 @@ Rooms.drawScreen = function (ctx, B) {
     ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.font = '800 12px "Segoe UI", "Segoe UI Emoji", sans-serif';
     const w = ctx.measureText(txt).width + 22;
-    Draw.rrect(ctx, 12, B.H - 104 - iB, w, 24, 12, 'rgba(20,10,40,0.75)');
-    ctx.fillStyle = col; ctx.fillText(txt, 23, B.H - 92 - iB);
+    // quer mittig unter der Boss-Leiste (unten läge der Hinweis über der Katze)
+    const land = B.landscape && B.landscape(), px = land ? (B.W - w) / 2 : 12, py = land ? B.uiTop() + 2 : B.H - 104 - iB;
+    Draw.rrect(ctx, px, py, w, 24, 12, 'rgba(20,10,40,0.75)');
+    ctx.fillStyle = col; ctx.fillText(txt, px + 11, py + 12);
     ctx.restore();
   };
   if (k === 'tv') {

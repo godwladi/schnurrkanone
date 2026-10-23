@@ -134,6 +134,23 @@ Battle.resize = function () {
   this.trailBox = this.measureTrail();
   // Handy quer: die Knopf-Spalte links (und die Notch) lag über Katze, Eule und Goldfisch →
   // Katze so weit nach rechts, dass Eule (66 px links von ihr) neben der Spalte steht
+  this.meterB = undefined;
+  if (this.landscape()) {
+    // eine Zeile unten: Skills links, Symbolleiste Mitte, Schnurr-Meter rechts → Boden direkt
+    // darüber (mehr Himmel für Glücksballon und gegnerische Geschosse)
+    const sb = this.safeB || 0, gy = this.H - 60 - sb;
+    if (Math.abs(gy - this.groundY) > 0.5) { this.groundY = gy; for (const o of this.obs) o.y = gy; }
+    this.meterB = sb;
+    const dock = document.getElementById('dock'), sk = document.getElementById('skills');
+    if (dock && sk && this.cv) {
+      const cl = this.cv.getBoundingClientRect().left, skR = sk.getBoundingClientRect().right - cl;
+      const mL = this.W - Math.min(260, this.W * 0.3) - 24;
+      dock.style.left = Math.round((skR + mL) / 2) + 'px';
+      // schmale Geräte: Symbolleiste in die Lücke zwischen Skills und Schnurr-Meter einpassen
+      const k = Math.min(1, (mL - skR - 12) / (dock.scrollWidth || 1));
+      dock.style.transform = `translateX(-50%) scale(${Math.max(0.6, k).toFixed(3)})`;
+    }
+  } else { const dock = document.getElementById('dock'); if (dock) { dock.style.left = ''; dock.style.transform = ''; } }
   if (this.landscape() && railL && railL.offsetWidth) {
     const minX = this.pillX + 66 * this.cs;
     if (this.catX < minX) {
@@ -150,16 +167,12 @@ Battle.landscape = function () { return matchMedia('(max-height: 500px) and (ori
 Battle.measureTrail = function () {
   if (!this.cv || !this.landscape()) return null;
   const cl = this.cv.getBoundingClientRect().left;
-  let l = 0;
-  for (const el of document.querySelectorAll('#hud > *')) {
-    if (el.id === 'pauseBtn' || el.id === 'musicBtn' || !el.offsetWidth) continue;
-    const r = el.getBoundingClientRect();
-    if (r.width && r.right < innerWidth * 0.7) l = Math.max(l, r.right);
-  }
-  const pf = document.getElementById('pauseFab');
-  const r = pf && pf.offsetWidth ? pf.getBoundingClientRect().left : innerWidth - 100;
-  const box = { l: l - cl + 12, r: r - cl - 12, y: 7 };
-  return box.r - box.l > 240 ? box : null;
+  let l = 0, r = Infinity;
+  for (const id of ['menuBtn', 'hudLvl', 'hudCoins']) { const el = document.getElementById(id); if (el && el.offsetWidth) l = Math.max(l, el.getBoundingClientRect().right); }
+  for (const id of ['hudBones', 'hudMinze', 'pauseFab']) { const el = document.getElementById(id); if (el && el.offsetWidth) r = Math.min(r, el.getBoundingClientRect().left); }
+  if (!isFinite(r)) r = innerWidth - 100;
+  const cx = this.cv.getBoundingClientRect().width / 2, half = Math.min(cx - (l - cl), (r - cl) - cx) - 10;
+  return half > 70 ? { l: cx - half, r: cx + half, y: 7 } : null; // die Schrift schrumpft notfalls (battle.js)
 };
 // Unterkante der Boss-Knöpfe nur zweimal pro Sekunde messen (jedes Bild erzwang ein Layout)
 Battle.uiTop = function () {
