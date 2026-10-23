@@ -86,7 +86,7 @@ Slotmaschine mit drei Walzen, Hebel, Lauflichtern und drei Modi (ersetzt das Gl�
   - **50 % – Beschwörung:** zwei Alpha-Leibwächter stellen sich vor ihn und fangen die Kugeln ab.
   - **25 % – Meteorhagel:** sechs Meteore auf die Katze (Schatten antippen), danach rasend.
 - **Festes Gebiet je Erzwächter** passend zum Schlüssel: 100 Flüsterwald, 200 Sonnenwüste, 300 Frostgipfel, 400 Lavagrund, 500 Neon-City, 600 Sternenmeer, 700 Die Leere, 800 Zeitreise, 900 Spiegelkabinett, 1000 **Goldene Arena** mit dem Goldenen Katzenkönig (goldene Kopie der eigenen Katze). Die Wegkarte zeigt davor nur die Pflicht-Tür „Erzwächter“.
-- **Wächter-Schlüssel** (10 Stück bis Raum 1000: Moos, Sand, Frost, Glut, Neon, Sterne, Schatten, Zeit, Spiegel, Gold): je dauerhaft +5 % Schaden und Münzen, der goldene zusätzlich +25 %. Schlüsselbund im Reiter Streifzug.
+- **Wächter-Schlüssel** (10 Stück bis Raum 1000: Moos, Sand, Frost, Glut, Neon, Sterne, Schatten, Zeit, Spiegel, Gold): je dauerhaft +5 % Schaden und Münzen, der goldene zusätzlich +25 %. Schlüsselbund im Reiter Streifzug und sichtbar an der Hüfte der Katze (neben der Mieze-Lampe: bis zu vier Schlüssel pendeln mit, weitere als „+N“, neuer Schlüssel blitzt auf und klimpert, der goldene glüht).
 
 ## Treffer der Geschosse
 - Kugeln steuern leicht nach, falls sie über oder unter dem Gegner vorbeifliegen würden (hoch schwebende Geisterkatzen, Schrot), und treffen nur noch am Körper.

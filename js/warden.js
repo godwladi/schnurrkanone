@@ -342,3 +342,67 @@ UI.tab_run = function () {
     <p class="muted">Jeder <b>100. Raum</b> ist ein Erzwächter mit Runenkreis, Beschwörung und Meteorhagel. Sein Schlüssel gibt dauerhaft +5 % Schaden und Münzen.</p>
     ${Warden.ringHtml()}</div>`;
 };
+
+// ---------------------------------------------------------------- Schlüsselbund an der Katze
+// Hängt vorne am Hüftgurt (neben der Mieze-Lampe, nur bei der eigenen Katze im Kampf):
+// bis zu vier Schlüssel in ihrer Farbe pendeln mit, weitere zeigt eine kleine „+N“-Plakette.
+// Ein neuer Schlüssel blitzt kurz auf, der goldene glüht dauerhaft.
+Warden.newKeyAt = -99;
+const _wReward = Warden.reward;
+Warden.reward = function (B, o) {
+  const before = this.keys().length;
+  _wReward.call(this, B, o);
+  if (this.keys().length > before) { this.newKeyAt = B.t; SFX.play('jingle'); }
+};
+Draw.keyring = function (ctx, t, bob, opt) {
+  const ks = Warden.keys();
+  if (!ks.length) return;
+  const by = bob * 0.3, rx = 1, ry = -12.4 + by;
+  const show = ks.slice(-4), more = ks.length - show.length;
+  const flash = U.clamp(1 - (Battle.t - Warden.newKeyAt) / 1.2, 0, 1);
+  // Ring am Gurt
+  ctx.strokeStyle = '#d9b45a'; ctx.lineWidth = 0.9;
+  ctx.beginPath(); ctx.arc(rx, ry + 1.6, 2, 0, Math.PI * 2); ctx.stroke();
+  // Pendel: gegenläufig zur Lampe, Rückstoß lässt die Schlüssel klimpern
+  const sw = Math.sin(t * 2.9 + 1.2) * 0.16 + Math.sin(t * 9) * 0.04 * (1 + (opt.recoil || 0) * 3);
+  show.forEach((n, i) => {
+    const k = WARDEN_KEYS.find(x => x.n === n), last = i === show.length - 1;
+    ctx.save();
+    ctx.translate(rx, ry + 3);
+    ctx.rotate(sw + (i - (show.length - 1) / 2) * 0.48);
+    ctx.scale(1.35, 1.35);
+    if (n === 1000 || (last && flash > 0)) { // goldener Schlüssel glüht, neuer blitzt auf
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      FX.drawGlow(ctx, 0, 4, n === 1000 ? 4 + Math.sin(t * 4) * 0.6 : 3 + flash * 7, n === 1000 ? '#ffcf3a' : k.col, n === 1000 ? 0.45 : flash);
+      ctx.restore();
+    }
+    ctx.strokeStyle = '#2a1630'; ctx.lineWidth = 2; // dunkle Kontur, damit jeder Schlüssel einzeln lesbar bleibt
+    ctx.beginPath(); ctx.moveTo(0, 1.6); ctx.lineTo(0, 7.6); ctx.stroke();
+    ctx.strokeStyle = k.col; ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.moveTo(0, 1.6); ctx.lineTo(0, 7.6); ctx.stroke();         // Schaft
+    ctx.beginPath(); ctx.moveTo(0, 6.4); ctx.lineTo(1.6, 6.4); ctx.moveTo(0, 7.6); ctx.lineTo(1.3, 7.6); ctx.stroke(); // Bart
+    Draw.circle(ctx, 0, 0.6, 2.1, '#2a1630');
+    Draw.circle(ctx, 0, 0.6, 1.6, k.col);                                           // Griff
+    Draw.circle(ctx, 0, 0.6, 0.6, '#2a1630');
+    ctx.restore();
+  });
+  if (more > 0) {
+    ctx.save();
+    Draw.rrect(ctx, rx + 6.5, ry + 9, 7, 4.4, 2.2, 'rgba(20,10,30,0.85)');
+    ctx.fillStyle = '#ffcf3a'; ctx.font = '800 3.6px "Segoe UI", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`+${more}`, rx + 10, ry + 11.3);
+    ctx.restore();
+  }
+};
+const _wLamp = Draw.hipLamp;
+Draw.hipLamp = function (ctx, t, bob, opt) {
+  _wLamp.call(this, ctx, t, bob, opt);
+  Draw.keyring(ctx, t, bob, opt);
+};
+// leises Klimpern beim neuen Schlüssel
+const _wPlay = SFX.play;
+SFX.play = function (name, arg) {
+  if (!this.on || !this.ctx) return;
+  if (name === 'jingle') { [2093, 2637, 2349, 3136].forEach((f, i) => this.tone(f, 0.09, 'triangle', 0.035, 0, i * 0.07)); return; }
+  return _wPlay.call(this, name, arg);
+};
