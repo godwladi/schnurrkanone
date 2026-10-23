@@ -94,6 +94,14 @@ const Hud = {
     const em = $('#railL [data-r="chest"] em');
     if (em) em.textContent = left > 0 ? U.fmtTime(left / 1000) : 'Gratis!';
     $('#pauseFab').classList.toggle('on', !!UI.paused);
+    // iPhone-App: Notch/Home-Leiste (env(safe-area-*)) stehen beim Start manchmal noch auf 0.
+    // Weicht der gemessene Abstand von dem ab, mit dem das Spielfeld gerechnet hat → neu vermessen
+    // (sonst rutscht die Raumleiste unter das HUD und das Schnurr-Meter auf die Symbolleiste).
+    const probe = $('#safeProbe'), hud = $('#hud'), cv = Battle.cv;
+    if (probe && hud && cv) {
+      const top = Math.max(0, hud.getBoundingClientRect().bottom - cv.parentElement.getBoundingClientRect().top);
+      if (Math.abs(top - (Battle.insetT || 0)) > 1 || probe.offsetHeight !== Battle.safeB || probe.offsetWidth !== Battle.safeR) Battle.resize();
+    }
     // Menü-Punkt, wenn in einem der Menü-Reiter etwas bereitliegt
     const extraDot = TABS.some(t => !Dock.MAIN.includes(t.id) && $(`#tabs .tab[data-tab="${t.id}"] .dot.on`));
     set('#menuBtn .dot', extraDot);
@@ -110,6 +118,8 @@ Battle.resize = function () {
     this.insetT = Math.max(0, hr.bottom - cr.top);
   }
   this.railW = 0; // rechts liegen keine Schnellknöpfe mehr
+  const probe = document.getElementById('safeProbe');
+  this.safeB = probe ? probe.offsetHeight : 0; this.safeR = probe ? probe.offsetWidth : 0;
   _hResize.call(this);
   this.uiTopAt = 0; // Boss-Knöpfe neu vermessen
 };
@@ -124,3 +134,30 @@ Battle.uiTop = function () {
 };
 
 window.addEventListener('load', () => Hud.init());
+
+// ---------------------------------------------------------------------------
+// Zeitlupe (wie das Waffenrad in GTA V): solange Menü, Schublade oder Katzen-Automat offen
+// sind, läuft der Kampf mit einem Viertel der Geschwindigkeit weiter – weich ein- und
+// ausgeblendet, mit Vignette und tiefem „Wusch“. Im Streifzug hält der Kampf dort ohnehin an.
+// ---------------------------------------------------------------------------
+const Slowmo = {
+  SCALE: 0.25, k: 1, on: false,
+  want() {
+    if (Run.active) return false;
+    const b = document.body.classList;
+    return b.contains('sheet-open') || b.contains('more-open') || !!(UI.modalOpts && /slotmodal/.test(UI.modalOpts.cls || ''));
+  },
+  // aus Main.loop: Faktor für die Spielzeit dieses Bildes
+  scale(dt) {
+    const on = this.want();
+    if (on !== this.on) {
+      this.on = on;
+      document.body.classList.toggle('slowmo', on);
+      if (SFX.on && SFX.ctx) SFX.tone(on ? 220 : 140, 0.35, 'sine', 0.06, on ? -150 : 220);
+    }
+    const tgt = on ? this.SCALE : 1;
+    this.k += (tgt - this.k) * Math.min(1, dt * (on ? 7 : 5));
+    if (Math.abs(this.k - tgt) < 0.01) this.k = tgt;
+    return this.k;
+  },
+};

@@ -1648,3 +1648,22 @@ body.more-open #dockMore > * { animation: menuItem 0.42s cubic-bezier(0.34, 1.56
 .cback .ic { width: 40px; height: 40px; opacity: 0.9; }
 .boon.shown .cback { display: none; }
 .modal.swipemodal { overflow-x: hidden; }
+
+/* ============================================================= UPDATE 2026-10-23 (Abend)
+   Zugeklappte Schublade lugte am iPhone unten heraus (Verschiebung ohne Home-Leiste gerechnet)
+   → weiter hinausschieben und unsichtbar machen, sobald sie zu ist. */
+@media (max-width: 1000px), (max-height: 500px) {
+  #panel { transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1), visibility 0s linear 0.28s; }
+  body.sheet-open #panel { transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1), visibility 0s; }
+  body:not(.sheet-open) #panel { visibility: hidden; transform: translateY(calc(100% + var(--dockB) * 1px + env(safe-area-inset-bottom) + 40px)); }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  body:not(.sheet-open) #panel { transform: translateX(calc(100% + var(--dockR) * 1px + env(safe-area-inset-right) + 40px)); }
+}
+
+/* ---- Zeitlupe (Menü, Schublade, Katzen-Automat): Vignette mit kühlem Schleier */
+#battle::after {
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; transition: opacity 0.35s;
+  background: radial-gradient(ellipse at 50% 55%, transparent 35%, rgba(20, 10, 50, 0.55) 100%), rgba(90, 120, 200, 0.12);
+}
+body.slowmo #battle::after { opacity: 1; }

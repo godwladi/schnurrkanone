@@ -193,7 +193,8 @@ const Battle = {
     let idx = 0;
     for (const o of this.obs) {
       if (o.fleeing) { o.x += 700 * dt; continue; }
-      const tx = o.boss ? this.frontX + 30 * this.cs : this.frontX + idx * this.spacing;
+      // Schattenwesen im Bosskampf stellen sich vor den Boss (alpha.js)
+      const tx = o.boss ? this.frontX + 30 * this.cs : o.bossMinion ? this.frontX - 55 * this.cs : this.frontX + idx * this.spacing;
       idx++;
       if (o.x > tx) o.x = Math.max(tx, o.x - 420 * dt);
       else if (this.realignT > 0 && o.x < tx - 1 && !(o.dying > 0)) o.x = Math.min(tx, o.x + 420 * dt); // nach Drehen wieder einreihen
@@ -514,7 +515,7 @@ const Battle = {
     if (this.combo > S.quests.comboBest) S.quests.comboBest = this.combo;
     if (this.combo >= 5 && this.combo % 5 === 0) SFX.play('combo', this.combo / 5);
     Combo.onHit(this, this.comboT);
-    const mult = (o.boss ? 8 : 1) * (o.golden ? 4 : 1) * this.comboMult() * (this.rush > 0 ? 2 : 1);
+    const mult = (o.boss ? 8 : 1) * (o.golden ? 4 : 1) * (o.alpha ? (o.boss ? 3 : 5) : 1) * this.comboMult() * (this.rush > 0 ? 2 : 1);
     const coins = Econ.coins(S.stage) * R.coinMult * mult;
     if (coins) Game.addCoins(coins);
     S.stats.kills++;
@@ -893,6 +894,7 @@ const Battle = {
     const glowOp = dark ? 'lighter' : 'source-over', glowA = dark ? 1 : 0.55;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.save();
+    if (typeof Mirror !== 'undefined') Mirror.apply(ctx, this); // Spiegelkabinett: Welt umklappen (rooms3.js)
     // Kamera: Zoom-Impuls + Wackeln
     if (this.zoom.a > 0.002 && S.optShake) {
       const z = 1 + this.zoom.a;
@@ -1233,6 +1235,7 @@ const Battle = {
       ctx.fillStyle = tx.color; ctx.fillText(tx.text, tx.x, tx.y);
     }
     ctx.globalAlpha = 1;
+    if (typeof Mirror !== 'undefined') Mirror.end(ctx);
     ctx.restore();
 
     // Bildschirm-Effekte

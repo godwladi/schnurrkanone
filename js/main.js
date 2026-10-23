@@ -81,7 +81,7 @@ const Main = {
     // Streifzug: offenes Menü/Fenster oder Ziehen einer Waffe pausiert den Kampf
     // Pause-Menü (beide Modi) bzw. Streifzug: offenes Menü/Fenster oder Ziehen einer Waffe hält den Kampf an
     const w0 = performance.now();
-    if (UI.paused || Run.frozen()) Battle.frameDt = 0; else Battle.update(dt);
+    if (UI.paused || Run.frozen()) Battle.frameDt = 0; else Battle.update(dt * (typeof Slowmo !== 'undefined' ? Slowmo.scale(dt) : 1));
     Battle.render();
     Perf.sample(performance.now() - w0, dt);
     UI.tick(dt);

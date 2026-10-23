@@ -61,9 +61,13 @@ const Vitals = {
     if (boss && !(boss.dying > 0) && boss.x <= B.frontX + 40 * B.cs && this.stun <= 0 && (Run.active || S.stage >= ATTACK_FROM)) {
       attacker = boss;
       interval = Math.max(2.4, 5.5 - 0.3 * Math.floor((S.stage - 1) / 10)) * (Run.active ? Math.max(0.6, 1 - 0.02 * S.run.depth) : 1);
-    } else if (!boss && Run.active && !Run.paused()) {
+      if (boss.alpha) interval *= boss.enraged ? 0.6 : 0.85; // Alpha-Boss wirft öfter, rasend noch öfter
+    } else if (!boss && !Run.paused()) {
+      // Streifzug: das vorderste Hindernis wirft; Hauptspiel: nur ein Alpha-Gegner vorne
       const f = B.front();
-      if (f && !f.treasure && f.x < (B.Wp || B.W) - 30) { attacker = f; power = 0.45; interval = 4.2; }
+      if (f && !f.treasure && f.x < (B.Wp || B.W) - 30 && (Run.active || f.alpha)) {
+        attacker = f; power = f.alpha ? 0.7 : 0.45; interval = f.alpha ? (f.enraged ? 2.4 : 3.4) : 4.2;
+      }
     }
     interval *= Run.atkMul();
     // Hauptspiel: solange du im Menü bist oder eine Waffe ziehst, wirft niemand (der Countdown läuft weiter)

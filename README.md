@@ -79,6 +79,20 @@ Slotmaschine mit drei Walzen, Hebel, Lauflichtern und drei Modi (ersetzt das Gl�
 - **Kampf-Slot:** Münzen (3 % der Münzen) gegen Kampf-Schübe – ⚡ Raserei, ✨ Goldrausch, 🦉 Eulenruf, 💰 Münzen, 🐾 Schnurr-Meter; drei gleiche = voller, zwei gleiche = kleiner Schub. Startet erst beim Schließen des Fensters; im Streifzug gesperrt.
 - Zwei gleiche auf den ersten Walzen lassen die dritte spannend länger drehen.
 
+## Neue Gebiete (`js/rooms3.js`)
+Reguläre Gebiete im Hauptspiel (Stufe 71–80 Mäusefestung, 91–100 Spiegelkabinett, 121–130 Versunkenes Wrack; Stufe 1–70 unverändert), Räume im Streifzug und gelegentlich einzelne Sonderstufen.
+- **Mäusefestung:** Mäuse-Ritter (Rundschild, Lanze), Ratten-Katapult · Boss **Rattenkönigin Brie** auf dem Käsethron. Regel: Katapulte schleudern Käselaibe – antippen schickt sie zurück auf die Gegner (30 % Leben, Boss 4 %), sonst −6 % Leben.
+- **Versunkenes Wrack:** Kugelfisch (bläht sich ab halbem Leben auf), Krabbe, Tintenfisch · Boss **Kraken Krakatau**. Regel: Luftblasen antippen gibt +8 Schnurr-Meter und 3 % Leben; besiegte Tintenfische vernebeln kurz die Sicht.
+- **Spiegelkabinett (Jahrmarkt der Spiegel):** das Spielfeld klappt wie eine Karte um – die Katze steht rechts, die Gegner kommen von links; Texte bleiben lesbar, Tipps und Münzflug werden umgerechnet. Clowns-Maus auf dem Einrad, Ballon-Pudel (zerfällt immer in zwei), Spiegel-Geist · Boss **die Spiegelkatze**, eine dunkle Kopie der eigenen Katze mit der eigenen Waffe.
+
+## Alpha-Gegner, Alpha-Bosse, Schatten im Bosskampf (`js/alpha.js`)
+- **Alpha-Gegner** (ab Stufe 15, im Streifzug ab Raum 4, ca. 4–5 %): 4× Leben, größer, glühende Aura, α-Plakette am Lebensbalken; wirft auch im Hauptspiel nach der Katze, ab 50 % Leben rasend (rot, wirft schneller). Beute 5× Münzen, +2 🦴.
+- **Alpha-Boss** (ab Stufe 20; jede 10. Stufe 50 %, sonst 12 %; im Streifzug ab Raum 8): 2,2× Leben, +8 s, wirft öfter, ab 50 % rasend, ruft zwei Schattenwesen. Beute 3× Münzen und 3× Gräten.
+- **Schattenwesen im Bosskampf:** normale Bosse rufen mit 40 % eines. Es stellt sich vor den Boss, fängt die Kugeln ab und der Boss-Countdown läuft weiter.
+
+## Zeitlupe (`js/hud.js`)
+- Solange ≡-Menü, Schublade oder Katzen-Automat offen sind, läuft der Kampf im Hauptspiel mit 25 % Geschwindigkeit weiter (weich ein-/ausgeblendet, Vignette, tiefer „Wusch“). Im Streifzug hält der Kampf dort wie bisher ganz an.
+
 ## Karten-Animationen im Streifzug (`js/cards.js`)
 - **Ereignisse als Wischkarte:** nach rechts wischen = erste Wahl, nach links = zweite. Beim Ziehen kippt die Karte und ein Stempel zeigt Wahl und Folgen; zu kurz gewischt federt sie zurück. Knöpfe und Pfeiltasten gehen weiterhin.
 - **Segen-Wahl als Kartenfächer:** die Karten kommen verdeckt als Stapel, fächern sich mit Federbewegung auf und werden nacheinander aufgedeckt (Seltene und Pakte zuletzt). Touch: antippen hebt an, nochmal tippen wählt; mit Maus genügt ein Klick.
@@ -188,6 +202,8 @@ Der Bericht (`schnurrkanone-<art>-<datum>.json`) enthält Beschreibung, Gerät/B
 - `js/limit.js` – Grenzbruch-Waffen und Raritäten
 - `js/milestones.js` – Meilensteine, Raum 500/1000
 - `js/slots.js` – Katzen-Automat (Slotmaschine)
+- `js/rooms3.js` – Mäusefestung, Versunkenes Wrack, Spiegelkabinett (Spiegelung)
+- `js/alpha.js` – Alpha-Gegner und -Bosse, Schattenwesen im Bosskampf
 - `js/cards.js` – Wischkarten für Ereignisse, Kartenfächer für die Segen-Wahl
 - `js/strata.js` – Schicht-Lebensbalken mit Abblätter- und Glut-Animation
 - `js/winfo.js` – Waffen-Infokarte
