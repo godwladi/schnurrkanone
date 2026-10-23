@@ -246,15 +246,15 @@ const Battle = {
     // stehen, statt zu springen oder kurz zu verschwinden
     if (this.laser > 0 || this.laserCharge > 0) {
       if (target) {
-        const tx = target.x - 6 * this.cs, ty = target.y - OBST_H[target.kind] * target.scale * 0.5;
+        const hp = Foes.hitPoint(target, this.t), tx = hp.x, ty = hp.y; // Strahl endet in der Mitte des gezeichneten Körpers
         if (!this.laserEnd) this.laserEnd = { x: tx, y: ty };
-        else { const k = Math.min(1, realDt * 12); this.laserEnd.x += (tx - this.laserEnd.x) * k; this.laserEnd.y += (ty - this.laserEnd.y) * k; }
+        else { const k = Math.min(1, realDt * 20); this.laserEnd.x += (tx - this.laserEnd.x) * k; this.laserEnd.y += (ty - this.laserEnd.y) * k; }
       }
     } else this.laserEnd = null;
     if (this.laser > 0 && target) {
       this.damage(target, R.dps * 6 * dt * (this.frenzy > 0 ? 3 : 1), false, true, 'laser');
       this.laserTxt -= dt;
-      if (Math.random() < 0.8) this.particle(target.x - 10, target.y - OBST_H[target.kind] * target.scale * 0.5, U.rand(-260, 60), U.rand(-260, 80), U.pick(['#ff3355', '#ffb3c1', '#ffffff']), 0.35, 4 * this.cs, 400, false, 'spark');
+      if (Math.random() < 0.8) this.particle(this.laserEnd.x - 10 * this.cs, this.laserEnd.y, U.rand(-260, 60), U.rand(-260, 80), U.pick(['#ff3355', '#ffb3c1', '#ffffff']), 0.35, 4 * this.cs, 400, false, 'spark');
     }
 
     if (this.laserCharge > 0 && Math.random() < dt * 60) {

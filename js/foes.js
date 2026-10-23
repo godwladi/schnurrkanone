@@ -44,6 +44,16 @@ const partial = (pts, f) => {
 };
 
 const Foes = {
+  // Mitte des gezeichneten Körpers – mit denselben Verschiebungen wie Draw.obstacle (Rückstoß,
+  // Hüpfen, Wippen, Neigung), damit Augenlaser und Treffer exakt dort enden, wo der Gegner steht
+  hitPoint(o, t) {
+    const h = OBST_H[o.kind] * o.scale * 0.5;
+    const hop = o.moving ? Math.abs(Math.sin(t * 11 + o.id)) * 6 * o.scale : 0;
+    const lean = o.windup > 0 ? Math.sin((1 - o.windup / 0.35) * Math.PI) * 0.22 : 0;
+    const ang = (SWAY[o.kind] || 0) * Math.sin(t * 1.6 + o.id) + (o.tilt || 0) + lean;
+    return { x: o.x + o.kx + h * Math.sin(ang), y: o.y - hop - h * Math.cos(ang) };
+  },
+
   // ---------------------------------------------------------------- Zustand je Bild
   step(o, t) {
     const dt = Battle.frameDt || 0.016;
