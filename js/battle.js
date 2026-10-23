@@ -1521,11 +1521,14 @@ const Battle = {
     }
     // Goldrausch- und Ereignis-Pille: breit links oben, schmal links unter den Boss-Knöpfen
     const py = narrow ? uiTop : 14 + iT;
+    // rechts neben der Knopf-Spalte links (pillX aus hud.js), sonst lag sie darunter verdeckt
+    const px = this.pillX || 14;
     if (this.rush > 0) {
       ctx.textAlign = 'left';
-      Draw.rrect(ctx, 14, py, 170, 30, 15, 'rgba(60,40,0,0.7)');
+      Draw.rrect(ctx, px, py, 170, 30, 15, 'rgba(60,40,0,0.88)');
+      ctx.strokeStyle = 'rgba(255,211,77,0.7)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect(px, py, 170, 30, 15); ctx.stroke();
       ctx.font = '800 13px "Segoe UI", "Segoe UI Emoji", sans-serif'; ctx.fillStyle = '#ffd34d';
-      ctx.fillText(`💰×2 GOLDRAUSCH ${Math.ceil(this.rush)} s`, 26, py + 15);
+      ctx.fillText(`💰×2 GOLDRAUSCH ${Math.ceil(this.rush)} s`, px + 12, py + 15);
       ctx.textAlign = 'center';
     }
 

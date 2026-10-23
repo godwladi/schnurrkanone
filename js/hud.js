@@ -120,6 +120,9 @@ Battle.resize = function () {
     this.insetT = Math.max(0, hr.bottom - cr.top);
   }
   this.railW = 0; // rechts liegen keine Schnellknöpfe mehr
+  // Goldrausch-/Ereignis-Pille rechts neben der Knopf-Spalte links (in Spielfeld-Koordinaten)
+  const railL = document.getElementById('railL');
+  this.pillX = railL && this.cv && railL.offsetWidth ? Math.round(railL.getBoundingClientRect().right - this.cv.getBoundingClientRect().left + 8) : 14;
   const probe = document.getElementById('safeProbe');
   this.safeB = probe ? probe.offsetHeight : 0; this.safeR = probe ? probe.offsetWidth : 0;
   _hResize.call(this);

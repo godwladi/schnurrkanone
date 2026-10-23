@@ -158,10 +158,12 @@ const Events = {
     const ev = this.cur, txt = `${ev.icon} ${ev.name} ${Math.ceil(this.t)} s`;
     ctx.font = '800 13px "Segoe UI", "Segoe UI Emoji", sans-serif';
     const w = ctx.measureText(txt).width + 26;
-    Draw.rrect(ctx, 14, y, w, 30, 15, 'rgba(20,14,40,0.7)');
-    Draw.rrect(ctx, 14, y + 26, w * (this.t / EVENT_DURATION), 4, 2, ev.color);
+    const x = B.pillX || 14; // neben der Knopf-Spalte links (hud.js)
+    Draw.rrect(ctx, x, y, w, 30, 15, 'rgba(20,14,40,0.88)');
+    ctx.strokeStyle = ev.color; ctx.globalAlpha = 0.7; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect(x, y, w, 30, 15); ctx.stroke(); ctx.globalAlpha = 1;
+    Draw.rrect(ctx, x, y + 26, w * (this.t / EVENT_DURATION), 4, 2, ev.color);
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = ev.color;
-    ctx.fillText(txt, 27, y + 14);
+    ctx.fillText(txt, x + 13, y + 14);
     ctx.textAlign = 'center';
   },
 };
