@@ -134,9 +134,9 @@ Battle.resize = function () {
   this.trailBox = this.measureTrail();
   // Handy quer: die Knopf-Spalte links (und die Notch) lag über Katze, Eule und Goldfisch →
   // Katze so weit nach rechts, dass Eule (66 px links von ihr) neben der Spalte steht
-  this.meterB = undefined;
+  this.meterB = undefined; this.meterX = this.meterW = undefined;
   if (this.landscape()) {
-    // eine Zeile unten: Skills links, Symbolleiste Mitte, Schnurr-Meter rechts → Boden direkt
+    // eine Zeile unten: Skills links, Schnurr-Meter in der Mitte, Symbolleiste rechts → Boden direkt
     // darüber (mehr Himmel für Glücksballon und gegnerische Geschosse)
     const sb = this.safeB || 0, gy = this.H - 60 - sb;
     if (Math.abs(gy - this.groundY) > 0.5) { this.groundY = gy; for (const o of this.obs) o.y = gy; }
@@ -144,13 +144,16 @@ Battle.resize = function () {
     const dock = document.getElementById('dock'), sk = document.getElementById('skills');
     if (dock && sk && this.cv) {
       const cl = this.cv.getBoundingClientRect().left, skR = sk.getBoundingClientRect().right - cl;
-      const mL = this.W - Math.min(260, this.W * 0.3) - 24;
-      dock.style.left = Math.round((skR + mL) / 2) + 'px';
-      // schmale Geräte: Symbolleiste in die Lücke zwischen Skills und Schnurr-Meter einpassen
-      const k = Math.min(1, (mL - skR - 12) / (dock.scrollWidth || 1));
-      dock.style.transform = `translateX(-50%) scale(${Math.max(0.6, k).toFixed(3)})`;
+      // Symbolleiste rechts verankert; schmale Geräte: etwas verkleinern, damit der Meter Platz hat
+      const dw0 = dock.scrollWidth || 1, k = Math.max(0.6, Math.min(1, (this.W - skR - 170) / dw0));
+      dock.style.left = 'auto'; dock.style.right = '12px'; dock.style.transformOrigin = '100% 100%';
+      dock.style.transform = `scale(${k.toFixed(3)})`;
+      // Lücke zwischen Skills und Symbolleiste → Meter mittig darin, etwas kleiner als früher (260 px)
+      const gl = skR + 12, gr = this.W - 12 - dw0 * k - 12;
+      this.meterW = Math.round(Math.max(110, Math.min(200, gr - gl - 16)));
+      this.meterX = Math.round((gl + gr) / 2 - this.meterW / 2);
     }
-  } else { const dock = document.getElementById('dock'); if (dock) { dock.style.left = ''; dock.style.transform = ''; } }
+  } else { const dock = document.getElementById('dock'); if (dock) { dock.style.left = ''; dock.style.right = ''; dock.style.transform = ''; dock.style.transformOrigin = ''; } }
   if (this.landscape() && railL && railL.offsetWidth) {
     const minX = this.pillX + 66 * this.cs;
     if (this.catX < minX) {

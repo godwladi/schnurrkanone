@@ -1569,10 +1569,12 @@ body.more-open #dockMore { display: flex; animation: modalIn 0.18s ease-out; }
   #bugBtn, #pauseFab { top: calc(7px + env(safe-area-inset-top)); }
 }
 @media (max-height: 500px) and (orientation: landscape) {
-  #bugBtn, #pauseFab { width: 34px; height: 34px; font-size: 15px; top: calc(8px + env(safe-area-inset-top)); }
+  /* die ganze obere Zeile (HUD, Pause, 🐞) etwas tiefer, damit der ≡-Knopf nicht am Bildrand abgeschnitten wird */
+  #hud { top: 10px; }
+  #bugBtn, #pauseFab { width: 34px; height: 34px; font-size: 15px; top: calc(18px + env(safe-area-inset-top)); }
   #pauseFab { right: calc(50px + env(safe-area-inset-right)); }
   #hud { padding-right: calc(96px + env(safe-area-inset-right)); }
-  #railL { top: calc(var(--hudH) + 8px); gap: 14px; }
+  #railL { top: calc(var(--hudH) + 16px); gap: 14px; }
   /* Meldungen rechts neben der Knopfspalte */
   #toasts { left: calc(70px + env(safe-area-inset-left)); }
 }
@@ -1757,8 +1759,8 @@ body.bossfight #bossWrap { opacity: 0; pointer-events: none; } /* im Bosskampf f
 
 /* ---- Handy quer: Raumleiste sitzt in der oberen HUD-Zeile, Boss-Leiste direkt darunter */
 @media (max-height: 500px) and (orientation: landscape) {
-  #bossWrap { top: calc(56px + env(safe-area-inset-top)); }
-  #boonBar { top: calc(56px + env(safe-area-inset-top)); }
+  #bossWrap { top: calc(64px + env(safe-area-inset-top)); }
+  #boonBar { top: calc(64px + env(safe-area-inset-top)); }
 }
 
 /* ============================================================= Querformat neu (Handy quer)
