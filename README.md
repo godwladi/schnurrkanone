@@ -107,6 +107,11 @@ Reguläre Gebiete im Hauptspiel (Stufe 71–80 Mäusefestung, 91–100 Spiegelka
 - **Sieges-Tänzchen:** nach jedem Boss hüpft und wackelt die Katze; neuer Rekord im Hauptspiel = Feuerwerk am Himmel.
 - **Combo-Kamera:** ab Combo 25 zoomt das Bild sanft heran (aus, wenn Bildschirm-Wackeln abgeschaltet ist).
 - **Katze antippen:** sie maunzt, hüpft und verteilt Herzchen (kein Pfotenhieb).
+- **Gähnen & Einrollen:** nach 60 s ohne Eingabe gähnt die Katze, schläft mit geschlossenen Augen und schnarcht 💤; jede Eingabe weckt sie.
+- **Wetter-Reaktionen:** Gewitter: die Katzen zucken bei jedem Blitz zusammen; Sternschnuppennacht: sie schauen nach oben; Goldregen: goldene Augen.
+- **Glühwürmchen:** nachts und in dunklen Gebieten; antippen gibt Münzen.
+- **Haustier-Freundschaft:** Begleiter sammeln Herzen (1 je Minute, 2 je Boss); ab 10/30/60 Schleife, Stirnband, Krone und je Stufe +2 % Münzen.
+- **Sammelalbum** (Reiter Erfolge): jeder neue Gegnertyp ein Sticker mit Bild; je Sticker +0,5 % Münzen, volles Album +10 %.
 
 ## Power-up-Symbole (`js/powerups.js`)
 - Laufende Zeit-Effekte (Goldrausch, Gewitter/Sternschnuppen/Goldregen/Katzenminze, Raserei, Eulenruf, Espresso) stehen oben rechts unter der Raumleiste als runde Symbole mit ablaufendem Farbring und Sekunden; unter 3 s pulsieren sie. Beim Ablauf verpuffen sie in ihrer Farbe (Funken, Sterne, beim Gewitter ein Blitz). Ersetzt die alten Pillen links oben.

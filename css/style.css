@@ -1829,3 +1829,14 @@ body.more-open #menuBtn .mb i:nth-child(3) { transform: translateY(-8.4px) rotat
 @keyframes icSpin { 50% { transform: rotateY(180deg) scale(1.1); } to { transform: rotateY(360deg); } }
 @media (prefers-reduced-motion: reduce) { .railb:hover .ri, #dock .dk:hover .dki, .skill:hover .si, .res:hover .hi, .lvl:hover b, #bossBtn:hover .bb-i { animation: none; } }
 .skill .si, #dock .dk .dki, .lvl b, .railb .ri { display: inline-block; } /* transform-Animationen brauchen Block-Elemente */
+
+/* ---- Sammelalbum & Freundschaft (js/fun.js) */
+.album { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+.stk { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border-radius: 12px; border: 1px dashed var(--edge); background: rgba(0, 0, 0, 0.2); text-align: center; min-width: 0; }
+.stk.on { border: 1px solid rgba(255, 211, 77, 0.45); background: linear-gradient(180deg, rgba(255, 211, 77, 0.1), rgba(0, 0, 0, 0.15)); transform: rotate(-1.5deg); }
+.stk.on:nth-child(2n) { transform: rotate(1.5deg); }
+.stk img { width: 56px; height: 56px; object-fit: contain; }
+.stk i { width: 56px; height: 56px; display: grid; place-items: center; font: 900 26px var(--font); font-style: normal; color: var(--muted); opacity: 0.5; }
+.stk b { font-size: 10.5px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.stk small { font-size: 9.5px; color: var(--muted); }
+.lovelist { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }

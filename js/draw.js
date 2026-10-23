@@ -139,7 +139,7 @@ const Draw = {
     // Treffer: zugekniffene Augen und aufgerissenes Maul (opt.ouch 0..1, opt.ouchBig = harter Treffer),
     // wenig Leben: besorgt (opt.worry) – beides übertönt Wut und Blinzeln
     const ouch = opt.laserEyes > 0 ? 0 : opt.ouch || 0, worry = !ouch && opt.worry;
-    const blink = !ouch && !opt.still && !opt.laserEyes && f < 0.5 && (t % 4) < 0.12;
+    const blink = !ouch && !opt.laserEyes && (opt.sleep || (!opt.still && f < 0.5 && (t % 4) < 0.12)); // opt.sleep: Augen zu (fun.js)
     const EYES = [-6, 7];
     if (opt.eyesOut) {
       const m = ctx.getTransform();
