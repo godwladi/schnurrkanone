@@ -53,8 +53,9 @@ const Hud = {
 
   renderMenu() {
     const extra = TABS.filter(t => !Dock.MAIN.includes(t.id));
-    this.more.innerHTML = extra.map(t => `<button class="dk wide" data-tab="${t.id}"><span class="dki">${t.icon}</span><span class="dkn">${t.name}</span><i class="dot"></i></button>`).join('') +
-      `<div class="mrow"><button class="dk wide half" data-m="pause"><span class="dki">⏸️</span><span class="dkn">Pause</span></button>
+    // --i: Reihenfolge für das gestaffelte Herausspringen (CSS)
+    this.more.innerHTML = extra.map((t, i) => `<button class="dk wide" data-tab="${t.id}" style="--i:${i}"><span class="dki">${t.icon}</span><span class="dkn">${t.name}</span><i class="dot"></i></button>`).join('') +
+      `<div class="mrow" style="--i:${extra.length}"><button class="dk wide half" data-m="pause"><span class="dki">⏸️</span><span class="dkn">Pause</span></button>
        <button class="dk wide half" data-m="music"><span class="dki">${S.music ? '🎵' : '🔇'}</span><span class="dkn">Musik</span></button></div>`;
     this.more.onclick = e => {
       const b = e.target.closest('.dk'); if (!b) return;

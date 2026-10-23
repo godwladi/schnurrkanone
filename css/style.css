@@ -1347,6 +1347,8 @@ body.more-open #dockMore { display: flex; animation: modalIn 0.18s ease-out; }
 .sl-bet { flex: 1; padding: 7px 0; border-radius: 10px; border: 1px solid var(--edge); background: rgba(0, 0, 0, 0.25); color: var(--text); font: 800 12px var(--font); cursor: pointer; }
 .sl-bet.on { border-color: var(--gold); background: rgba(255, 211, 77, 0.2); color: var(--gold); }
 .sl-bet:disabled { opacity: 0.5; }
+.sl-bet.cant { filter: grayscale(1) brightness(0.7); }
+.slotmodal .btn.gold.cant { box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35); }
 .sl-row { display: flex; gap: 8px; margin-bottom: 8px; }
 .sl-row .btn { flex: 1; }
 .sl-gtxt { font-size: 12px; margin: 0 0 8px; }
@@ -1573,4 +1575,20 @@ body.more-open #dockMore { display: flex; animation: modalIn 0.18s ease-out; }
   #railL { top: calc(var(--hudH) + 8px); gap: 9px; }
   /* Meldungen rechts neben der Knopfspalte */
   #toasts { left: calc(70px + env(safe-area-inset-left)); }
+}
+
+/* ---- ≡-Menü: Striche morphen zum X, Einträge springen gestaffelt mit Federbewegung heraus */
+#menuBtn .mb i { transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s; transform-origin: 50% 50%; }
+body.more-open #menuBtn .mb i:nth-child(1) { transform: translateY(7px) rotate(135deg); }
+body.more-open #menuBtn .mb i:nth-child(2) { transform: scaleX(0); opacity: 0; }
+body.more-open #menuBtn .mb i:nth-child(3) { transform: translateY(-7px) rotate(-135deg); }
+body.more-open #menuBtn { background: linear-gradient(180deg, #ff7aa8, #d93f7a); box-shadow: 0 4px 0 #8c1f4a, 0 6px 14px rgba(0, 0, 0, 0.35); }
+#menuBtn { transition: background 0.25s, box-shadow 0.25s; }
+body.more-open #dockMore { transform-origin: 18px 0; animation: menuOpen 0.32s cubic-bezier(0.34, 1.56, 0.64, 1); }
+body.more-open #dockMore > * { animation: menuItem 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; animation-delay: calc(var(--i, 0) * 35ms + 40ms); }
+@keyframes menuOpen { from { opacity: 0; transform: scale(0.4); } }
+@keyframes menuItem { from { opacity: 0; transform: translate(-22px, -14px) scale(0.55); } }
+@media (prefers-reduced-motion: reduce) {
+  #menuBtn .mb i { transition: none; }
+  body.more-open #dockMore, body.more-open #dockMore > * { animation: none; }
 }

@@ -83,6 +83,8 @@ const Slots = {
         });
         $('.sl-lever', root).addEventListener('click', () => this.spin());
         this.render();
+        // Münzen ändern sich nebenbei (das Spiel läuft weiter) → Grau-Zustand nachführen
+        const iv = setInterval(() => { if (!root.isConnected) clearInterval(iv); else this.syncCant(); }, 400);
       },
     });
   },
@@ -123,6 +125,7 @@ const Slots = {
         : `<button class="btn gold wide sl-go">🎰 Drehen · ${U.fmt(this.fightCost())} 💰</button>
         <p class="sl-note muted">⚡ Raserei · ✨ Goldrausch · 🦉 Eulenruf · 💰 Münzen · 🐾 Schnurr-Meter<br>3 gleiche = voller Schub, 2 gleiche = kleiner Schub</p>`;
     }
+    this.syncCant();
     c.onclick = e => {
       const bet = e.target.closest('.sl-bet');
       if (bet && !this.spinning) { st.betI = +bet.dataset.b; SFX.play('paw'); this.render(); return; }
@@ -130,6 +133,19 @@ const Slots = {
       const g = e.target.closest('[data-g]');
       if (g) this.doGamble(g.dataset.g);
     };
+  },
+
+  // Knöpfe grau, solange Münzen bzw. Fischgräten nicht reichen (bleiben antippbar und sagen, was fehlt)
+  syncCant() {
+    const root = this.root; if (!root || !root.isConnected) return;
+    const go = $('.sl-go', root);
+    if (go) {
+      const cant = this.mode === 'coins' ? S.coins < this.bet()
+        : this.mode === 'treasure' ? !this.ready() && S.bones < SLOT_BONE_COST
+        : S.coins < this.fightCost();
+      go.classList.toggle('cant', cant);
+    }
+    $$('.sl-bet', root).forEach(b => b.classList.toggle('cant', S.coins < this.minBet()));
   },
 
   // ----------------------------------------------------------------- Drehen
