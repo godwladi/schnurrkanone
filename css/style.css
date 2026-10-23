@@ -1682,3 +1682,39 @@ body.slowmo #battle::after { opacity: 1; }
 .keyring i { font-style: normal; }
 .keyring i .ic { width: 24px; height: 24px; }
 .keyring small { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---- Power-up-Symbole oben rechts (js/powerups.js): Ring läuft ab, beim Ende verpufft es */
+#pups {
+  position: absolute; z-index: 4; right: calc(8px + var(--dockR, 0) * 1px + env(safe-area-inset-right)); top: 110px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px; pointer-events: none;
+}
+.pup {
+  position: relative; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(var(--pc) var(--p, 360deg), rgba(255, 255, 255, 0.12) 0);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--pc) 55%, transparent), 0 4px 10px rgba(0, 0, 0, 0.4);
+  animation: pupIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.pup::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, #3a2f6e, #1a1238); }
+.pup .pi { position: relative; font-style: normal; font-family: var(--emoji); font-size: 20px; line-height: 1; }
+.pup .pi .ic { width: 24px; height: 24px; display: block; }
+.pup b {
+  position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); white-space: nowrap;
+  font: 900 10px/1 var(--font); color: #fff; padding: 2px 6px; border-radius: 99px;
+  background: rgba(14, 8, 30, 0.9); border: 1.5px solid var(--pc); font-variant-numeric: tabular-nums;
+}
+.pup.low { animation: pupLow 0.5s ease-in-out infinite; }
+.pup.poof { animation: pupPoof 0.5s ease-out forwards; }
+@keyframes pupIn { from { transform: scale(0.2) rotate(-90deg); opacity: 0; } }
+@keyframes pupLow { 50% { transform: scale(1.1); box-shadow: 0 0 22px var(--pc); } }
+@keyframes pupPoof { 40% { transform: scale(1.45); opacity: 0.9; filter: brightness(1.8); } to { transform: scale(1.9); opacity: 0; filter: brightness(2.5) blur(2px); } }
+.pspark {
+  position: absolute; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--pc);
+  box-shadow: 0 0 8px var(--pc); color: var(--pc); font: 900 13px/7px var(--font); text-align: center; text-shadow: 0 0 6px var(--pc);
+  animation: pSpark 0.65s ease-out forwards;
+}
+.pspark:not(:empty) { background: none; box-shadow: none; width: 10px; height: 10px; }
+@keyframes pSpark { to { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; } }
+.pzap { position: absolute; width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%; background: radial-gradient(circle, #ffffff, rgba(159, 216, 255, 0.6) 40%, transparent 70%); animation: pZap 0.35s ease-out forwards; }
+@keyframes pZap { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+@media (max-height: 500px) and (orientation: landscape) { .pup { width: 38px; height: 38px; } #pups { gap: 11px; } }
+@media (prefers-reduced-motion: reduce) { .pup, .pup.low { animation: none; } }

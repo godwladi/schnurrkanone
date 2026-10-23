@@ -1523,7 +1523,7 @@ const Battle = {
     const py = narrow ? uiTop : 14 + iT;
     // rechts neben der Knopf-Spalte links (pillX aus hud.js), sonst lag sie darunter verdeckt
     const px = this.pillX || 14;
-    if (this.rush > 0) {
+    if (this.rush > 0 && !this.pillsOff) { // ersetzt durch die Power-up-Symbole oben rechts (powerups.js)
       ctx.textAlign = 'left';
       Draw.rrect(ctx, px, py, 170, 30, 15, 'rgba(60,40,0,0.88)');
       ctx.strokeStyle = 'rgba(255,211,77,0.7)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect(px, py, 170, 30, 15); ctx.stroke();

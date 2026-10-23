@@ -103,6 +103,9 @@ Reguläre Gebiete im Hauptspiel (Stufe 71–80 Mäusefestung, 91–100 Spiegelka
 - **Alpha-Boss** (ab Stufe 20; jede 10. Stufe 50 %, sonst 12 %; im Streifzug ab Raum 8): 2,2× Leben, +8 s, wirft öfter, ab 50 % rasend, ruft zwei Schattenwesen. Beute 3× Münzen und 3× Gräten.
 - **Schattenwesen im Bosskampf:** normale Bosse rufen mit 40 % eines. Es stellt sich vor den Boss, fängt die Kugeln ab und der Boss-Countdown läuft weiter.
 
+## Power-up-Symbole (`js/powerups.js`)
+- Laufende Zeit-Effekte (Goldrausch, Gewitter/Sternschnuppen/Goldregen/Katzenminze, Raserei, Eulenruf, Espresso) stehen oben rechts unter der Raumleiste als runde Symbole mit ablaufendem Farbring und Sekunden; unter 3 s pulsieren sie. Beim Ablauf verpuffen sie in ihrer Farbe (Funken, Sterne, beim Gewitter ein Blitz). Ersetzt die alten Pillen links oben.
+
 ## Zeitlupe (`js/hud.js`)
 - Solange ≡-Menü, Schublade oder Katzen-Automat offen sind, läuft der Kampf im Hauptspiel mit 25 % Geschwindigkeit weiter (weich ein-/ausgeblendet, Vignette, tiefer „Wusch“). Im Streifzug hält der Kampf dort wie bisher ganz an.
 
@@ -215,6 +218,7 @@ Der Bericht (`schnurrkanone-<art>-<datum>.json`) enthält Beschreibung, Gerät/B
 - `js/limit.js` – Grenzbruch-Waffen und Raritäten
 - `js/milestones.js` – Meilensteine, Raum 500/1000
 - `js/slots.js` – Katzen-Automat (Slotmaschine)
+- `js/powerups.js` – Power-up-Symbole mit Ring und Verpuffen
 - `js/warden.js` – Erzwächter jeder 100. Raum, Wächter-Schlüssel
 - `js/rooms3.js` – Mäusefestung, Versunkenes Wrack, Spiegelkabinett (Spiegelung)
 - `js/alpha.js` – Alpha-Gegner und -Bosse, Schattenwesen im Bosskampf
