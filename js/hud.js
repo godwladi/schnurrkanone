@@ -107,7 +107,7 @@ const Hud = {
     document.body.classList.toggle('bossfight', Battle.bossState === 'active');
     // HUD-Pillen ändern ihre Breite mit den Zahlen → Lücke für die Raumleiste (quer) nachführen
     const tb = Battle.measureTrail(), ob = Battle.trailBox;
-    if (!tb !== !ob || (tb && ob && (Math.abs(tb.l - ob.l) > 4 || Math.abs(tb.r - ob.r) > 4))) Battle.trailBox = tb;
+    if (!tb !== !ob || (tb && ob && (Math.abs(tb.l - ob.l) > 4 || Math.abs(tb.r - ob.r) > 4 || tb.y !== ob.y))) Battle.trailBox = tb;
     // Menü-Punkt, wenn in einem der Menü-Reiter etwas bereitliegt
     const extraDot = TABS.some(t => !Dock.MAIN.includes(t.id) && $(`#tabs .tab[data-tab="${t.id}"] .dot.on`));
     set('#menuBtn .dot', extraDot);
@@ -172,7 +172,10 @@ Battle.measureTrail = function () {
   for (const id of ['hudBones', 'hudMinze', 'pauseFab']) { const el = document.getElementById(id); if (el && el.offsetWidth) r = Math.min(r, el.getBoundingClientRect().left); }
   if (!isFinite(r)) r = innerWidth - 100;
   const cx = this.cv.getBoundingClientRect().width / 2, half = Math.min(cx - (l - cl), (r - cl) - cx) - 10;
-  return half > 70 ? { l: cx - half, r: cx + half, y: 7 } : null; // die Schrift schrumpft notfalls (battle.js)
+  const coins = document.getElementById('hudCoins'), ct = this.cv.getBoundingClientRect().top;
+  const top = coins && coins.offsetHeight ? coins.getBoundingClientRect().top - ct : 0;
+  // y = Textzeile; die Box beginnt 7 px darüber, also genau an der Oberkante der Pillen
+  return half > 70 ? { l: cx - half, r: cx + half, y: Math.max(7, Math.round(top + 7)) } : null; // die Schrift schrumpft notfalls (battle.js)
 };
 // Unterkante der Boss-Knöpfe nur zweimal pro Sekunde messen (jedes Bild erzwang ein Layout)
 Battle.uiTop = function () {

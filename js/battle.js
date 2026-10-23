@@ -1415,14 +1415,15 @@ const Battle = {
   drawTrail(ctx, biome, label, bx, by, bw, cx) {
     const t = this.t, guard = Run.guardian();
     // Kasten mit Farbkante im Gebietston
-    Draw.rrect(ctx, bx - 12, by - 7, bw + 24, 52, 14, 'rgba(14,10,32,0.62)');
+    const bh = this.trailBox ? 44 : 52; // in der HUD-Zeile (quer) flacher, damit sie zu den Pillen passt
+    Draw.rrect(ctx, bx - 12, by - 7, bw + 24, bh, 14, 'rgba(14,10,32,0.62)');
     ctx.save();
     ctx.globalAlpha = 0.85; ctx.strokeStyle = guard ? '#ffd34d' : biome.accent || '#c7b3ff'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.roundRect(bx - 12, by - 7, bw + 24, 52, 14); ctx.stroke();
+    ctx.beginPath(); ctx.roundRect(bx - 12, by - 7, bw + 24, bh, 14); ctx.stroke();
     ctx.restore();
     ctx.fillStyle = '#fff';
-    ctx.fillText(label, cx, by + 9);
-    const ty = by + 30, x0 = bx + 6, x1 = bx + bw - 22;
+    ctx.fillText(label, cx, by + (this.trailBox ? 6 : 9));
+    const ty = by + (this.trailBox ? 25 : 30), x0 = bx + 6, x1 = bx + bw - 22;
     if (this.bossState === 'active' && this.bossObj) {
       // Lunte: brennt von rechts nach links ab, vorne sprüht ein Funke
       const frac = U.clamp(this.bossTimer / this.bossTimeMax, 0, 1), fx = x0 + (x1 + 18 - x0) * frac;

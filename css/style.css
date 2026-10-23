@@ -1796,3 +1796,36 @@ body.bossfight #bossWrap { opacity: 0; pointer-events: none; } /* im Bosskampf f
   #dock { gap: 8px; transform-origin: 50% 100%; }
 }
 #dock { transform-origin: 50% 100%; }
+
+/* ---- Menü-Knopf so groß wie die Schnellknöpfe darunter (48 px), Striche mitgewachsen */
+#menuBtn { width: 48px; height: 48px; border-radius: 15px; }
+#menuBtn .mb { gap: 5px; }
+#menuBtn .mb i { width: 22px; height: 3.4px; }
+body.more-open #menuBtn .mb i:nth-child(1) { transform: translateY(8.4px) rotate(135deg); }
+body.more-open #menuBtn .mb i:nth-child(3) { transform: translateY(-8.4px) rotate(-135deg); }
+#menuBtn .dot { top: -6px; right: -6px; }
+@media (max-height: 500px) and (orientation: landscape) { #railL { left: calc(8px + env(safe-area-inset-left)); } } /* bündig unter dem Menü-Knopf */
+
+/* ---- Maus über Symbolen: kleine Animationen (nur Geräte mit Maus) */
+@media (hover: hover) and (pointer: fine) {
+  .railb, #dock .dk, .skill, .hudbtn, #menuBtn, .res, .lvl { transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s, filter 0.18s; }
+  .railb:hover { transform: translateY(-3px) scale(1.07); filter: brightness(1.15); }
+  .railb:hover .ri { animation: icWiggle 0.5s ease-in-out; }
+  #menuBtn:hover { transform: translateY(-2px) scale(1.06); filter: brightness(1.12); }
+  body:not(.more-open) #menuBtn:hover .mb i:nth-child(1) { transform: translateX(-2px); }
+  body:not(.more-open) #menuBtn:hover .mb i:nth-child(3) { transform: translateX(2px); }
+  #dock .dk:hover { transform: translateY(-5px) scale(1.08); }
+  #dock .dk:hover .dki { animation: icBounce 0.55s ease-in-out; }
+  .skill:hover { transform: translateY(-3px) scale(1.06); }
+  .skill:hover .si { animation: icWiggle 0.5s ease-in-out; }
+  .hudbtn:hover { transform: scale(1.1); filter: brightness(1.2); }
+  .res:hover .hi, .lvl:hover b { animation: icSpin 0.6s ease-in-out; }
+  #bossBtn:hover { filter: brightness(1.12); }
+  #bossBtn:hover .bb-i { animation: icBounce 0.55s ease-in-out; }
+  #autoBossBtn:hover .ab-sw { box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 8px rgba(110, 231, 160, 0.6); }
+}
+@keyframes icWiggle { 25% { transform: rotate(-12deg) scale(1.1); } 50% { transform: rotate(10deg) scale(1.1); } 75% { transform: rotate(-5deg); } }
+@keyframes icBounce { 30% { transform: translateY(-5px) scale(1.12); } 55% { transform: translateY(1px) scale(0.96); } 80% { transform: translateY(-2px); } }
+@keyframes icSpin { 50% { transform: rotateY(180deg) scale(1.1); } to { transform: rotateY(360deg); } }
+@media (prefers-reduced-motion: reduce) { .railb:hover .ri, #dock .dk:hover .dki, .skill:hover .si, .res:hover .hi, .lvl:hover b, #bossBtn:hover .bb-i { animation: none; } }
+.skill .si, #dock .dk .dki, .lvl b, .railb .ri { display: inline-block; } /* transform-Animationen brauchen Block-Elemente */
