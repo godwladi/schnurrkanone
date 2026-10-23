@@ -60,7 +60,10 @@ const Battle = {
     this.Wp = this.W - this.insetR; // nutzbare Breite links der Leiste
     this.groundY = Math.min(this.H * 0.8, this.H - 58 - this.insetB); // Füße über der Skill-Leiste
     // Größe nach Höhe UND Breite: im hohen Handy-Vollbild sonst riesige Katze, Gegner abgeschnitten
-    this.cs = U.clamp(Math.min(this.H / 420, this.Wp / 440), 0.8, 1.7);
+    // Desktop (großes Fenster, Maus): Figuren dürfen größer werden, sonst wirkt das Spielfeld leer
+    const maxCs = matchMedia('(min-width: 1001px) and (min-height: 501px) and (pointer: fine)').matches ? 2.4 : 1.7;
+    this.cs = U.clamp(Math.min(this.H / 420, this.Wp / 440), 0.8, maxCs);
+    this.uiS = Math.min(1.5, Math.max(1, this.cs * 0.9)); // Anzeigen im Spielfeld (Stufenleiste, Meter, Zeit): am Desktop größer
     this.catX = Math.max(80, this.W * 0.13, 95 * this.cs); // Platz für Goldfisch und Eule links
     // schmal (Handy hochkant): Front näher an die Katze, sonst stapeln sich die Hindernisse
     this.frontX = this.Wp < 520 ? Math.max(this.catX + 135 * this.cs, this.Wp * 0.4) : Math.max(this.catX + 200 * this.cs, this.Wp * 0.47);
@@ -1428,7 +1431,7 @@ const Battle = {
 
   // Raumleiste: Pfotenspur mit 10 Stationen, die Katze läuft mit, am Ende wartet der Boss.
   // Im Bosskampf wird daraus eine brennende Lunte (Countdown).
-  drawTrail(ctx, biome, label, bx, by, bw, cx) {
+  drawTrail(ctx, biome, label, bx, by, bw, cx, sc = 1) {
     const t = this.t, guard = Run.guardian();
     // Kasten mit Farbkante im Gebietston
     const bh = this.trailBox ? 44 : 52; // in der HUD-Zeile (quer) flacher, damit sie zu den Pillen passt
@@ -1454,7 +1457,8 @@ const Battle = {
       sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.3, '#ffd34d'); sg.addColorStop(1, 'rgba(255,90,40,0)');
       ctx.fillStyle = sg; ctx.fillRect(fx - fl * 2, ty - fl * 2, fl * 4, fl * 4);
       ctx.restore();
-      if (Math.random() < 0.4) this.particle(fx, ty, U.rand(-40, 20), U.rand(-60, -10), U.pick(['#ffd34d', '#ff8a3c', '#fff']), 0.35, 2.2, 200, false, 'spark');
+      // Funken in Weltkoordinaten: die Lunte ist um die Mitte der Leiste skaliert gezeichnet
+      if (Math.random() < 0.4) this.particle(cx + (fx - cx) * sc, by + (ty - by) * sc, U.rand(-40, 20), U.rand(-60, -10), U.pick(['#ffd34d', '#ff8a3c', '#fff']), 0.35, 2.2, 200, false, 'spark');
       ctx.font = '800 11px "Segoe UI", sans-serif'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,10,30,0.9)';
       const tt = `⏱ ${this.bossTimer.toFixed(1)} s`;
       ctx.strokeText(tt, cx, ty + 0.5); ctx.fillStyle = hot && Math.sin(t * 12) > 0 ? '#ffb3c1' : '#fff'; ctx.fillText(tt, cx, ty + 0.5);
@@ -1525,7 +1529,8 @@ const Battle = {
     let fs = 15 * k;
     ctx.font = `800 ${fs}px "Segoe UI", system-ui, sans-serif`;
     const tw = ctx.measureText(label).width;
-    let bw = Math.min(W - 64, Math.max(Math.min(360, W * 0.5), tw + 6)), by = 14 + iT;
+    const sc = this.trailBox ? 1 : this.uiS; // Stufenleiste am Desktop größer, quer am Handy unverändert
+    let bw = Math.min((W - 64) / sc, Math.max(Math.min(360, W * 0.5), tw + 6)), by = 14 + iT;
     // mittig im ganzen Spielfeld, aber nie unter die Symbolleiste rechts
     let bcx = Math.min(this.W / 2, W - bw / 2 - 20);
     // Handy quer: in der freien Lücke der oberen HUD-Zeile (trailBox aus hud.js), damit
@@ -1534,7 +1539,9 @@ const Battle = {
     if (tb) { bw = Math.min(bw, tb.r - tb.l - 24); bcx = (tb.l + tb.r) / 2; by = tb.y; }
     const bx = bcx - bw / 2;
     if (tw > bw) { fs *= bw / tw; ctx.font = `800 ${fs}px "Segoe UI", system-ui, sans-serif`; }
-    this.drawTrail(ctx, biome, label, bx, by, bw, bcx);
+    ctx.save(); ctx.translate(bcx, by); ctx.scale(sc, sc); ctx.translate(-bcx, -by);
+    this.drawTrail(ctx, biome, label, bx, by, bw, bcx, sc);
+    ctx.restore();
 
     // Combo (breit: rechts oben; schmal: rechts unter den Boss-Knöpfen, kleiner)
     {
@@ -1561,6 +1568,8 @@ const Battle = {
     // Schnurr-Meter
     // quer: hud.js legt Breite und Mitte zwischen Skills und Symbolleiste fest
     const mw = this.meterW || Math.min(260, W * 0.3), mx = this.meterX !== undefined ? this.meterX : W - mw - 18, my = H - 30 - (this.meterB !== undefined ? this.meterB : iB);
+    // groß am Desktop: vom rechten Rand aus skaliert, damit der Meter nicht über den Bildschirm ragt
+    ctx.save(); ctx.translate(mx + mw, my); ctx.scale(this.uiS, this.uiS); ctx.translate(-(mx + mw), -my);
     Draw.rrect(ctx, mx - 6, my - 22, mw + 12, 40, 10, 'rgba(20,14,40,0.55)');
     ctx.font = '700 11px "Segoe UI", sans-serif'; ctx.fillStyle = '#ffd6f3'; ctx.textAlign = 'left';
     ctx.fillText(this.frenzy > 0 ? `RASEREI ${this.frenzy.toFixed(1)} s` : W < 520 ? 'SCHNURR-METER' : 'SCHNURR-METER · klicken!', mx, my - 11);
@@ -1569,6 +1578,7 @@ const Battle = {
     const gr = ctx.createLinearGradient(mx, 0, mx + mw, 0);
     gr.addColorStop(0, '#ff7ad9'); gr.addColorStop(1, '#9d7bff');
     ctx.fillStyle = gr; ctx.beginPath(); ctx.roundRect(mx, my - 2, Math.max(0.001, mw * f), 12, 6); ctx.fill();
+    ctx.restore();
 
     // Banner
     if (this.banner) {

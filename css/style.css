@@ -1843,3 +1843,43 @@ body.more-open #menuBtn .mb i:nth-child(3) { transform: translateY(-8.4px) rotat
 .stk b { font-size: 10.5px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .stk small { font-size: 9.5px; color: var(--muted); }
 .lovelist { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+
+/* ---- Desktop (großes Fenster, Maus): Bedienelemente größer, damit nichts winzig und leer wirkt.
+   Nur mit echter Maus – Handys und Tablets behalten ihre Maße. */
+@media (min-width: 1001px) and (min-height: 501px) and (pointer: fine) {
+  body { font-size: 16px; }
+  #railL { gap: 16px; top: calc(var(--hudH) + 16px); }
+  .railb { width: 64px; height: 64px; border-radius: 18px; }
+  .railb.sm { width: 54px; height: 54px; border-radius: 16px; }
+  .railb .ri .ic { width: 38px; height: 38px; }
+  .railb.sm .ri .ic { width: 30px; height: 30px; }
+  #skills { gap: 14px; left: 20px; bottom: 20px; }
+  .skill { width: 78px; height: 78px; border-radius: 22px; }
+  .skill .si .ic { width: 38px; height: 38px; }
+  #tabs { padding: 12px 12px 0; gap: 6px; }
+  #tabs .tab { padding: 8px 6px 9px; font-size: 14px; }
+  #tabContent { padding: 16px; margin: 0 12px 12px; }
+  .card { gap: 14px; padding: 13px 14px; border-radius: 14px; }
+  .card .ci { font-size: 34px; width: 48px; }
+  .card .ci.big { font-size: 42px; }
+  .card .cn { font-size: 16px; }
+  .card .cd { font-size: 14px; }
+  .btn { padding: 11px 18px; font-size: 16px; }
+  #pups { gap: 16px; top: 120px; }
+  .pup { width: 62px; height: 62px; }
+  .pup .pi { font-size: 28px; }
+  .pup .pi .ic { width: 34px; height: 34px; }
+  .pup b { font-size: 13px; padding: 3px 8px; bottom: -11px; }
+}
+/* obere Leiste nur bei wirklich breiten Fenstern größer – sonst rutscht die Anzeige unter das Menü */
+@media (min-width: 1500px) and (min-height: 700px) and (pointer: fine) {
+  #hud { height: 68px; gap: 12px; padding: 10px 18px; }
+  .logo { font-size: 24px; }
+  .res { height: 42px; min-width: 120px; gap: 8px; padding: 4px 16px 4px 8px; }
+  .res .hi { width: 34px; height: 34px; }
+  .res .hi .ic { width: 26px; height: 26px; }
+  .res b { font-size: 18px; }
+  .lvl b { font-size: 15px; }
+  .hudbtn { width: 46px; height: 46px; font-size: 22px; }
+  .stat b { font-size: 18px; }
+}

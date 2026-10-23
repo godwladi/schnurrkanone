@@ -293,9 +293,11 @@ const Rooms = {
       const w = this.timeWarp(), W = B.Wp || B.W;
       ctx.save();
       ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      Draw.rrect(ctx, 12, B.H - 104 - (B.insetB || 0), 104, 24, 12, 'rgba(20,10,50,0.7)');
-      ctx.font = '800 12px "Segoe UI", "Segoe UI Emoji", sans-serif'; ctx.fillStyle = w > 1 ? '#7ef9ff' : '#ff7ad9';
-      ctx.fillText(`🌀 Zeit ×${w.toFixed(2)}`, 22, B.H - 92 - (B.insetB || 0));
+      // am Desktop größer und über den Skill-Knöpfen (sonst liegt sie auf dem ersten Knopf)
+      const u = B.uiS || 1, py = B.H - 104 - (B.insetB || 0) - (u > 1 ? 52 : 0);
+      Draw.rrect(ctx, 12, py, 128 * u, 24 * u, 12 * u, 'rgba(20,10,50,0.7)');
+      ctx.font = `800 ${12 * u}px "Segoe UI", "Segoe UI Emoji", sans-serif`; ctx.fillStyle = w > 1 ? '#7ef9ff' : '#ff7ad9';
+      ctx.fillText(`🌀 Zeit ×${w.toFixed(2)}`, 12 + 10 * u, py + 12 * u);
       ctx.restore();
       if (W) {
         // leichte Verzerrung am Rand: farbige Kanten
