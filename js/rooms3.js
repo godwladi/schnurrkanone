@@ -574,9 +574,14 @@ Rooms.drawScreen = function (ctx, B) {
       ctx.globalAlpha = 0.8; Draw.ellipse(ctx, b.x + Math.sin(b.ph) * 4 - r * 0.35, b.y - r * 0.4, r * 0.25, r * 0.15, '#ffffff');
       ctx.restore();
     }
-    if (this.inkT > 0) { // Tintenwolke
-      ctx.save(); ctx.globalAlpha = Math.min(0.75, this.inkT * 0.6);
-      for (let i = 0; i < 7; i++) Draw.circle(ctx, (B.Wp || B.W) * (0.2 + (i * 0.13) % 0.7), B.H * (0.3 + (i * 0.21) % 0.4), Math.min(B.W, B.H) * (0.18 + (i % 3) * 0.05), '#140a2a');
+    if (this.inkT > 0) { // Tintenwolke: weiche Schwaden, Gegner und Zahlen bleiben durchscheinend sichtbar
+      ctx.save(); ctx.globalAlpha = Math.min(1, this.inkT / 0.5);
+      for (let i = 0; i < 6; i++) {
+        const x = (B.Wp || B.W) * (0.25 + (i * 0.17) % 0.6), y = B.H * (0.3 + (i * 0.23) % 0.4), r = Math.min(B.W, B.H) * (0.2 + (i % 3) * 0.05);
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, 'rgba(20,10,42,0.45)'); g.addColorStop(0.6, 'rgba(20,10,42,0.22)'); g.addColorStop(1, 'rgba(20,10,42,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      }
       ctx.restore();
     }
     pill('🐟 Luftblasen antippen: Schnurr-Meter und Heilung', '#7ef9ff');

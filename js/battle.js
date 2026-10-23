@@ -1249,15 +1249,22 @@ const Battle = {
       }
     }
 
-    // Schadenszahlen
+    // Schadenszahlen: springen mit Überschwingen auf (easeOutBack), kritische größer und wackeln nach
     for (const tx of this.txt) {
-      const a = U.clamp(tx.life / tx.max * 1.6, 0, 1);
-      const pop = 1 + Math.max(0, (tx.life - tx.max + 0.15)) * (tx.big ? 4 : 2.5) + (tx.bump > 0 ? tx.bump * 2.2 : 0);
+      const age = tx.max - tx.life, a = U.clamp(tx.life / tx.max * 1.6, 0, 1);
+      const p = U.clamp(age / 0.22, 0, 1), c = 1.70158;
+      const back = 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2);
+      const s = (tx.big ? 1.25 : 1) * Math.max(0, back) * (tx.bump > 0 ? 1 + tx.bump * 0.8 : 1);
+      const wob = tx.big ? Math.sin(age * 28) * 0.14 * Math.max(0, 1 - age * 3.5) : 0;
+      ctx.save();
       ctx.globalAlpha = a;
-      ctx.font = `900 ${tx.size * pop}px "Segoe UI", system-ui, sans-serif`;
-      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(30,20,40,0.85)';
-      ctx.strokeText(tx.text, tx.x, tx.y);
-      ctx.fillStyle = tx.color; ctx.fillText(tx.text, tx.x, tx.y);
+      ctx.translate(tx.x, tx.y); ctx.rotate(wob); ctx.scale(s, s);
+      ctx.font = `900 ${tx.size}px "Segoe UI", system-ui, sans-serif`;
+      ctx.lineJoin = 'round'; ctx.lineWidth = tx.big ? 5 : 4;
+      ctx.strokeStyle = tx.big ? 'rgba(90,30,0,0.9)' : 'rgba(30,20,40,0.85)';
+      ctx.strokeText(tx.text, 0, 0);
+      ctx.fillStyle = tx.color; ctx.fillText(tx.text, 0, 0);
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
     if (typeof Mirror !== 'undefined') Mirror.end(ctx);
