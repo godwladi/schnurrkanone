@@ -314,7 +314,12 @@ const Battle = {
       if (p.floor && p.y > this.groundY + 6) { p.y = this.groundY + 6; p.vy *= -0.35; p.vx *= 0.7; }
     }
     this.parts = this.parts.filter(p => p.life > 0);
-    for (const tx of this.txt) { if (tx.bump > 0) tx.bump -= realDt; tx.x += (tx.vx || 0) * dt; tx.vx *= Math.pow(0.05, dt); tx.y += tx.vy * dt; tx.vy *= Math.pow(0.05, dt); tx.life -= dt; }
+    for (const tx of this.txt) {
+      if (tx.bump > 0) tx.bump -= realDt;
+      // Zahl bleibt am Gegner: läuft er (Einlauf, Rückstoß), wandert die Zahl mit
+      if (tx.o) { const ax = tx.o.x, ay = tx.o.y - OBST_H[tx.o.kind] * tx.o.scale; tx.x += ax - tx.ax; tx.y += ay - tx.ay; tx.ax = ax; tx.ay = ay; }
+      tx.x += (tx.vx || 0) * dt; tx.vx *= Math.pow(0.05, dt); tx.y += tx.vy * dt; tx.vy *= Math.pow(0.05, dt); tx.life -= dt;
+    }
     this.txt = this.txt.filter(t => t.life > 0);
 
     // Münzen/Gräten fliegen zur Anzeige
@@ -889,7 +894,8 @@ const Battle = {
     if (this.txt.length > 36) return;
     const cs = this.cs, top = o.y - OBST_H[o.kind] * o.scale;
     tx = { x: o.x + (crit ? 14 : -16) * cs, y: top - (crit ? 30 : 8) * cs, vx: 0, vy: crit ? -34 : -26, text: U.fmt(dmg) + (crit ? '!' : ''), color: crit ? '#ffe14d' : '#ffffff',
-      size: (crit ? 20 : 13) * cs, life: crit ? 0.9 : 0.7, max: crit ? 0.9 : 0.7, big: crit, sum: dmg, bump: 0.15 };
+      size: (crit ? 20 : 13) * cs, life: crit ? 0.9 : 0.7, max: crit ? 0.9 : 0.7, big: crit, sum: dmg, bump: 0.15,
+      o, ax: o.x, ay: top, boss: !!o.boss };
     // Nachbarn (eng stehende Gegner am Handy) nicht überdecken: notfalls eine Zeile höher
     for (let k = 0; k < 3; k++) {
       const hit = this.txt.find(q => q.life > 0.15 && Math.abs(q.x - tx.x) < (q.text.length + tx.text.length) * tx.size * 0.27 && Math.abs(q.y - tx.y) < Math.max(q.size, tx.size) * 0.95);
@@ -1255,7 +1261,9 @@ const Battle = {
       const age = tx.max - tx.life, a = U.clamp(tx.life / tx.max * 1.6, 0, 1);
       const p = U.clamp(age / 0.22, 0, 1), c = 1.70158;
       const back = 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2);
-      const s = (tx.big ? 1.25 : 1) * Math.max(0, back) * (tx.bump > 0 ? 1 + tx.bump * 0.8 : 1);
+      // Boss-Treffer: die Zahl knallt mit einem Stempel-Stoß ins Bild und ist größer
+      const stamp = tx.boss && p < 1 ? 1 + 0.7 * (1 - p) * (1 - p) : 1;
+      const s = (tx.big ? 1.25 : 1) * (tx.boss ? 1.3 : 1) * stamp * Math.max(0, back) * (tx.bump > 0 ? 1 + tx.bump * 0.8 : 1);
       const wob = tx.big ? Math.sin(age * 28) * 0.14 * Math.max(0, 1 - age * 3.5) : 0;
       ctx.save();
       ctx.globalAlpha = a;

@@ -90,12 +90,17 @@ const Traits = {
 
   onKill(B, o) {
     if (o.trait !== 'splitter') return;
+    // Die Hälften kommen direkt hinter den Gegner in die Reihe (nicht ans Ende): so laufen die
+    // Gegner dahinter nicht durch sie hindurch, sondern rücken hinter ihnen wieder ein.
+    const at = B.obs.indexOf(o), minis = [];
     for (const dx of [-26, 26]) {
       const m = Battle.makeObstacle(false);
       Object.assign(m, { kind: o.kind, mini: true, trait: null, golden: false, fruit: false, treasure: false, shade: null, x: o.x + dx * B.cs, scale: o.scale * 0.62, hp: o.maxHp * 0.3, maxHp: o.maxHp * 0.3 });
       m.kx = dx * 0.5; m.squash = 0.25;
-      B.obs.push(m);
+      minis.push(m);
     }
+    B.obs.splice(at < 0 ? B.obs.length : at + 1, 0, ...minis);
+    B.realignT = 1.5; // dahinter stehende Gegner rücken nach hinten, damit die Hälften Platz haben
     FX.addRing(o.x, this.cy(o), 70 * B.cs, '#ff8fb0', 0.3, 5);
     SFX.play('split');
   },
