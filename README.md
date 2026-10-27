@@ -23,6 +23,11 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 | Drag & Drop | Gleiche Waffen verschmelzen, ausrüsten, verwerten |
 | Doppelklick auf Waffe | An-/Ablegen |
 
+## Groove-Engine (`js/groove.js`, siehe `MOONSHOT.md`)
+- Solange Musik läuft, pulsiert unter der Katze auf jedem Schlag ein Ring.
+- **Im Takt:** Pfotenhiebe genau auf dem hörbaren Schlag (±90 ms) machen ×2 Pfotenschaden, **Perfekt** (±40 ms) ×3, +1 Schnurr-Meter, Noten steigen auf. Daneben reißt nur die Serie.
+- **Groove:** 8 Hiebe im Takt in Folge → 8 s +25 % auf allen Schaden, die Band spielt ein Saxophon-Lick, der Takt-Ring wird golden.
+
 ## Leben, Boss-Angriffe & Vernichtungsschlag (`js/vitals.js`)
 - Die Katze hat **❤️ Leben** (Balken über dem Kopf, nur sichtbar wenn wichtig). Außerhalb von Bosskämpfen erholt sie sich von selbst.
 - Ab Stufe 3 **werfen Bosse** passend zum Gebiet (Zapfen, Stacheln, Schneebälle, Lavaregen, Dosen, Meteore). Antippen = **Parade**, das Geschoss trifft den Boss.
