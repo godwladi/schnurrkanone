@@ -27,6 +27,8 @@ Idle-Katzen-Shooter für den Desktop – inspiriert von *Idle Cat Gunner*, aber 
 - Solange Musik läuft, pulsiert unter der Katze auf jedem Schlag ein Ring.
 - **Im Takt:** Pfotenhiebe genau auf dem hörbaren Schlag (±90 ms) machen ×2 Pfotenschaden, **Perfekt** (±40 ms) ×3, +1 Schnurr-Meter, Noten steigen auf. Daneben reißt nur die Serie.
 - **Groove:** 8 Hiebe im Takt in Folge → 8 s +25 % auf allen Schaden, die Band spielt ein Saxophon-Lick, der Takt-Ring wird golden.
+- **Adaptive Partitur** (`js/score.js`): Die Spielmusik folgt dem Kampf. Ab Combo 20 setzen Bläser ein, in der Raserei spielt die volle Band mit Walking Bass, im Groove improvisiert das Saxophon. Bei wenig Leben klingt alles dumpf mit Herzschlag-Bass, und lädt der Boss den Vernichtungsschlag, steigt ein Ton mit Trommelwirbel an.
+- **Wippen im Takt:** Katze und Gegner federn auf jedem Schlag kurz (bei Groove, Raserei und Combo 20+ kräftiger); nur Zeichnung, Trefferflächen bleiben.
 
 ## Leben, Boss-Angriffe & Vernichtungsschlag (`js/vitals.js`)
 - Die Katze hat **❤️ Leben** (Balken über dem Kopf, nur sichtbar wenn wichtig). Außerhalb von Bosskämpfen erholt sie sich von selbst.

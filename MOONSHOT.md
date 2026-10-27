@@ -78,7 +78,7 @@ Im Pane über `schnurrkanone-dev` prüfen (Beat-Uhr läuft, Takt-Treffer werten,
 ---
 
 ## Nächste Monde (nach v1)
-1. Adaptive Partitur: Schichten nach Combo/Raserei/Leben (Säule 2).
+1. ~~Adaptive Partitur: Schichten nach Combo/Raserei/Leben (Säule 2).~~ ✅ `js/score.js` (2026-10-27), dazu Wippen im Takt
 2. Boss-Leitmotive + hörbares Vernichtungsschlag-Crescendo.
 3. Jam-Duell beim Erzwächter (Säule 3).
 4. Schallplatte am Ende des Streifzugs + Teil-Code (Säule 4).
